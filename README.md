@@ -13,6 +13,7 @@
 
 | 보고서 | 설명 |
 |--------|------|
+| [🚀 V2 분석 리포트](https://edu-data.github.io/GAIM_Lab/report_v2.html) | 차트 + 타임라인 + AI팁 + QR코드 |
 | [📋 종합 평가 보고서](https://edu-data.github.io/GAIM_Lab/comprehensive_report.html) | 2025-12-09 수업 시연 18개 영상 분석 |
 | [📝 샘플 분석 리포트](https://edu-data.github.io/GAIM_Lab/sample_report.html) | 7차원 평가 + Gemini 상세 피드백 예시 |
 | [🌐 GAIM Lab 웹사이트](https://edu-data.github.io/GAIM_Lab/) | 시스템 소개 및 데모 |
