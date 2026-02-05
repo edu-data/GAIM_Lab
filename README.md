@@ -1,55 +1,83 @@
-# GAIM Lab
+# 🎓 GAIM Lab
 
-**GINUE AI Microteaching Lab** - 예비교원 수업역량 강화 시스템
+**GINUE AI Microteaching Lab** - 예비교원 수업역량 AI 분석 플랫폼
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.9+-green)
 ![React](https://img.shields.io/badge/react-18+-61DAFB)
-![License](https://img.shields.io/badge/license-Private-red)
+![FastAPI](https://img.shields.io/badge/fastapi-0.100+-009688)
 
-## 📋 개요
+---
 
-GAIM Lab은 예비교원의 수업 역량을 분석하고 평가하는 AI 기반 시스템입니다. 수업 영상을 분석하여 7차원 평가 프레임워크에 따라 100점 만점으로 평가하고, 구체적인 피드백과 개선점을 제공합니다.
-
-### 주요 기능
-
-- 🎬 **영상 분석**: GPU 가속 FFmpeg를 활용한 고속 비디오 처리
-- 👁️ **비전 분석**: 시선, 제스처, 자세 등 비언어적 요소 분석
-- 🎤 **오디오 분석**: 음성, 발화 패턴, 억양 분석
-- 📊 **7차원 평가**: 초등 임용 2차 수업실연 기준 기반 평가
-- 📈 **포트폴리오**: 학습자별 성장 추적 및 시각화
-- 🏅 **디지털 배지**: 성취 기반 배지 시스템
-- 📋 **리포트 생성**: HTML/PDF 상세 보고서
-
-### 📊 분석 결과 보고서
+## 📊 분석 결과
 
 | 보고서 | 설명 |
 |--------|------|
-| [📋 종합 평가 보고서](https://edu-data.github.io/GAIM_Lab/comprehensive_report.html) | 18개 영상 배치 분석 결과 |
-| [🌐 GAIM Lab 웹사이트](https://edu-data.github.io/GAIM_Lab/) | 시스템 소개 페이지 |
+| [📋 종합 평가 보고서](https://edu-data.github.io/GAIM_Lab/comprehensive_report.html) | 2025-12-09 수업 시연 18개 영상 분석 |
+| [🌐 GAIM Lab 웹사이트](https://edu-data.github.io/GAIM_Lab/) | 시스템 소개 및 데모 |
 
-## 🏗️ 프로젝트 구조
+---
+
+## 📋 개요
+
+GAIM Lab은 **AI 기반 수업 분석 시스템**으로, 예비교원의 수업 영상을 분석하여 7차원 평가 프레임워크에 따라 100점 만점으로 평가합니다. 초등학교 교사 임용 2차 수업실연 기준을 기반으로 구체적인 피드백과 개선점을 제공합니다.
+
+### ✨ 핵심 기능
+
+| 기능 | 설명 |
+|------|------|
+| 🎬 **영상 분석** | GPU 가속 FFmpeg를 활용한 고속 비디오 처리 |
+| 👁️ **비전 분석** | 시선, 제스처, 자세 등 비언어적 요소 분석 |
+| 🎤 **오디오 분석** | 음성 인식, 발화 속도, 억양 패턴 분석 |
+| 📊 **7차원 평가** | 초등 임용 2차 수업실연 기준 기반 자동 평가 |
+| 📦 **일괄 분석** | 다수 영상 배치 처리 및 CSV 리포트 생성 |
+| 📈 **포트폴리오** | 학습자별 성장 추적 및 시각화 |
+| 🏅 **디지털 배지** | 성취 기반 배지 발급 시스템 |
+| 📋 **리포트** | HTML/PDF 상세 보고서 자동 생성 |
+
+---
+
+## 🎯 7차원 평가 프레임워크
+
+초등학교 임용 2차 수업실연 평가 기준을 기반으로 한 100점 만점 평가 체계:
+
+| 차원 | 배점 | 평가 영역 |
+|------|:----:|-----------|
+| 수업 전문성 | 20점 | 학습목표 명료성, 학습내용 충실성 |
+| 교수학습 방법 | 20점 | 교수법 다양성, 학습활동 효과성 |
+| 판서 및 언어 | 15점 | 판서 가독성, 언어 명료성, 발화속도 |
+| 수업 태도 | 15점 | 교사 열정, 학생 소통, 자신감 |
+| 학생 참여 | 15점 | 질문 기법, 피드백 제공 |
+| 시간 배분 | 10점 | 수업 단계별 시간 균형 |
+| 창의성 | 5점 | 수업 기법의 창의성 |
+
+---
+
+## 🏗️ 시스템 구조
 
 ```
 GAIM_Lab/
-├── backend/              # FastAPI 백엔드
+├── backend/                 # FastAPI 백엔드
 │   ├── app/
-│   │   ├── api/          # REST API 엔드포인트
-│   │   ├── core/         # 핵심 비즈니스 로직
-│   │   └── services/     # 서비스 레이어
+│   │   ├── api/            # REST API 엔드포인트
+│   │   ├── core/           # 핵심 비즈니스 로직
+│   │   └── services/       # 서비스 레이어 (평가, 리포트)
 │   └── requirements.txt
-├── frontend/             # React 프론트엔드
+├── frontend/                # React 프론트엔드
 │   ├── src/
-│   │   ├── components/   # 재사용 컴포넌트
-│   │   └── pages/        # 페이지 컴포넌트
-│   ├── e2e/              # E2E 테스트
+│   │   ├── components/     # 재사용 컴포넌트
+│   │   └── pages/          # 페이지 (Dashboard, BatchAnalysis 등)
 │   └── package.json
-├── core/                 # 분석 엔진
-│   ├── agents/           # AI 에이전트
-│   └── analyzers/        # 분석 모듈
-├── docker/               # Docker 설정
-└── run_sample_analysis.py
+├── core/                    # 분석 엔진
+│   ├── agents/             # AI 에이전트
+│   └── analyzers/          # TimeLapse, Audio, Vision 분석 모듈
+├── docs/                    # GitHub Pages 문서
+├── output/                  # 분석 결과 출력
+├── batch_analysis.py        # 일괄 분석 스크립트
+└── run_sample_analysis.py   # 단일 영상 분석 스크립트
 ```
+
+---
 
 ## 🚀 시작하기
 
@@ -58,16 +86,22 @@ GAIM_Lab/
 - Python 3.9+
 - Node.js 18+
 - FFmpeg (GPU 가속 권장)
+- Google Gemini API Key
 
-### 백엔드 설치
+### Backend 설치
 
 ```bash
 cd backend
 pip install -r requirements.txt
+
+# 환경변수 설정
+export GOOGLE_API_KEY="your-gemini-api-key"
+
+# 서버 실행
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 프론트엔드 설치
+### Frontend 설치
 
 ```bash
 cd frontend
@@ -75,48 +109,67 @@ npm install
 npm run dev
 ```
 
-### 샘플 분석 실행
+### 단일 영상 분석
 
 ```bash
-python run_sample_analysis.py [영상파일경로]
+python run_sample_analysis.py video/sample.mp4
 ```
 
-## 📊 7차원 평가 프레임워크
+### 일괄 분석
 
-| 차원 | 배점 | 평가 영역 |
-|------|------|-----------|
-| 교수·학습 방법 | 20점 | 수업 전략, 교수법 |
-| 학습 내용 | 15점 | 내용 정확성, 구조화 |
-| 교수·학습 자료 | 10점 | 자료 활용도 |
-| 학습자 상호작용 | 15점 | 참여 유도, 피드백 |
-| 교사 언어 | 15점 | 발문, 설명력 |
-| 비언어적 요소 | 10점 | 시선, 제스처, 자세 |
-| 수업 분위기 | 15점 | 학습 환경 조성 |
+```bash
+# 전체 영상 분석
+python batch_analysis.py
+
+# 개수 제한
+python batch_analysis.py --limit 5
+```
+
+---
 
 ## 🔗 API 엔드포인트
 
-| 엔드포인트 | 설명 |
-|------------|------|
-| `POST /api/v1/analysis/upload` | 영상 업로드 |
-| `POST /api/v1/analysis/analyze` | 분석 시작 |
-| `GET /api/v1/analysis/{id}` | 분석 결과 조회 |
-| `GET /api/v1/portfolio` | 포트폴리오 조회 |
-| `GET /api/v1/badges` | 배지 목록 조회 |
+| Method | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `/api/v1/analysis/upload` | 영상 업로드 |
+| POST | `/api/v1/analysis/analyze` | 분석 시작 |
+| GET | `/api/v1/analysis/{id}` | 분석 결과 조회 |
+| GET | `/api/v1/analysis/batch/videos` | 배치 영상 목록 |
+| POST | `/api/v1/analysis/batch/start` | 배치 분석 시작 |
+| GET | `/api/v1/analysis/batch/{id}` | 배치 상태 조회 |
+| GET | `/api/v1/portfolio` | 포트폴리오 조회 |
+| GET | `/api/v1/badges` | 디지털 배지 목록 |
+
+---
 
 ## 🧪 테스트
 
 ```bash
-# 프론트엔드 단위 테스트
-cd frontend
-npm test
+# Frontend 단위 테스트
+cd frontend && npm test
 
 # E2E 테스트
 npm run test:e2e
 ```
 
+---
+
+## 📈 최근 분석 결과
+
+**2025-12-09 수업 시연 데이터** (18개 영상)
+
+- 📊 평균 점수: **15.0점** / 100점
+- 🏆 최고 점수: **18.8점** (20251209_154506.mp4)
+- ⏱️ 평균 처리 시간: **78.5초** / 영상
+- ✅ 성공률: **100%**
+
+[👉 전체 결과 보기](https://edu-data.github.io/GAIM_Lab/comprehensive_report.html)
+
+---
+
 ## 📄 라이선스
 
-Private - 무단 배포 금지
+Private - 경인교육대학교 연구용
 
 ---
 
