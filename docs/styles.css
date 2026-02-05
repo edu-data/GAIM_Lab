@@ -45,7 +45,7 @@ body {
 .hero-bg {
     position: absolute;
     inset: 0;
-    background: 
+    background:
         radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
         radial-gradient(ellipse at 80% 50%, rgba(34, 211, 238, 0.1) 0%, transparent 50%),
         radial-gradient(ellipse at 50% 100%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
@@ -63,6 +63,7 @@ body {
         opacity: 0;
         transform: translateY(30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -154,6 +155,27 @@ body {
 .cta-button:hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 40px rgba(99, 102, 241, 0.4);
+}
+
+/* Promo Video Section */
+.promo-video {
+    padding: 4rem 0 6rem;
+    background: linear-gradient(180deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+}
+
+.video-wrapper {
+    max-width: 900px;
+    margin: 2rem auto 0;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.video-wrapper video {
+    width: 100%;
+    height: auto;
+    display: block;
 }
 
 /* Features Section */
@@ -284,8 +306,13 @@ body {
 }
 
 @keyframes growBar {
-    from { width: 0; }
-    to { width: var(--width); }
+    from {
+        width: 0;
+    }
+
+    to {
+        width: var(--width);
+    }
 }
 
 /* Tech Stack Section */
@@ -397,15 +424,15 @@ body {
     .hero-stats {
         gap: 2rem;
     }
-    
+
     .eval-item {
         grid-template-columns: 60px 1fr;
     }
-    
+
     .eval-bar {
         grid-column: 1 / -1;
     }
-    
+
     .footer-content {
         flex-direction: column;
         text-align: center;
