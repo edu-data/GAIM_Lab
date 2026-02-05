@@ -120,6 +120,12 @@ class GAIMReportGenerator:
             gap: 30px;
             margin: 40px 0;
         }}
+        .chart-card.bar-chart {{
+            min-height: 500px;
+        }}
+        #barChart {{
+            height: 450px !important;
+        }}
         .chart-card {{
             background: rgba(30, 41, 59, 0.8);
             border-radius: 16px;
@@ -185,6 +191,41 @@ class GAIMReportGenerator:
             margin: 40px 0;
         }}
         
+        .dimension-feedbacks {{
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid #334155;
+            margin: 40px 0;
+        }}
+        .dimension-feedbacks h3 {{ margin-bottom: 20px; }}
+        .dim-feedback-item {{
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #1e293b;
+            border-radius: 12px;
+            border-left: 4px solid;
+        }}
+        .dim-feedback-item h4 {{
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+        .dim-feedback-item p {{
+            color: #94a3b8;
+            line-height: 1.7;
+            margin: 5px 0;
+        }}
+        .dim-score-badge {{
+            font-size: 0.85rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(79, 70, 229, 0.2);
+            color: #818cf8;
+        }}
+        
         .footer {{
             text-align: center;
             padding: 30px;
@@ -223,9 +264,9 @@ class GAIMReportGenerator:
                 <h3>📊 7차원 역량 분석</h3>
                 <canvas id="radarChart"></canvas>
             </div>
-            <div class="chart-card">
+            <div class="chart-card bar-chart">
                 <h3>📈 차원별 달성도</h3>
-                <canvas id="barChart"></canvas>
+                <canvas id="barChart" style="height: 450px;"></canvas>
             </div>
         </div>
         
@@ -262,6 +303,19 @@ class GAIMReportGenerator:
             <p style="margin-top: 15px; color: #94a3b8; line-height: 1.8;">
                 {evaluation.get("overall_feedback", "")}
             </p>
+        </div>
+        
+        <div class="dimension-feedbacks">
+            <h3>📝 차원별 상세 피드백</h3>
+            {"".join([f'''
+            <div class="dim-feedback-item" style="border-color: {colors[i % len(colors)]};">
+                <h4>
+                    <span>{["📚", "🎯", "🗣️", "🙋", "👥", "⏱️", "💡"][i]} {d["name"]}</span>
+                    <span class="dim-score-badge">{d["score"]}/{d["max_score"]} ({d["percentage"]}%)</span>
+                </h4>
+                {"".join([f"<p>• {fb}</p>" for fb in d.get("feedback", [])])}
+            </div>
+            ''' for i, d in enumerate(dimensions)])}
         </div>
         
         <div class="footer">
@@ -301,25 +355,52 @@ class GAIMReportGenerator:
             }}
         }});
         
-        // 바 차트
+        // 100점 만점 수직 라인 그래프
         const barCtx = document.getElementById('barChart').getContext('2d');
         new Chart(barCtx, {{
             type: 'bar',
             data: {{
-                labels: {json.dumps([d["name"][:4] for d in dimensions], ensure_ascii=False)},
+                labels: {json.dumps([d["name"] for d in dimensions], ensure_ascii=False)},
                 datasets: [{{
-                    label: '점수',
-                    data: {json.dumps([d["score"] for d in dimensions])},
+                    label: '점수 (100점 환산)',
+                    data: {json.dumps([round(d["percentage"], 1) for d in dimensions])},
                     backgroundColor: {json.dumps(colors[:len(dimensions)])},
-                    borderRadius: 4
+                    borderRadius: 6,
+                    barThickness: 35
                 }}]
             }},
             options: {{
+                indexAxis: 'x',
+                responsive: true,
+                maintainAspectRatio: false,
                 scales: {{
-                    x: {{ ticks: {{ color: '#94a3b8' }}, grid: {{ color: '#334155' }} }},
-                    y: {{ ticks: {{ color: '#94a3b8' }}, grid: {{ color: '#334155' }} }}
+                    x: {{ 
+                        ticks: {{ color: '#94a3b8', font: {{ size: 10 }}, maxRotation: 45, minRotation: 45 }}, 
+                        grid: {{ display: false }} 
+                    }},
+                    y: {{ 
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {{ 
+                            color: '#94a3b8',
+                            stepSize: 5,
+                            autoSkip: false,
+                            font: {{ size: 9 }},
+                            callback: function(value) {{ return value + '점'; }}
+                        }}, 
+                        grid: {{ color: '#334155' }} 
+                    }}
                 }},
-                plugins: {{ legend: {{ display: false }} }}
+                plugins: {{ 
+                    legend: {{ display: false }},
+                    tooltip: {{
+                        callbacks: {{
+                            label: function(context) {{
+                                return context.raw + '점/100점';
+                            }}
+                        }}
+                    }}
+                }}
             }}
         }});
     </script>
