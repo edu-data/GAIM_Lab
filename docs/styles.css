@@ -157,27 +157,6 @@ body {
     box-shadow: 0 10px 40px rgba(99, 102, 241, 0.4);
 }
 
-/* Promo Video Section */
-.promo-video {
-    padding: 3rem 0 4rem;
-    background: linear-gradient(180deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
-}
-
-.video-wrapper {
-    max-width: 600px;
-    margin: 1.5rem auto 0;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.video-wrapper video {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
 /* Features Section */
 .features {
     padding: 6rem 0;

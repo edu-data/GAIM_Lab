@@ -7,6 +7,12 @@
 ![React](https://img.shields.io/badge/react-18+-61DAFB)
 ![License](https://img.shields.io/badge/license-Private-red)
 
+## 🎬 소개 영상
+
+<https://github.com/user-attachments/assets/gaim-promo-video>
+
+> 📁 비디오 파일: [docs/video/gaim_promo_classical_full.mp4](docs/video/gaim_promo_classical_full.mp4)
+
 ## 📋 개요
 
 GAIM Lab은 예비교원의 수업 역량을 분석하고 평가하는 AI 기반 시스템입니다. 수업 영상을 분석하여 7차원 평가 프레임워크에 따라 100점 만점으로 평가하고, 구체적인 피드백과 개선점을 제공합니다.
