@@ -383,7 +383,7 @@ class GAIMReportGenerator:
                         max: 100,
                         ticks: {{ 
                             color: '#94a3b8',
-                            stepSize: 5,
+                            stepSize: 10,
                             autoSkip: false,
                             font: {{ size: 9 }},
                             callback: function(value) {{ return value + '점'; }}
