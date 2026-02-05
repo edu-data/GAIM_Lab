@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAIM Lab - 수업 분석 리포트</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            padding: 40px;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 16px;
+            border: 1px solid #334155;
+        }
+        .logo { font-size: 3rem; margin-bottom: 10px; }
+        h1 { 
+            font-size: 2rem;
+            background: linear-gradient(135deg, #818cf8 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle { color: #94a3b8; margin-top: 10px; }
+        
+        /* Score Section */
+        .score-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            margin: 40px 0;
+            padding: 40px;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 16px;
+            border: 1px solid #334155;
+        }
+        .score-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 40px rgba(79, 70, 229, 0.4);
+        }
+        .score-value { font-size: 3.5rem; font-weight: 700; }
+        .score-max { color: rgba(255,255,255,0.7); }
+        .grade {
+            font-size: 5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Cards & Sections */
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid #334155;
+            margin: 30px 0;
+        }
+        .card h3 { margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        /* Timeline */
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            padding: 20px 0;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4f46e5, #06b6d4, #10b981);
+            border-radius: 2px;
+        }
+        .timeline-item {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        .timeline-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4f46e5;
+            margin: 0 auto 10px;
+            border: 3px solid #1e293b;
+        }
+        .timeline-label { font-size: 0.9rem; color: #94a3b8; }
+        .timeline-value { font-weight: 600; color: #f8fafc; }
+        
+        /* Criteria Chart */
+        .criteria-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .criteria-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid;
+        }
+        .criteria-card h4 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .criteria-bar {
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        .criteria-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .criteria-score {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        /* Action Plan */
+        .action-plan {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .week-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            border-top: 4px solid;
+        }
+        .week-card h4 { margin-bottom: 15px; }
+        .week-card ul { list-style: none; }
+        .week-card li {
+            padding: 8px 0;
+            color: #94a3b8;
+            border-bottom: 1px solid #334155;
+        }
+        .week-card li:last-child { border-bottom: none; }
+        
+        /* AI Tips */
+        .tip-card {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(6, 182, 212, 0.1));
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .tip-card .tip-icon { font-size: 1.5rem; margin-right: 10px; }
+        .tip-card .tip-title { font-weight: 600; color: #818cf8; }
+        .tip-card .tip-content { color: #94a3b8; margin-top: 10px; line-height: 1.7; }
+        
+        /* QR Section */
+        .qr-section {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            justify-content: center;
+        }
+        .qr-code {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .qr-info { text-align: left; }
+        .qr-info h4 { margin-bottom: 10px; }
+        .qr-info p { color: #94a3b8; font-size: 0.9rem; }
+        
+        /* Feedback Section */
+        .feedback-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .feedback-card { padding: 25px; border-radius: 16px; }
+        .feedback-card.strengths {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .feedback-card.improvements {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .feedback-card ul { list-style: none; }
+        .feedback-card li { padding: 8px 0; color: #94a3b8; }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            border-top: 1px solid #334155;
+            margin-top: 40px;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { padding: 20px; }
+            .chart-grid, .feedback-grid, .action-plan { grid-template-columns: 1fr; }
+            .score-section { flex-direction: column; gap: 20px; }
+            .qr-section { flex-direction: column; text-align: center; }
+        }
+        
+        /* Print Optimization */
+        @media print {
+            body { background: white; color: black; padding: 20px; }
+            .card, .criteria-card, .week-card, .tip-card {
+                background: #f8fafc;
+                border-color: #e2e8f0;
+                page-break-inside: avoid;
+            }
+            .score-circle { box-shadow: none; border: 2px solid #4f46e5; }
+        }
+        </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🎓</div>
+            <h1>GAIM Lab 수업 분석 리포트</h1>
+            <p class="subtitle">sample_lecture | 2026년 02월 06일 00:46</p>
+        </div>
+        
+        <div class="score-section">
+            <div class="score-circle">
+                <div class="score-value">72.0</div>
+                <div class="score-max">/100점</div>
+            </div>
+            <div class="grade">보통</div>
+        </div>
+        
+        
+        <div class="card">
+            <h3>⏳ 수업 흐름 타임라인</h3>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: #4f46e5;"></div>
+                    <div class="timeline-label">도입</div>
+                    <div class="timeline-value">~5분</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: #06b6d4;"></div>
+                    <div class="timeline-label">전개 1</div>
+                    <div class="timeline-value">~15분</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: #10b981;"></div>
+                    <div class="timeline-label">전개 2</div>
+                    <div class="timeline-value">~15분</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: #f59e0b;"></div>
+                    <div class="timeline-label">정리</div>
+                    <div class="timeline-value">~5분</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-grid">
+            <div class="card">
+                <h3>📊 7차원 역량 분석</h3>
+                <canvas id="radarChart"></canvas>
+            </div>
+            <div class="card">
+                <h3>📈 차원별 달성도</h3>
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+        
+        
+        <div class="card">
+            <h3>📋 세부 평가 기준별 점수</h3>
+            <div class="criteria-grid">
+            <div class="criteria-card" style="border-color: #4f46e5;">
+                <h4>📚 수업 전문성 <span style="color: #4f46e5;">(85.0%)</span></h4>
+                
+                <div class="criteria-score">
+                    <span>학습목표 명료성</span>
+                    <span>9점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 90.0%; background: #4f46e5;"></div>
+                </div>
+                <div class="criteria-score">
+                    <span>학습내용 충실성</span>
+                    <span>8점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 80.0%; background: #4f46e5;"></div>
+                </div>
+            </div>
+            <div class="criteria-card" style="border-color: #06b6d4;">
+                <h4>🎯 교수학습 방법 <span style="color: #06b6d4;">(80.0%)</span></h4>
+                
+                <div class="criteria-score">
+                    <span>교수법 다양성</span>
+                    <span>8점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 80.0%; background: #06b6d4;"></div>
+                </div>
+                <div class="criteria-score">
+                    <span>학습활동 효과성</span>
+                    <span>8점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 80.0%; background: #06b6d4;"></div>
+                </div>
+            </div>
+            <div class="criteria-card" style="border-color: #10b981;">
+                <h4>🗣️ 판서 및 언어 <span style="color: #10b981;">(53.3%)</span></h4>
+                
+                <div class="criteria-score">
+                    <span>판서 가독성</span>
+                    <span>3점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 30.0%; background: #10b981;"></div>
+                </div>
+                <div class="criteria-score">
+                    <span>언어 명료성</span>
+                    <span>4점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 40.0%; background: #10b981;"></div>
+                </div>
+                <div class="criteria-score">
+                    <span>발화속도 적절성</span>
+                    <span>1점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 10.0%; background: #10b981;"></div>
+                </div>
+            </div>
+            <div class="criteria-card" style="border-color: #f59e0b;">
+                <h4>🙋 수업 태도 <span style="color: #f59e0b;">(33.3%)</span></h4>
+                
+                <div class="criteria-score">
+                    <span>교사 열정</span>
+                    <span>2점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 20.0%; background: #f59e0b;"></div>
+                </div>
+                <div class="criteria-score">
+                    <span>학생 소통</span>
+                    <span>1점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 10.0%; background: #f59e0b;"></div>
+                </div>
+                <div class="criteria-score">
+                    <span>자신감</span>
+                    <span>2점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 20.0%; background: #f59e0b;"></div>
+                </div>
+            </div>
+            <div class="criteria-card" style="border-color: #ef4444;">
+                <h4>👥 학생 참여 <span style="color: #ef4444;">(86.7%)</span></h4>
+                
+                <div class="criteria-score">
+                    <span>질문 기법</span>
+                    <span>6점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 60.0%; background: #ef4444;"></div>
+                </div>
+                <div class="criteria-score">
+                    <span>피드백 제공</span>
+                    <span>7점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 70.0%; background: #ef4444;"></div>
+                </div>
+            </div>
+            <div class="criteria-card" style="border-color: #8b5cf6;">
+                <h4>⏱️ 시간 배분 <span style="color: #8b5cf6;">(50.0%)</span></h4>
+                
+                <div class="criteria-score">
+                    <span>시간 균형</span>
+                    <span>5점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 50.0%; background: #8b5cf6;"></div>
+                </div>
+            </div>
+            <div class="criteria-card" style="border-color: #ec4899;">
+                <h4>💡 창의성 <span style="color: #ec4899;">(80.0%)</span></h4>
+                
+                <div class="criteria-score">
+                    <span>수업 창의성</span>
+                    <span>4점</span>
+                </div>
+                <div class="criteria-bar">
+                    <div class="criteria-fill" style="width: 40.0%; background: #ec4899;"></div>
+                </div>
+            </div></div>
+        </div>
+        
+        <div class="feedback-grid">
+            <div class="feedback-card strengths">
+                <h3>✅ 강점</h3>
+                <ul><li>✅ 학생 참여: 86.7%</li><li>✅ 수업 전문성: 85.0%</li></ul>
+            </div>
+            <div class="feedback-card improvements">
+                <h3>🔧 개선점</h3>
+                <ul><li>🔧 수업 태도: 개선 필요</li><li>🔧 시간 배분: 연습 필요</li></ul>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>💬 종합 피드백</h3>
+            <p style="color: #94a3b8; line-height: 1.8;">양호한 수업 시연입니다. 학생 참여와 수업 전문성이 강점이며, 수업 태도와 시간 배분 영역을 개선하면 더욱 우수한 수업이 될 것입니다.</p>
+        </div>
+        
+        
+        <style>
+            .dim-feedback-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin-top: 15px;
+            }
+            .dim-feedback-box {
+                padding: 15px;
+                border-radius: 10px;
+            }
+            .dim-feedback-box.strengths {
+                background: rgba(16, 185, 129, 0.1);
+                border: 1px solid rgba(16, 185, 129, 0.2);
+            }
+            .dim-feedback-box.improvements {
+                background: rgba(245, 158, 11, 0.1);
+                border: 1px solid rgba(245, 158, 11, 0.2);
+            }
+            .dim-feedback-box h5 {
+                margin-bottom: 10px;
+                font-size: 0.9rem;
+            }
+            .dim-feedback-box ul {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+            .dim-feedback-box li {
+                padding: 5px 0;
+                color: #94a3b8;
+                font-size: 0.9rem;
+                line-height: 1.6;
+            }
+            .dim-badge {
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                margin-left: 10px;
+            }
+            @media (max-width: 768px) {
+                .dim-feedback-grid { grid-template-columns: 1fr; }
+            }
+        </style>
+        <div class="card">
+            <h3>📝 차원별 상세 피드백</h3>
+            
+            <div class="criteria-card dim-feedback-card" style="border-color: #4f46e5; margin-bottom: 20px;">
+                <h4>📚 수업 전문성 
+                    <span class="dim-badge" style="background: #4f46e520; color: #4f46e5;">
+                        17/20 (85.0%)
+                    </span>
+                </h4>
+                <div class="dim-feedback-grid">
+                    
+                <div class="dim-feedback-box strengths">
+                    <h5>💪 강점</h5>
+                    <ul><li>✅ 학습 목표가 명확히 제시됨</li></ul>
+                </div>
+                    
+                </div>
+            </div>
+            <div class="criteria-card dim-feedback-card" style="border-color: #06b6d4; margin-bottom: 20px;">
+                <h4>🎯 교수학습 방법 
+                    <span class="dim-badge" style="background: #06b6d420; color: #06b6d4;">
+                        16/20 (80.0%)
+                    </span>
+                </h4>
+                <div class="dim-feedback-grid">
+                    
+                <div class="dim-feedback-box strengths">
+                    <h5>💪 강점</h5>
+                    <ul><li>✅ 다양한 교수법 활용</li></ul>
+                </div>
+                    
+                </div>
+            </div>
+            <div class="criteria-card dim-feedback-card" style="border-color: #10b981; margin-bottom: 20px;">
+                <h4>🗣️ 판서 및 언어 
+                    <span class="dim-badge" style="background: #10b98120; color: #10b981;">
+                        8/15 (53.3%)
+                    </span>
+                </h4>
+                <div class="dim-feedback-grid">
+                    
+                    
+                <div class="dim-feedback-box improvements">
+                    <h5>📈 개선점</h5>
+                    <ul><li>🔧 발화 속도 개선 필요</li></ul>
+                </div>
+                </div>
+            </div>
+            <div class="criteria-card dim-feedback-card" style="border-color: #f59e0b; margin-bottom: 20px;">
+                <h4>🙋 수업 태도 
+                    <span class="dim-badge" style="background: #f59e0b20; color: #f59e0b;">
+                        5/15 (33.3%)
+                    </span>
+                </h4>
+                <div class="dim-feedback-grid">
+                    
+                    
+                <div class="dim-feedback-box improvements">
+                    <h5>📈 개선점</h5>
+                    <ul><li>🔧 시선 처리 개선 필요</li></ul>
+                </div>
+                </div>
+            </div>
+            <div class="criteria-card dim-feedback-card" style="border-color: #ef4444; margin-bottom: 20px;">
+                <h4>👥 학생 참여 
+                    <span class="dim-badge" style="background: #ef444420; color: #ef4444;">
+                        13/15 (86.7%)
+                    </span>
+                </h4>
+                <div class="dim-feedback-grid">
+                    
+                <div class="dim-feedback-box strengths">
+                    <h5>💪 강점</h5>
+                    <ul><li>✅ 효과적인 발문 사용</li></ul>
+                </div>
+                    
+                </div>
+            </div>
+            <div class="criteria-card dim-feedback-card" style="border-color: #8b5cf6; margin-bottom: 20px;">
+                <h4>⏱️ 시간 배분 
+                    <span class="dim-badge" style="background: #8b5cf620; color: #8b5cf6;">
+                        5/10 (50.0%)
+                    </span>
+                </h4>
+                <div class="dim-feedback-grid">
+                    
+                    
+                <div class="dim-feedback-box improvements">
+                    <h5>📈 개선점</h5>
+                    <ul><li>🔧 시간 배분 연습 필요</li></ul>
+                </div>
+                </div>
+            </div>
+            <div class="criteria-card dim-feedback-card" style="border-color: #ec4899; margin-bottom: 20px;">
+                <h4>💡 창의성 
+                    <span class="dim-badge" style="background: #ec489920; color: #ec4899;">
+                        4/5 (80.0%)
+                    </span>
+                </h4>
+                <div class="dim-feedback-grid">
+                    
+                <div class="dim-feedback-box strengths">
+                    <h5>💪 강점</h5>
+                    <ul><li>✅ 독창적 아이디어 활용</li></ul>
+                </div>
+                    
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="card">
+            <h3>💡 AI 코칭 팁</h3>
+            
+            <div class="tip-card">
+                <span class="tip-icon">🎤</span>
+                <span class="tip-title">발화 속도 조절법</span>
+                <p class="tip-content">중요한 개념은 천천히, 반복적으로 설명하세요. 1분에 120-150단어 속도가 이상적입니다.</p>
+            </div>
+            <div class="tip-card">
+                <span class="tip-icon">👀</span>
+                <span class="tip-title">시선 처리 개선 팁</span>
+                <p class="tip-content">학생들과 눈을 맞추며 Z자 패턴으로 교실을 스캔하세요. 한 학생에게 3-5초간 시선을 유지하면 개인적 연결감이 형성됩니다.</p>
+            </div>
+            <div class="tip-card">
+                <span class="tip-icon">⏰</span>
+                <span class="tip-title">시간 관리 전략</span>
+                <p class="tip-content">도입 5분, 전개 30분, 정리 5분의 기본 구조를 유지하세요. 스마트워치나 타이머를 활용해 시간 감각을 익히세요.</p>
+            </div>
+        </div>
+        
+        
+        <div class="card">
+            <h3>📝 3주 액션 플랜</h3>
+            <div class="action-plan">
+            <div class="week-card" style="border-color: #4f46e5;">
+                <h4>📅 1주차: 수업 태도</h4>
+                <ul><li>• 거울 보며 연습</li><li>• 제스처 연습</li><li>• 자신감 훈련</li></ul>
+            </div>
+            <div class="week-card" style="border-color: #06b6d4;">
+                <h4>📅 2주차: 시간 배분</h4>
+                <ul><li>• 타이머 활용 연습</li><li>• 수업 단계별 시간 계획</li><li>• 모의수업 녹화</li></ul>
+            </div>
+            <div class="week-card" style="border-color: #10b981;">
+                <h4>📅 3주차: 판서 및 언어</h4>
+                <ul><li>• 발성 연습</li><li>• 판서 계획 수립</li><li>• 녹음 후 자기점검</li></ul>
+            </div></div>
+        </div>
+        
+        <div class="card">
+            <h3>📱 리포트 공유</h3>
+            <div class="qr-section">
+                <div class="qr-code"><img src="data:image/png;base64,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" alt="QR Code" style="width:100%;height:100%;object-fit:contain;"/></div>
+                <div class="qr-info">
+                    <h4>QR 코드로 공유하기</h4>
+                    <p>스마트폰으로 QR 코드를 스캔하여<br>이 리포트를 빠르게 공유하세요.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>GINUE AI Microteaching Lab (GAIM Lab) | 경인교육대학교</p>
+            <p style="margin-top: 5px;">Generated: 2026-02-06T00:46:53.733517</p>
+        </div>
+    </div>
+    
+    <script>
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ["수업 전문성", "교수학습 방법", "판서 및 언어", "수업 태도", "학생 참여", "시간 배분", "창의성"],
+                datasets: [{
+                    label: '달성도 (%)',
+                    data: [85.0, 80.0, 53.3, 33.3, 86.7, 50.0, 80.0],
+                    backgroundColor: 'rgba(79, 70, 229, 0.3)',
+                    borderColor: '#818cf8',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#818cf8'
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#334155' },
+                        angleLines: { color: '#334155' },
+                        pointLabels: { color: '#f8fafc', font: { size: 11 } }
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+        
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: ["수업 전문성", "교수학습 방법", "판서 및 언어", "수업 태도", "학생 참여", "시간 배분", "창의성"],
+                datasets: [{
+                    label: '점수 (100점 환산)',
+                    data: [85.0, 80.0, 53.3, 33.3, 86.7, 50.0, 80.0],
+                    backgroundColor: ["#4f46e5", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"],
+                    borderRadius: 6,
+                    barThickness: 35
+                }]
+            },
+            options: {
+                indexAxis: 'x',
+                responsive: true,
+                scales: {
+                    x: { ticks: { color: '#94a3b8', font: { size: 10 }, maxRotation: 45, minRotation: 45 }, grid: { display: false } },
+                    y: { beginAtZero: true, max: 100, ticks: { color: '#94a3b8', stepSize: 10 }, grid: { color: '#334155' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    </script>
+</body>
+</html>
