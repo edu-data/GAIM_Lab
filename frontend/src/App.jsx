@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import Upload from './pages/Upload'
 import Portfolio from './pages/Portfolio'
+import BatchAnalysis from './pages/BatchAnalysis'
 import AnalysisResult from './pages/AnalysisResult'
 import './App.css'
 
@@ -16,6 +17,7 @@ function App() {
                     </div>
                     <nav className="nav">
                         <a href="/">대시보드</a>
+                        <a href="/batch">일괄 분석</a>
                         <a href="/upload">수업 분석</a>
                         <a href="/portfolio">포트폴리오</a>
                     </nav>
@@ -23,6 +25,7 @@ function App() {
                 <main className="app-main">
                     <Routes>
                         <Route path="/" element={<Dashboard />} />
+                        <Route path="/batch" element={<BatchAnalysis />} />
                         <Route path="/upload" element={<Upload />} />
                         <Route path="/portfolio" element={<Portfolio />} />
                         <Route path="/analysis/:analysisId" element={<AnalysisResult />} />

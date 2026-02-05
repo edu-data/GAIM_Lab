@@ -116,13 +116,15 @@ def run_sample_analysis(video_path: str, output_dir: str = None):
     print("\n📋 [Phase 3/3] HTML/PDF 리포트 생성 중...")
     
     report_generator = GAIMReportGenerator(output_dir=output_dir)
-    html_path = report_generator.generate_html_report(evaluation_dict, video_name)
+    html_path_str = report_generator.generate_html_report(evaluation_dict, video_name)
+    html_path = Path(html_path_str)
     
     print(f"   - HTML 리포트: {html_path.name}")
     
     # PDF 생성 시도 (Playwright 필요)
     try:
-        pdf_path = report_generator.generate_pdf_report(evaluation_dict, video_name)
+        pdf_path_str = report_generator.generate_pdf_report(evaluation_dict, video_name)
+        pdf_path = Path(pdf_path_str)
         print(f"   - PDF 리포트: {pdf_path.name}")
     except Exception as e:
         print(f"   - PDF 생성 스킵 (Playwright 미설치): {e}")

@@ -150,17 +150,17 @@ def export_summary_csv(results: List[Dict], output_path: Path):
         
         # 데이터
         for r in results:
-            dims = {d["dimension"]: d["score"] for d in r.get("dimensions", [])}
+            dims = {d["name"]: d["score"] for d in r.get("dimensions", [])}
             row = [
                 r.get("video_name", ""),
                 r.get("total_score", 0),
                 r.get("grade", ""),
-                dims.get("수업_전문성", 0),
-                dims.get("교수학습_방법", 0),
-                dims.get("판서_및_언어", 0),
-                dims.get("수업_태도", 0),
-                dims.get("학생_참여", 0),
-                dims.get("시간_배분", 0),
+                dims.get("수업 전문성", 0),
+                dims.get("교수학습 방법", 0),
+                dims.get("판서 및 언어", 0),
+                dims.get("수업 태도", 0),
+                dims.get("학생 참여", 0),
+                dims.get("시간 배분", 0),
                 dims.get("창의성", 0),
                 r.get("elapsed_time", 0),
                 r.get("html_path", "")
@@ -201,12 +201,12 @@ def run_batch(limit: int = None, skip_existing: bool = True):
         print("-" * 40)
         
         try:
-            eval_dict, html_path, elapsed = analyze_single(video, batch_output)
+            eval_dict, html_path_str, elapsed = analyze_single(video, batch_output)
             
             # 결과 저장
             eval_dict["video_name"] = video.name
             eval_dict["elapsed_time"] = round(elapsed, 1)
-            eval_dict["html_path"] = str(html_path.relative_to(batch_output))
+            eval_dict["html_path"] = str(Path(html_path_str).relative_to(batch_output))
             results.append(eval_dict)
             
             print(f"   ✅ 완료 | 총점: {eval_dict['total_score']:.1f} | 등급: {eval_dict['grade']} | {elapsed:.1f}초")

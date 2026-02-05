@@ -280,3 +280,222 @@ async def run_demo_analysis():
     }
     
     return result
+
+
+# =============================================================================
+# 일괄 분석 API (Batch Analysis)
+# =============================================================================
+
+# 배치 작업 저장소
+batch_store: Dict[str, Dict] = {}
+
+VIDEO_DIR = Path("D:/AI/GAIM_Lab/video")
+
+
+class BatchRequest(BaseModel):
+    """배치 분석 요청 모델"""
+    limit: Optional[int] = None
+    video_names: Optional[List[str]] = None
+
+
+class BatchStatus(BaseModel):
+    """배치 분석 상태 모델"""
+    id: str
+    status: str  # pending, processing, completed, failed
+    total_videos: int
+    completed_videos: int
+    current_video: Optional[str] = None
+    progress: int
+    created_at: str
+    completed_at: Optional[str] = None
+
+
+@router.get("/batch/videos")
+async def list_batch_videos():
+    """분석 가능한 영상 목록 조회"""
+    videos = sorted(VIDEO_DIR.glob("*.mp4"))
+    
+    return {
+        "total": len(videos),
+        "videos": [
+            {
+                "name": v.name,
+                "size_mb": round(v.stat().st_size / (1024 * 1024), 1),
+                "path": str(v)
+            }
+            for v in videos
+        ]
+    }
+
+
+@router.post("/batch/start", response_model=BatchStatus)
+async def start_batch_analysis(
+    background_tasks: BackgroundTasks,
+    request: BatchRequest = None
+):
+    """
+    일괄 분석 시작
+    
+    - **limit**: 분석할 영상 수 제한 (기본: 전체)
+    - **video_names**: 특정 영상만 분석 (선택)
+    """
+    batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+    
+    # 영상 목록 결정
+    if request and request.video_names:
+        videos = [VIDEO_DIR / name for name in request.video_names if (VIDEO_DIR / name).exists()]
+    else:
+        videos = sorted(VIDEO_DIR.glob("*.mp4"))
+        if request and request.limit:
+            videos = videos[:request.limit]
+    
+    if not videos:
+        raise HTTPException(status_code=400, detail="분석할 영상이 없습니다")
+    
+    # 배치 상태 초기화
+    batch_store[batch_id] = {
+        "id": batch_id,
+        "status": "pending",
+        "total_videos": len(videos),
+        "completed_videos": 0,
+        "current_video": None,
+        "progress": 0,
+        "videos": [str(v) for v in videos],
+        "results": [],
+        "created_at": datetime.now().isoformat(),
+        "completed_at": None
+    }
+    
+    # 백그라운드 배치 실행
+    background_tasks.add_task(run_batch_analysis, batch_id)
+    
+    return BatchStatus(
+        id=batch_id,
+        status="pending",
+        total_videos=len(videos),
+        completed_videos=0,
+        current_video=None,
+        progress=0,
+        created_at=batch_store[batch_id]["created_at"]
+    )
+
+
+async def run_batch_analysis(batch_id: str):
+    """배치 분석 백그라운드 실행"""
+    import subprocess
+    
+    if batch_id not in batch_store:
+        return
+    
+    store = batch_store[batch_id]
+    store["status"] = "processing"
+    
+    videos = [Path(v) for v in store["videos"]]
+    total = len(videos)
+    
+    for idx, video in enumerate(videos):
+        store["current_video"] = video.name
+        store["progress"] = int((idx / total) * 100)
+        
+        try:
+            # run_sample_analysis 실행
+            result = subprocess.run(
+                ["python", "run_sample_analysis.py", str(video)],
+                capture_output=True,
+                text=True,
+                cwd="D:/AI/GAIM_Lab",
+                timeout=1800  # 30분 타임아웃
+            )
+            
+            if result.returncode == 0:
+                store["results"].append({
+                    "video_name": video.name,
+                    "status": "success"
+                })
+            else:
+                store["results"].append({
+                    "video_name": video.name,
+                    "status": "failed",
+                    "error": result.stderr[:500] if result.stderr else "Unknown error"
+                })
+                
+        except subprocess.TimeoutExpired:
+            store["results"].append({
+                "video_name": video.name,
+                "status": "timeout"
+            })
+        except Exception as e:
+            store["results"].append({
+                "video_name": video.name,
+                "status": "failed",
+                "error": str(e)
+            })
+        
+        store["completed_videos"] = idx + 1
+    
+    store["status"] = "completed"
+    store["progress"] = 100
+    store["current_video"] = None
+    store["completed_at"] = datetime.now().isoformat()
+
+
+@router.get("/batch/{batch_id}", response_model=BatchStatus)
+async def get_batch_status(batch_id: str):
+    """배치 분석 상태 조회"""
+    if batch_id not in batch_store:
+        raise HTTPException(status_code=404, detail="배치 작업을 찾을 수 없습니다")
+    
+    store = batch_store[batch_id]
+    
+    return BatchStatus(
+        id=store["id"],
+        status=store["status"],
+        total_videos=store["total_videos"],
+        completed_videos=store["completed_videos"],
+        current_video=store.get("current_video"),
+        progress=store["progress"],
+        created_at=store["created_at"],
+        completed_at=store.get("completed_at")
+    )
+
+
+@router.get("/batch/{batch_id}/results")
+async def get_batch_results(batch_id: str):
+    """배치 분석 결과 조회"""
+    if batch_id not in batch_store:
+        raise HTTPException(status_code=404, detail="배치 작업을 찾을 수 없습니다")
+    
+    store = batch_store[batch_id]
+    
+    return {
+        "id": batch_id,
+        "status": store["status"],
+        "total_videos": store["total_videos"],
+        "success_count": sum(1 for r in store["results"] if r.get("status") == "success"),
+        "failed_count": sum(1 for r in store["results"] if r.get("status") != "success"),
+        "results": store["results"]
+    }
+
+
+@router.get("/batch")
+async def list_batch_jobs():
+    """배치 작업 목록 조회"""
+    jobs = list(batch_store.values())
+    jobs.sort(key=lambda x: x["created_at"], reverse=True)
+    
+    return {
+        "total": len(jobs),
+        "items": [
+            {
+                "id": j["id"],
+                "status": j["status"],
+                "total_videos": j["total_videos"],
+                "completed_videos": j["completed_videos"],
+                "progress": j["progress"],
+                "created_at": j["created_at"],
+                "completed_at": j.get("completed_at")
+            }
+            for j in jobs
+        ]
+    }
+
