@@ -6,6 +6,26 @@ GAIM Lab - 100점 7차원 평가 프레임워크
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 import json
+import sys
+from pathlib import Path
+
+# Gemini LLM 평가기 임포트 (옵션)
+GEMINI_AVAILABLE = False
+GeminiLectureEvaluator = None
+
+try:
+    # 상대 경로 import 시도
+    from .gemini_evaluator import GeminiLectureEvaluator
+    GEMINI_AVAILABLE = True
+except ImportError:
+    # 절대 경로 import 시도
+    try:
+        current_dir = Path(__file__).parent
+        sys.path.insert(0, str(current_dir))
+        from gemini_evaluator import GeminiLectureEvaluator
+        GEMINI_AVAILABLE = True
+    except ImportError:
+        pass
 
 
 # ============================================================
@@ -110,8 +130,19 @@ class GAIMLectureEvaluator:
     MLC 분석 결과를 입력받아 7차원 평가 점수로 변환
     """
     
-    def __init__(self):
+    def __init__(self, use_gemini: bool = True):
         self.framework = EVALUATION_FRAMEWORK_100
+        self.use_gemini = use_gemini and GEMINI_AVAILABLE
+        self.gemini_evaluator = None
+        
+        if self.use_gemini:
+            try:
+                self.gemini_evaluator = GeminiLectureEvaluator()
+                if not self.gemini_evaluator.model:
+                    self.use_gemini = False
+            except Exception as e:
+                print(f"[!] Gemini 초기화 실패: {e}")
+                self.use_gemini = False
     
     def evaluate(self, analysis_data: Dict) -> EvaluationResult:
         """
@@ -126,6 +157,21 @@ class GAIMLectureEvaluator:
         """
         dimensions = []
         total_score = 0.0
+        
+        # Gemini 평가 (transcript가 있는 경우)
+        gemini_scores = None
+        if self.use_gemini and "transcript" in analysis_data:
+            transcript = analysis_data["transcript"]
+            if transcript and len(transcript) > 50:
+                print("\n🤖 Gemini LLM 평가 수행 중...")
+                gemini_result = self.gemini_evaluator.evaluate_transcript(transcript)
+                if gemini_result:
+                    gemini_scores = self.gemini_evaluator.get_dimension_scores(gemini_result)
+                    analysis_data["gemini_metrics"] = gemini_scores
+                    print(f"   ✅ Gemini 평가 완료: {gemini_scores.get('total_score', 0)}점")
+        
+        # Gemini 점수가 있으면 해당 점수 사용, 없으면 규칙 기반 평가
+        use_gemini_score = gemini_scores is not None
         
         # 1. 수업 전문성 평가 (20점)
         dim1 = self._evaluate_professionalism(analysis_data)
@@ -179,6 +225,26 @@ class GAIMLectureEvaluator:
     
     def _evaluate_professionalism(self, data: Dict) -> DimensionScore:
         """수업 전문성 평가 (20점)"""
+        gemini = data.get("gemini_metrics", {}).get("professionalism", {})
+        
+        # Gemini 점수가 있으면 사용
+        if gemini and gemini.get("score", 0) > 0:
+            score = gemini.get("score", 0)
+            criteria = gemini.get("criteria", {})
+            feedback = [gemini.get("feedback", "")] if gemini.get("feedback") else []
+            return DimensionScore(
+                dimension="수업 전문성",
+                score=score,
+                max_score=20,
+                percentage=round(score / 20 * 100, 1),
+                criteria_scores={
+                    "학습목표_명료성": criteria.get("학습목표_명료성", 0),
+                    "학습내용_충실성": criteria.get("학습내용_충실성", 0)
+                },
+                feedback=feedback if feedback else self._get_professionalism_feedback(score)
+            )
+        
+        # 기존 규칙 기반 평가
         text = data.get("text_metrics", {})
         
         # 학습목표 명료성 (10점): 도입부 구조화 표현 + 목표 관련 키워드
@@ -203,6 +269,26 @@ class GAIMLectureEvaluator:
     
     def _evaluate_teaching_method(self, data: Dict) -> DimensionScore:
         """교수학습 방법 평가 (20점)"""
+        gemini = data.get("gemini_metrics", {}).get("teaching_method", {})
+        
+        # Gemini 점수가 있으면 사용
+        if gemini and gemini.get("score", 0) > 0:
+            score = gemini.get("score", 0)
+            criteria = gemini.get("criteria", {})
+            feedback = [gemini.get("feedback", "")] if gemini.get("feedback") else []
+            return DimensionScore(
+                dimension="교수학습 방법",
+                score=score,
+                max_score=20,
+                percentage=round(score / 20 * 100, 1),
+                criteria_scores={
+                    "교수법_다양성": criteria.get("교수법_다양성", 0),
+                    "학습활동_효과성": criteria.get("학습활동_효과성", 0)
+                },
+                feedback=feedback if feedback else self._get_teaching_method_feedback(score)
+            )
+        
+        # 기존 규칙 기반 평가
         text = data.get("text_metrics", {})
         vision = data.get("vision_metrics", {})
         
@@ -302,6 +388,26 @@ class GAIMLectureEvaluator:
     
     def _evaluate_participation(self, data: Dict) -> DimensionScore:
         """학생 참여 평가 (15점)"""
+        gemini = data.get("gemini_metrics", {}).get("participation", {})
+        
+        # Gemini 점수가 있으면 사용
+        if gemini and gemini.get("score", 0) > 0:
+            score = gemini.get("score", 0)
+            criteria = gemini.get("criteria", {})
+            feedback = [gemini.get("feedback", "")] if gemini.get("feedback") else []
+            return DimensionScore(
+                dimension="학생 참여",
+                score=score,
+                max_score=15,
+                percentage=round(score / 15 * 100, 1),
+                criteria_scores={
+                    "질문_기법": criteria.get("질문_기법", 0),
+                    "피드백_제공": criteria.get("피드백_제공", 0)
+                },
+                feedback=feedback if feedback else self._get_participation_feedback(score)
+            )
+        
+        # 기존 규칙 기반 평가
         text = data.get("text_metrics", {})
         
         # 질문 기법 (7.5점): 발문 빈도
@@ -351,6 +457,25 @@ class GAIMLectureEvaluator:
     
     def _evaluate_creativity(self, data: Dict) -> DimensionScore:
         """창의성 평가 (5점)"""
+        gemini = data.get("gemini_metrics", {}).get("creativity", {})
+        
+        # Gemini 점수가 있으면 사용
+        if gemini and gemini.get("score", 0) > 0:
+            score = gemini.get("score", 0)
+            criteria = gemini.get("criteria", {})
+            feedback = [gemini.get("feedback", "")] if gemini.get("feedback") else []
+            return DimensionScore(
+                dimension="창의성",
+                score=score,
+                max_score=5,
+                percentage=round(score / 5 * 100, 1),
+                criteria_scores={
+                    "수업_창의성": criteria.get("수업_창의성", 0)
+                },
+                feedback=feedback if feedback else self._get_creativity_feedback(score)
+            )
+        
+        # 기존 규칙 기반 평가
         text = data.get("text_metrics", {})
         vision = data.get("vision_metrics", {})
         

@@ -4,11 +4,16 @@ video/
 *.avi
 *.mov
 *.mkv
+*.wav
+*.aac
 
 # 홍보 페이지용 비디오는 예외
 !docs/video/
 !docs/video/gaim_promo_classical_full.mp4
 !docs/video/*.png
+
+# 캐시 파일
+embeddings_cache.json
 
 # 분석 출력 결과
 output/

@@ -1,0 +1,11 @@
+file 'capture_hero.png'
+duration 4
+file 'slide2.png'
+duration 4
+file 'capture_framework.png'
+duration 4
+file 'capture_techstack.png'
+duration 4
+file 'capture_footer.png'
+duration 4
+file 'capture_footer.png'

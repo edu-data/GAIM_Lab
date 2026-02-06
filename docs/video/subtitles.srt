@@ -1,0 +1,9 @@
+1
+00:00:00,000 --> 00:00:04,000
+🎓 GAIM Lab - AI 기반 수업 분석 시스템
+GAIM Lab - AI-powered Lesson Analysis
+
+2
+00:00:04,000 --> 00:00:08,000
+📊 7차원 평가 · 100점 만점 · 실시간 피드백
+7-Dimension Evaluation · 100 Points · Real-time Feedback

@@ -85,16 +85,56 @@ def run_sample_analysis(video_path: str, output_dir: str = None):
     print(f"   - 오디오 세그먼트: {len(audio_timeline)}개")
     
     # =================================================================
-    # Phase 2: 7차원 평가 (GAIMLectureEvaluator)
+    # Phase 1.5: 음성 → 텍스트 변환 (Whisper STT)
+    # =================================================================
+    transcript = ""
+    audio_path = output_dir / "audio.wav"
+    
+    # FFmpeg으로 오디오 직접 추출
+    print(f"\n🎤 [Phase 1.5/3] 음성 인식 (Whisper STT) 중...")
+    try:
+        import subprocess
+        cmd = [
+            'ffmpeg', '-i', str(video_path),
+            '-ar', '16000', '-ac', '1',
+            str(audio_path),
+            '-loglevel', 'error', '-y'
+        ]
+        subprocess.run(cmd, check=True, capture_output=True)
+        print(f"   ✅ 오디오 추출 완료: {audio_path.name}")
+        
+        # Whisper STT 실행
+        text_analyzer_module = load_module_from_path(
+            "text_analyzer", 
+            GAIM_ROOT / "core" / "analyzers" / "text_analyzer.py"
+        )
+        transcribe_audio = text_analyzer_module.transcribe_audio
+        transcript, segments = transcribe_audio(str(audio_path), model_size="small")
+        if transcript:
+            print(f"   ✅ 텍스트 변환 완료: {len(transcript)}자")
+            # 텍스트 저장
+            transcript_path = output_dir / "transcript.txt"
+            with transcript_path.open("w", encoding="utf-8") as f:
+                f.write(transcript)
+    except ImportError as ie:
+        print(f"   [!] openai-whisper 미설치 - STT 건너뜀: {ie}")
+    except Exception as e:
+        import traceback
+        print(f"   [!] STT 오류: {e}")
+        traceback.print_exc()
+    
+    # =================================================================
+    # Phase 2: 7차원 평가 (GAIMLectureEvaluator + Gemini)
     # =================================================================
     print("\n📊 [Phase 2/3] 7차원 평가 수행 중...")
     
-    # 분석 데이터 구성
+    # 분석 데이터 구성 (transcript 포함)
     analysis_data = {
         "vision_metrics": _extract_vision_metrics(vision_results),
         "vibe_metrics": audio_metrics,
         "content_metrics": _extract_content_metrics(content_results),
-        "text_metrics": {}  # 텍스트 분석은 선택적
+        "text_metrics": {},
+        "transcript": transcript  # Gemini 평가용
     }
     
     evaluator = GAIMLectureEvaluator()

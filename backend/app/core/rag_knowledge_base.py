@@ -55,6 +55,11 @@ class EducationKnowledgeBase:
         if HAS_GENAI:
             self._initialize()
     
+    @property
+    def chunk_count(self) -> int:
+        """로드된 문서 청크 수 반환"""
+        return len(self.documents)
+    
     def _initialize(self):
         """임베딩 초기화 및 문서 로드"""
         try:
