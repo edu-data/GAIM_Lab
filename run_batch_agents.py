@@ -100,6 +100,9 @@ def run_single_agent_analysis(video_path: Path, output_dir: Path):
             save["pedagogy"] = ped
             save["feedback"] = report.get("feedback", {})
             save["stt"] = report.get("stt", {})
+            save["vision_summary"] = report.get("vision_summary", {})
+            save["content_summary"] = report.get("content_summary", {})
+            save["vibe_summary"] = report.get("vibe_summary", {})
         json.dump(save, f, ensure_ascii=False, indent=2, default=str)
 
     return result, elapsed

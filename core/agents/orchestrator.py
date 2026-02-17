@@ -260,12 +260,15 @@ class AgentOrchestrator:
         self.context.temp_dir = temp_dir
         resources = flash_extract_resources(video_path, temp_dir)
 
-        # 추출된 프레임 목록
-        frames_dir = Path(temp_dir) / "frames"
-        if frames_dir.exists():
-            self.context.extracted_frames = sorted(
-                [str(f) for f in frames_dir.glob("*.jpg")]
-            )
+        # 추출된 프레임 목록 (flash_extract_resources는 temp_dir 루트에 저장)
+        temp_path = Path(temp_dir)
+        frames = sorted(temp_path.glob("*.jpg"))
+        if not frames:
+            # fallback: frames/ 서브디렉토리 확인
+            frames_dir = temp_path / "frames"
+            if frames_dir.exists():
+                frames = sorted(frames_dir.glob("*.jpg"))
+        self.context.extracted_frames = [str(f) for f in frames]
 
         # 오디오 파일 경로
         audio_file = Path(temp_dir) / "audio.wav"
@@ -395,6 +398,9 @@ class AgentOrchestrator:
         report_dict["pedagogy"] = self.context.pedagogy_result
         report_dict["feedback"] = self.context.feedback_result
         report_dict["stt"] = self.context.stt_result
+        report_dict["vision_summary"] = self.context.vision_summary
+        report_dict["content_summary"] = self.context.content_summary
+        report_dict["vibe_summary"] = self.context.vibe_summary
 
         self.context.master_report = report_dict
         return report_dict
