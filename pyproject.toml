@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mas-lecture-analysis"
+version = "4.0.0"
+description = "멀티 에이전트 수업 분석 시스템 - 8개 AI 에이전트가 협업하여 수업 영상을 7차원 평가하는 플랫폼"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "GAIM Lab", email = "educpa@ginue.ac.kr"}
+]
+keywords = ["multi-agent", "education", "ai", "lecture-analysis", "pedagogy", "whisper", "gemini"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.urls]
+Homepage = "https://edu-data.github.io/mas/docs/mas-index.html"
+Repository = "https://github.com/edu-data/mas"
+Dashboard = "https://edu-data.github.io/mas/docs/mas-dashboard.html"
+
+[tool.setuptools.packages.find]
+include = ["core*", "backend*"]
