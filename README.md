@@ -26,10 +26,10 @@ MAS(Multi-Agent System)는 **예비교원의 수업 영상**을 8개 전문화�
 | 지표 | 결과 |
 | ---- | ---- |
 | ✅ 분석 성공률 | **18/18 (100%)** |
-| 📊 평균 점수 | **78.8점 (B+등급)** |
-| ⏱️ 영상당 처리 시간 | **약 3분** |
+| 📊 평균 점수 | **77.0점 (B+등급)** |
+| ⏱️ 영상당 처리 시간 | **약 6분** |
 | 🤖 에이전트 수 | **8개** |
-| � 평가 차원 | **7개** |
+| 📐 평가 차원 | **7개** |
 
 ---
 
@@ -231,6 +231,62 @@ python batch_analysis.py --limit 5
 | [FIAS 대시보드](https://edu-data.github.io/GAIM_Lab/fias-dashboard.html) | Flanders 상호작용 분석 |
 | [종합 평가 보고서](https://edu-data.github.io/GAIM_Lab/comprehensive_report.html) | 18개 영상 종합 분석 |
 | [GAIM Lab 웹사이트](https://edu-data.github.io/GAIM_Lab/) | 시스템 소개 |
+
+---
+
+## 📜 버전 히스토리 (Changelog)
+
+### v4.2 — 에이전트 버그 수정 `2026-02-18`
+
+- **Vision/Content 프레임 경로 버그 수정**: `flash_extract_resources`가 `{temp_dir}/frame_*.jpg`에 저장하지만, 오케스트레이터가 `{temp_dir}/frames/`에서 검색하던 경로 불일치 해결
+- Vision Agent 0.02s → **5.24s** (얼굴감지·제스처·움직임 실분석)
+- Content Agent 0.0s → **161.3s** (OCR·슬라이드·텍스트밀도 실분석)
+- `_phase_synthesize`에 vision/content/vibe 요약 데이터 추가
+- 배치 재분석 결과: 평균 **77.0점**, 등급분포 A-:2 / B+:13 / B:3
+
+### v4.1 — 점수 차별화 강화 `2026-02-18`
+
+- `pedagogy_agent.py` 전면 리팩토링
+- `_safe()` 헬퍼로 에이전트 에러/빈 데이터 안전 처리
+- STT 데이터 기반 7차원 전체 차별화 강화
+- 한국어 발화속도 기준 보정 (3.0~5.0 음절/초)
+- 점수 범위 **71.5~82.6** (11pt range, 이전 44.9~53.4에서 대폭 개선)
+- 등급분포 A- 11개 / B+ 4개 / B 3개
+
+### v4.0 — MAS 멀티 에이전트 시스템 `2026-02-17`
+
+- **AgentOrchestrator** 파이프라인 아키텍처 도입
+- 8개 AI 에이전트 설계 및 구현 (Extractor, Vision, Content, STT, Vibe, Pedagogy, Feedback, Master)
+- `SharedContext` 에이전트 간 데이터 공유 프레임워크
+- Event-driven Pub/Sub 메시지 버스
+- MAS 전용 홈페이지 (`mas-index.html`) 및 대시보드 (`mas-dashboard.html`)
+- 18개 영상 배치 분석 자동화 (`run_batch_agents.py`)
+
+### v3.0 — 웹 UI 및 리포트 시스템 `2026-02-05`
+
+- **FastAPI 백엔드** + **React 18 프론트엔드** 풀스택 구현
+- 학생 포트폴리오 레이더 차트·성장 추적·디지털 배지 시스템
+- 실시간 분석 진행 피드백 UI
+- 모의수업 영상 분석 자동화 및 HTML/PDF 리포트 생성
+- E2E 테스트 (Vitest + Playwright)
+
+### v2.0 — 배치 분석 및 RAG 통합 `2026-02-05`
+
+- **배치 분석 시스템** (`batch_analysis.py`): 18개 영상 순차 처리, CSV 요약
+- **RAG 파이프라인**: Vertex AI Search + 교육학 지식 베이스 통합
+- 리포트 v2: QR코드 삽입, 반응형 차트
+- FIAS(Flanders 상호작용 분석) 대시보드 추가
+- 배치 대시보드 (점수분포·등급·레이더차트 시각화)
+
+### v1.0 — 초기 시스템 `2026-02-04`
+
+- **GAIM Lab 영상 분석 시스템** 초기 아키텍처 설계
+- `TimeLapseAnalyzer` 영상 프레임 추출 및 분석
+- `GAIMLectureEvaluator` 7차원 100점 만점 평가 프레임워크 구현
+- `GAIMReportGenerator` HTML 리포트 생성
+- GPU 가속 FFmpeg 프레임 추출 구현
+- 병렬 프레임 분석 (`ParallelFrameAnalyzer`) 멀티프로세싱 최적화
+- GitHub Pages 프로모션 랜딩 페이지
 
 ---
 
