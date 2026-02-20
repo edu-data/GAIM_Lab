@@ -188,7 +188,16 @@ function LiveCoaching() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, facingMode: 'user' }, audio: false })
             streamRef.current = stream
-            if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play() }
+            // videoRef가 렌더링될 때까지 대기 (최대 1초)
+            const attachStream = (retries = 10) => {
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream
+                    videoRef.current.play().catch(() => { })
+                } else if (retries > 0) {
+                    setTimeout(() => attachStream(retries - 1), 100)
+                }
+            }
+            attachStream()
             setCameraOn(true)
             prevFrameRef.current = null
             movementSamplesRef.current = []
@@ -272,7 +281,7 @@ function LiveCoaching() {
         }, 1000)
 
         startRecognition()
-        startCamera()
+        // 카메라는 useEffect에서 phase='recording' 후 DOM 렌더 완료 시 시작
     }
 
     // ── 세션 종료 ──
@@ -331,6 +340,15 @@ function LiveCoaching() {
             stopCamera()
         }
     }, [stopCamera])
+
+    // ── 카메라 자동 시작: phase가 'recording'이 되면 DOM 렌더 후 카메라 시작 ──
+    useEffect(() => {
+        if (phase === 'recording') {
+            // requestAnimationFrame으로 DOM 렌더 완료 보장
+            const raf = requestAnimationFrame(() => { startCamera() })
+            return () => cancelAnimationFrame(raf)
+        }
+    }, [phase, startCamera])
 
     // auto-scroll transcript
     useEffect(() => {
