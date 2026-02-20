@@ -56,15 +56,14 @@ class EvaluationResponse(BaseModel):
     overall_feedback: str
 
 
-@router.post("/upload", response_model=AnalysisStatus)
+@router.post("/upload")
 async def upload_video(
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     use_turbo: bool = True,
     use_text: bool = True
 ):
     """
-    영상 업로드 및 분석 시작
+    영상 업로드 및 분석 실행 (동기 — 결과를 즉시 반환)
     
     - **file**: 분석할 영상 파일 (MP4, AVI, MOV)
     - **use_turbo**: Turbo 모드 사용 여부 (기본: True)
@@ -96,9 +95,9 @@ async def upload_video(
     # 분석 상태 초기화
     analysis_store[analysis_id] = {
         "id": analysis_id,
-        "status": "pending",
-        "progress": 0,
-        "message": "분석 대기 중",
+        "status": "processing",
+        "progress": 10,
+        "message": "분석 시작",
         "video_path": str(save_path),
         "video_name": file.filename,
         "created_at": datetime.now().isoformat(),
@@ -108,64 +107,63 @@ async def upload_video(
         "result": None
     }
     
-    # 백그라운드 분석 시작
-    background_tasks.add_task(run_analysis, analysis_id)
-    
-    return AnalysisStatus(
-        id=analysis_id,
-        status="pending",
-        progress=0,
-        message="분석이 시작되었습니다",
-        created_at=analysis_store[analysis_id]["created_at"]
-    )
-
-
-async def run_analysis(analysis_id: str):
-    """백그라운드 분석 실행"""
-    if analysis_id not in analysis_store:
-        return
-    
-    store = analysis_store[analysis_id]
-    store["status"] = "processing"
-    store["progress"] = 10
-    store["message"] = "영상 분석 중..."
-    
     try:
-        # 분석 파이프라인 실행
+        # 동기 실행 — 분석 완료까지 대기
         pipeline = GAIMAnalysisPipeline(
-            use_turbo=store["use_turbo"],
-            use_text=store["use_text"]
+            use_turbo=use_turbo,
+            use_text=use_text
         )
         
-        store["progress"] = 30
-        store["message"] = "AI 분석 진행 중..."
+        analysis_store[analysis_id]["progress"] = 30
+        analysis_store[analysis_id]["message"] = "AI 분석 진행 중..."
         
-        video_path = Path(store["video_path"])
+        video_path = Path(save_path)
         output_dir = OUTPUT_DIR / analysis_id
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # 분석 수행
-        result = await pipeline.analyze_video(video_path, output_dir)
+        raw_result = await pipeline.analyze_video(video_path, output_dir)
         
-        store["progress"] = 90
-        store["message"] = "결과 생성 중..."
+        # gaim_evaluation 안의 데이터를 플랫하게 추출
+        evaluation = raw_result.get("gaim_evaluation", raw_result)
         
-        # 결과 저장
+        # 결과 JSON 저장
         result_path = output_dir / "result.json"
         with result_path.open("w", encoding="utf-8") as f:
-            json.dump(result, f, ensure_ascii=False, indent=2)
+            json.dump(raw_result, f, ensure_ascii=False, indent=2)
         
-        store["status"] = "completed"
-        store["progress"] = 100
-        store["message"] = "분석 완료"
-        store["completed_at"] = datetime.now().isoformat()
-        store["result"] = result
-        store["result_url"] = f"/output/{analysis_id}/result.json"
+        # 상태 업데이트
+        analysis_store[analysis_id].update({
+            "status": "completed",
+            "progress": 100,
+            "message": "분석 완료",
+            "completed_at": datetime.now().isoformat(),
+            "result": raw_result,
+            "result_url": f"/output/{analysis_id}/result.json"
+        })
+        
+        # 프론트엔드 기대 형식으로 반환 (플랫 구조)
+        return {
+            "id": analysis_id,
+            "status": "completed",
+            "progress": 100,
+            "message": "분석 완료",
+            "created_at": analysis_store[analysis_id]["created_at"],
+            **evaluation
+        }
         
     except Exception as e:
-        store["status"] = "failed"
-        store["message"] = f"분석 실패: {str(e)}"
-        store["progress"] = 0
+        analysis_store[analysis_id].update({
+            "status": "failed",
+            "message": f"분석 실패: {str(e)}",
+            "progress": 0
+        })
+        raise HTTPException(status_code=500, detail=f"분석 실패: {str(e)[:300]}")
+
+
+def _flatten_evaluation(raw_result: dict) -> dict:
+    """gaim_evaluation 구조를 플랫 구조로 변환 (프론트엔드 호환)"""
+    evaluation = raw_result.get("gaim_evaluation", raw_result)
+    return evaluation
 
 
 @router.get("/{analysis_id}", response_model=AnalysisStatus)
@@ -187,9 +185,9 @@ async def get_analysis_status(analysis_id: str):
     )
 
 
-@router.get("/{analysis_id}/result", response_model=EvaluationResponse)
+@router.get("/{analysis_id}/result")
 async def get_analysis_result(analysis_id: str):
-    """분석 결과 조회"""
+    """분석 결과 조회 (플랫 구조 반환)"""
     if analysis_id not in analysis_store:
         raise HTTPException(status_code=404, detail="분석을 찾을 수 없습니다")
     
@@ -198,19 +196,14 @@ async def get_analysis_result(analysis_id: str):
     if store["status"] != "completed":
         raise HTTPException(status_code=400, detail="분석이 아직 완료되지 않았습니다")
     
-    result = store["result"]
-    evaluation = result["gaim_evaluation"]
+    raw_result = store["result"]
+    evaluation = _flatten_evaluation(raw_result)
     
-    return EvaluationResponse(
-        id=analysis_id,
-        video_name=store["video_name"],
-        total_score=evaluation["total_score"],
-        grade=evaluation["grade"],
-        dimensions=evaluation["dimensions"],
-        strengths=evaluation["strengths"],
-        improvements=evaluation["improvements"],
-        overall_feedback=evaluation["overall_feedback"]
-    )
+    return {
+        "id": analysis_id,
+        "video_name": store["video_name"],
+        **evaluation
+    }
 
 
 @router.get("/{analysis_id}/report")
@@ -272,15 +265,33 @@ async def run_demo_analysis():
     pipeline = GAIMAnalysisPipeline()
     dummy_data = pipeline._get_dummy_analysis()
     evaluation = pipeline.evaluator.evaluate(dummy_data)
+    eval_dict = pipeline.evaluator.to_dict(evaluation)
     
-    result = {
+    # 프론트엔드와 호환되는 플랫 구조로 반환
+    # 내부 저장도 동시에 수행
+    analysis_store[analysis_id] = {
         "id": analysis_id,
-        "type": "demo",
+        "status": "completed",
+        "progress": 100,
+        "message": "데모 분석 완료",
         "video_name": "demo_lecture.mp4",
-        "gaim_evaluation": pipeline.evaluator.to_dict(evaluation)
+        "created_at": datetime.now().isoformat(),
+        "completed_at": datetime.now().isoformat(),
+        "result": {"gaim_evaluation": eval_dict},
+        "use_turbo": True,
+        "use_text": True,
+        "video_path": ""
     }
     
-    return result
+    return {
+        "id": analysis_id,
+        "status": "completed",
+        "progress": 100,
+        "message": "데모 분석 완료",
+        "video_name": "demo_lecture.mp4",
+        "created_at": analysis_store[analysis_id]["created_at"],
+        **eval_dict
+    }
 
 
 # =============================================================================
