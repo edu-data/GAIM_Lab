@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+data/
+.env
+.git/
+.gitignore
+*.md
+test_output.json
+video/
+uploads/
+output/

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-
-const API_BASE = '/api/v1/auth'
+import { Link, useLocation } from 'react-router-dom'
+import { AUTH_BASE } from '../apiConfig'
+const API_BASE = AUTH_BASE
 
 function LoginPage() {
     const [mode, setMode] = useState('login')

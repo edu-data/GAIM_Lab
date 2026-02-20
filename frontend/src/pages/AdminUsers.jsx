@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AUTH_BASE } from '../apiConfig'
 import './AdminUsers.css'
 
-const API = '/api/v1/auth'
+const API = AUTH_BASE
 
 function AdminUsers() {
     const [users, setUsers] = useState([])

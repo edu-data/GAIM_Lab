@@ -8,8 +8,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from app.api import analysis, portfolio, badges, mentoring, realtime, agents, history, auth
-from app.api import live_coaching, cohort, rubric_experiment
+from app.api import auth
+
+# ML-dependent routers: gracefully skip if packages not installed (Cloud Run lightweight mode)
+try:
+    from app.api import analysis, portfolio, badges, mentoring, realtime, agents, history
+    from app.api import live_coaching, cohort, rubric_experiment
+    _ML_AVAILABLE = True
+except (ImportError, ModuleNotFoundError) as e:
+    print(f"[WARN] ML modules not available, running in auth-only mode: {e}")
+    _ML_AVAILABLE = False
 
 # 앱 초기화
 app = FastAPI(
@@ -23,7 +31,12 @@ app = FastAPI(
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "https://edu-data.github.io",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,18 +52,21 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 app.mount("/output", StaticFiles(directory=str(OUTPUT_DIR)), name="output")
 
-# 라우터 등록
-app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["분석"])
-app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["포트폴리오"])
-app.include_router(badges.router, prefix="/api/v1/badges", tags=["디지털 배지"])
-app.include_router(mentoring.router, prefix="/api/v1/mentoring", tags=["멘토링"])
-app.include_router(realtime.router, prefix="/api/v1", tags=["실시간"])
-app.include_router(agents.router, prefix="/api/v1/agents", tags=["에이전트"])
-app.include_router(history.router, prefix="/api/v1", tags=["이력/성장"])
+# 라우터 등록 — 인증은 항상 등록
 app.include_router(auth.router, prefix="/api/v1", tags=["인증"])
-app.include_router(live_coaching.router, prefix="/api/v1", tags=["실시간 코칭"])
-app.include_router(cohort.router, prefix="/api/v1/cohort", tags=["코호트 비교"])
-app.include_router(rubric_experiment.router, prefix="/api/v1/experiment", tags=["A/B 루브릭"])
+
+# ML 라우터는 사용 가능할 때만 등록
+if _ML_AVAILABLE:
+    app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["분석"])
+    app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["포트폴리오"])
+    app.include_router(badges.router, prefix="/api/v1/badges", tags=["디지털 배지"])
+    app.include_router(mentoring.router, prefix="/api/v1/mentoring", tags=["멘토링"])
+    app.include_router(realtime.router, prefix="/api/v1", tags=["실시간"])
+    app.include_router(agents.router, prefix="/api/v1/agents", tags=["에이전트"])
+    app.include_router(history.router, prefix="/api/v1", tags=["이력/성장"])
+    app.include_router(live_coaching.router, prefix="/api/v1", tags=["실시간 코칭"])
+    app.include_router(cohort.router, prefix="/api/v1/cohort", tags=["코호트 비교"])
+    app.include_router(rubric_experiment.router, prefix="/api/v1/experiment", tags=["A/B 루브릭"])
 
 
 @app.get("/")
