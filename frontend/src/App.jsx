@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import HomePage from './pages/HomePage'
 import Dashboard from './pages/Dashboard'

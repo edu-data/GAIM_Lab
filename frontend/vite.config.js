@@ -1,8 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const isGHPages = process.env.GITHUB_PAGES === 'true'
+
 export default defineConfig({
     plugins: [react()],
+    base: isGHPages ? '/GAIM_Lab/app/' : '/',
+    build: {
+        outDir: isGHPages ? '../docs/app' : 'dist',
+        emptyOutDir: true,
+    },
     server: {
         port: 5173,
         proxy: {

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6c63ff">
+    <meta name="description" content="GINUE AI Microteaching Lab — 예비교원 수업역량 강화 AI 시스템">
+    <title>GAIM Lab - GINUE AI Microteaching Lab</title>
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="manifest" href="/GAIM_Lab/app/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <script type="module" crossorigin src="/GAIM_Lab/app/assets/index-CnZaPk70.js"></script>
+  <link rel="stylesheet" crossorigin href="/GAIM_Lab/app/assets/index-CKobe8NO.css">
+</head>
+
+<body>
+    <div id="root"></div>
+    <script>
+        // Service Worker 등록 (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.log('SW registration failed:', err))
+            })
+        }
+    </script>
+</body>
+
+</html>
