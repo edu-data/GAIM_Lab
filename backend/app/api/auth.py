@@ -1,30 +1,32 @@
 """
-GAIM Lab v7.1 — JWT 사용자 인증 모듈
+GAIM Lab v7.1 — JWT 사용자 인증 모듈 (SQLite DB)
 
-기본 JWT 인증 미들웨어:
-- /api/v1/auth/login   : 로그인 (토큰 발급)
-- /api/v1/auth/register: 사용자 등록
-- /api/v1/auth/me      : 현재 사용자 정보
-- get_current_user()   : 의존성 주입으로 보호된 라우트 구현
+엔드포인트:
+- POST /auth/login       : 로그인 (토큰 발급)
+- POST /auth/register    : 사용자 등록
+- GET  /auth/me          : 현재 사용자 정보
+- GET  /auth/users       : 사용자 목록 (관리자)
+- PUT  /auth/users/{uid} : 사용자 수정 (관리자)
+- DELETE /auth/users/{uid}: 사용자 삭제 (관리자)
+- POST /auth/users/{uid}/reset-password : 비밀번호 초기화 (관리자)
 
-v7.1 Notes:
-  - 프로토타입 수준의 인증. 프로덕션에서는 bcrypt, refresh token, DB 통합 필요
-  - SECRET_KEY는 환경변수에서 로드 (기본값: 개발용)
+v7.1: SQLite users.db + PBKDF2 해싱 + 관리자 CRUD
 """
 
 import os
 import hashlib
 import json
+import sqlite3
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
-# JWT 라이브러리 (선택적 — PyJWT 또는 자체 구현)
+# JWT 라이브러리 (선택적)
 try:
     import jwt as pyjwt
     HAS_PYJWT = True
@@ -36,24 +38,63 @@ SECRET_KEY = os.getenv("GAIM_SECRET_KEY", "gaim-lab-v71-dev-secret-key-change-in
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
-# ─── Simple file-based user store ───
+# ─── SQLite User Database ───
 _DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data"
-_USERS_FILE = _DATA_DIR / "users.json"
+_DB_PATH = _DATA_DIR / "users.db"
 
 
-def _load_users() -> dict:
-    if _USERS_FILE.exists():
-        return json.loads(_USERS_FILE.read_text(encoding="utf-8"))
-    return {}
-
-
-def _save_users(users: dict):
+def _get_db() -> sqlite3.Connection:
     _DATA_DIR.mkdir(parents=True, exist_ok=True)
-    _USERS_FILE.write_text(json.dumps(users, ensure_ascii=False, indent=2), encoding="utf-8")
+    conn = sqlite3.connect(str(_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
+    return conn
 
 
+# ─── Password Hashing (PBKDF2) ───
 def _hash_password(password: str) -> str:
-    return hashlib.sha256(f"{SECRET_KEY}:{password}".encode()).hexdigest()
+    """PBKDF2-SHA256 with salt derived from SECRET_KEY"""
+    return hashlib.pbkdf2_hmac(
+        "sha256", password.encode(), SECRET_KEY.encode(), 100_000
+    ).hex()
+
+
+def _init_db():
+    """테이블 생성 및 기본 admin 계정 seed"""
+    conn = _get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            name TEXT DEFAULT '',
+            email TEXT DEFAULT '',
+            role TEXT DEFAULT 'student',
+            is_active INTEGER DEFAULT 1,
+            provider TEXT DEFAULT 'local',
+            avatar TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now')),
+            last_login TEXT
+        )
+    """)
+    conn.commit()
+
+    # Seed default admin if no users exist
+    row = conn.execute("SELECT COUNT(*) as cnt FROM users").fetchone()
+    if row["cnt"] == 0:
+        conn.execute(
+            "INSERT INTO users (username, password_hash, name, role) VALUES (?, ?, ?, ?)",
+            ("admin", _hash_password("admin123"), "관리자", "admin")
+        )
+        conn.commit()
+        print("[AUTH] 기본 관리자 계정 생성: admin / admin123")
+
+    conn.close()
+
+
+# Initialize on module load
+_init_db()
 
 
 # ─── JWT Token Helpers ───
@@ -66,7 +107,6 @@ def _create_token(data: dict, expires_delta: timedelta = None) -> str:
     if HAS_PYJWT:
         return pyjwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     else:
-        # Fallback: simple base64 token (NOT production-safe)
         import base64
         token_data = json.dumps(payload).encode()
         sig = hashlib.sha256(f"{SECRET_KEY}:{token_data.decode()}".encode()).hexdigest()[:16]
@@ -101,15 +141,6 @@ security = HTTPBearer(auto_error=False)
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> Optional[dict]:
-    """
-    보호된 라우트에서 사용:
-
-        @router.get("/protected")
-        async def protected_route(user = Depends(get_current_user)):
-            if not user:
-                raise HTTPException(401, "로그인 필요")
-            return {"user": user["username"]}
-    """
     if credentials is None:
         return None
 
@@ -118,17 +149,29 @@ async def get_current_user(
     if not username:
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다")
 
-    users = _load_users()
-    if username not in users:
-        raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다")
+    conn = _get_db()
+    row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
 
-    return {"username": username, "role": users[username].get("role", "user")}
+    if not row:
+        raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다")
+    if not row["is_active"]:
+        raise HTTPException(status_code=403, detail="비활성화된 계정입니다")
+
+    return {"username": username, "role": row["role"], "name": row["name"]}
 
 
 async def require_auth(user=Depends(get_current_user)):
     """인증 필수 의존성"""
     if user is None:
         raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    return user
+
+
+async def require_admin(user=Depends(require_auth)):
+    """관리자 전용 의존성"""
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="관리자만 접근할 수 있습니다")
     return user
 
 
@@ -149,8 +192,28 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     username: str
+    name: str = ""
     role: str
     expires_in: int = ACCESS_TOKEN_EXPIRE_MINUTES * 60
+
+
+class UserUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    email: Optional[str] = None
+
+
+class PasswordResetRequest(BaseModel):
+    new_password: str
+
+
+class UserCreateRequest(BaseModel):
+    username: str
+    password: str
+    name: str = ""
+    role: str = "student"
+    email: str = ""
 
 
 # ─── Router ───
@@ -160,60 +223,190 @@ router = APIRouter(prefix="/auth", tags=["인증"])
 @router.post("/register", response_model=TokenResponse)
 async def register(req: RegisterRequest):
     """신규 사용자 등록"""
-    users = _load_users()
-    if req.username in users:
+    conn = _get_db()
+    existing = conn.execute("SELECT id FROM users WHERE username = ?", (req.username,)).fetchone()
+    if existing:
+        conn.close()
         raise HTTPException(status_code=400, detail="이미 존재하는 사용자입니다")
 
-    users[req.username] = {
-        "password_hash": _hash_password(req.password),
-        "name": req.name,
-        "role": req.role,
-        "created_at": datetime.utcnow().isoformat(),
-    }
-    _save_users(users)
+    conn.execute(
+        "INSERT INTO users (username, password_hash, name, role) VALUES (?, ?, ?, ?)",
+        (req.username, _hash_password(req.password), req.name, req.role)
+    )
+    conn.commit()
+    conn.close()
 
     token = _create_token({"sub": req.username, "role": req.role})
-    return TokenResponse(access_token=token, username=req.username, role=req.role)
+    return TokenResponse(access_token=token, username=req.username, name=req.name, role=req.role)
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(req: LoginRequest):
     """로그인 (토큰 발급)"""
-    users = _load_users()
-    user = users.get(req.username)
+    conn = _get_db()
+    row = conn.execute("SELECT * FROM users WHERE username = ?", (req.username,)).fetchone()
 
-    if not user or user["password_hash"] != _hash_password(req.password):
+    if not row or row["password_hash"] != _hash_password(req.password):
+        conn.close()
         raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 잘못되었습니다")
 
-    role = user.get("role", "user")
+    if not row["is_active"]:
+        conn.close()
+        raise HTTPException(status_code=403, detail="비활성화된 계정입니다. 관리자에게 문의하세요")
+
+    # Update last_login
+    conn.execute(
+        "UPDATE users SET last_login = datetime('now') WHERE username = ?",
+        (req.username,)
+    )
+    conn.commit()
+
+    role = row["role"]
+    name = row["name"]
+    conn.close()
+
     token = _create_token({"sub": req.username, "role": role})
-    return TokenResponse(access_token=token, username=req.username, role=role)
+    return TokenResponse(access_token=token, username=req.username, name=name, role=role)
 
 
 @router.get("/me")
 async def get_me(user=Depends(require_auth)):
     """현재 로그인 사용자 정보"""
-    users = _load_users()
-    user_data = users.get(user["username"], {})
+    conn = _get_db()
+    row = conn.execute("SELECT * FROM users WHERE username = ?", (user["username"],)).fetchone()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+
     return {
-        "username": user["username"],
-        "name": user_data.get("name", ""),
-        "role": user["role"],
-        "created_at": user_data.get("created_at"),
+        "username": row["username"],
+        "name": row["name"],
+        "email": row["email"],
+        "role": row["role"],
+        "is_active": bool(row["is_active"]),
+        "created_at": row["created_at"],
+        "last_login": row["last_login"],
     }
 
 
-@router.get("/users")
-async def list_users(user=Depends(require_auth)):
-    """사용자 목록 (관리자 전용)"""
-    if user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="관리자만 접근할 수 있습니다")
+# ─── Admin: User Management ───
 
-    users = _load_users()
+@router.get("/users")
+async def list_users(user=Depends(require_admin)):
+    """사용자 목록 (관리자 전용)"""
+    conn = _get_db()
+    rows = conn.execute(
+        "SELECT id, username, name, email, role, is_active, provider, created_at, last_login FROM users ORDER BY id"
+    ).fetchall()
+    conn.close()
+
     return [
-        {"username": k, "name": v.get("name", ""), "role": v.get("role", "user")}
-        for k, v in users.items()
+        {
+            "id": r["id"],
+            "username": r["username"],
+            "name": r["name"],
+            "email": r["email"],
+            "role": r["role"],
+            "is_active": bool(r["is_active"]),
+            "provider": r["provider"],
+            "created_at": r["created_at"],
+            "last_login": r["last_login"],
+        }
+        for r in rows
     ]
+
+
+@router.post("/users", response_model=dict)
+async def admin_create_user(req: UserCreateRequest, user=Depends(require_admin)):
+    """관리자: 새 사용자 생성"""
+    conn = _get_db()
+    existing = conn.execute("SELECT id FROM users WHERE username = ?", (req.username,)).fetchone()
+    if existing:
+        conn.close()
+        raise HTTPException(status_code=400, detail="이미 존재하는 사용자입니다")
+
+    conn.execute(
+        "INSERT INTO users (username, password_hash, name, email, role) VALUES (?, ?, ?, ?, ?)",
+        (req.username, _hash_password(req.password), req.name, req.email, req.role)
+    )
+    conn.commit()
+    conn.close()
+    return {"message": f"사용자 '{req.username}' 생성 완료", "username": req.username}
+
+
+@router.put("/users/{username}")
+async def update_user(username: str, req: UserUpdateRequest, user=Depends(require_admin)):
+    """관리자: 사용자 정보 수정"""
+    conn = _get_db()
+    row = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+
+    updates = []
+    params = []
+    if req.name is not None:
+        updates.append("name = ?")
+        params.append(req.name)
+    if req.role is not None:
+        if req.role not in ("student", "teacher", "admin"):
+            conn.close()
+            raise HTTPException(status_code=400, detail="유효하지 않은 역할입니다 (student/teacher/admin)")
+        updates.append("role = ?")
+        params.append(req.role)
+    if req.is_active is not None:
+        updates.append("is_active = ?")
+        params.append(1 if req.is_active else 0)
+    if req.email is not None:
+        updates.append("email = ?")
+        params.append(req.email)
+
+    if not updates:
+        conn.close()
+        return {"message": "수정할 내용이 없습니다"}
+
+    params.append(username)
+    conn.execute(f"UPDATE users SET {', '.join(updates)} WHERE username = ?", params)
+    conn.commit()
+    conn.close()
+    return {"message": f"사용자 '{username}' 정보 수정 완료"}
+
+
+@router.delete("/users/{username}")
+async def delete_user(username: str, user=Depends(require_admin)):
+    """관리자: 사용자 삭제"""
+    if username == user["username"]:
+        raise HTTPException(status_code=400, detail="자기 자신은 삭제할 수 없습니다")
+
+    conn = _get_db()
+    row = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+
+    conn.execute("DELETE FROM users WHERE username = ?", (username,))
+    conn.commit()
+    conn.close()
+    return {"message": f"사용자 '{username}' 삭제 완료"}
+
+
+@router.post("/users/{username}/reset-password")
+async def reset_password(username: str, req: PasswordResetRequest, user=Depends(require_admin)):
+    """관리자: 비밀번호 초기화"""
+    conn = _get_db()
+    row = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+
+    conn.execute(
+        "UPDATE users SET password_hash = ? WHERE username = ?",
+        (_hash_password(req.new_password), username)
+    )
+    conn.commit()
+    conn.close()
+    return {"message": f"사용자 '{username}' 비밀번호 초기화 완료"}
 
 
 # ─── Google OAuth 2.0 (v7.1) ───
@@ -261,7 +454,6 @@ async def google_callback(code: str = None, error: str = None):
     except ImportError:
         raise HTTPException(status_code=501, detail="httpx 패키지가 필요합니다 (pip install httpx)")
 
-    # Token exchange
     async with httpx.AsyncClient() as client:
         token_res = await client.post(GOOGLE_TOKEN_URL, data={
             "code": code,
@@ -277,7 +469,6 @@ async def google_callback(code: str = None, error: str = None):
         tokens = token_res.json()
         access_token = tokens.get("access_token")
 
-        # Get user info
         userinfo_res = await client.get(
             GOOGLE_USERINFO_URL,
             headers={"Authorization": f"Bearer {access_token}"}
@@ -288,32 +479,29 @@ async def google_callback(code: str = None, error: str = None):
 
         userinfo = userinfo_res.json()
 
-    # Create or find user
     email = userinfo.get("email", "")
     name = userinfo.get("name", email)
     google_id = userinfo.get("id", "")
     username = f"google_{google_id}"
 
-    users = _load_users()
-    if username not in users:
-        users[username] = {
-            "password_hash": "",  # OAuth 사용자는 비밀번호 없음
-            "name": name,
-            "email": email,
-            "role": "user",
-            "provider": "google",
-            "google_id": google_id,
-            "avatar": userinfo.get("picture", ""),
-            "created_at": datetime.utcnow().isoformat(),
-        }
-        _save_users(users)
+    conn = _get_db()
+    row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    if not row:
+        conn.execute(
+            "INSERT INTO users (username, password_hash, name, email, role, provider, avatar) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (username, "", name, email, "student", "google", userinfo.get("picture", ""))
+        )
+        conn.commit()
 
-    role = users[username].get("role", "user")
+    row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    role = row["role"]
+    conn.execute("UPDATE users SET last_login = datetime('now') WHERE username = ?", (username,))
+    conn.commit()
+    conn.close()
+
     jwt_token = _create_token({"sub": username, "role": role, "name": name, "email": email})
 
-    # Redirect to frontend with token
     from fastapi.responses import RedirectResponse
     return RedirectResponse(
-        url=f"http://localhost:5173/login?token={jwt_token}&username={username}&name={name}"
+        url=f"http://localhost:5173/#/login?token={jwt_token}&username={username}&name={name}"
     )
-

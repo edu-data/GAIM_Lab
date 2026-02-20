@@ -1,0 +1,333 @@
+.admin-page {
+    padding: 0 0 2rem;
+    animation: fadeInUp 0.5s;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.admin-loading,
+.admin-error {
+    text-align: center;
+    padding: 4rem;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.admin-flash {
+    background: rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    animation: fadeInUp 0.3s;
+}
+
+/* ─── Stats ─── */
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-mini {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.stat-num {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #818cf8;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 0.25rem;
+}
+
+/* ─── Cards ─── */
+.admin-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+    overflow-x: auto;
+}
+
+.create-card {
+    margin-bottom: 1.5rem;
+}
+
+.create-card h3 {
+    margin-bottom: 1rem;
+    color: #818cf8;
+}
+
+.create-form {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.create-form input,
+.create-form select {
+    flex: 1;
+    min-width: 140px;
+    padding: 0.6rem 0.75rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.create-form input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.create-form input:focus,
+.create-form select:focus {
+    outline: none;
+    border-color: #818cf8;
+}
+
+/* ─── Table ─── */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.admin-table th {
+    text-align: left;
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.admin-table td {
+    padding: 0.65rem 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.admin-table tbody tr:hover {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.inactive-row {
+    opacity: 0.5;
+}
+
+.username-cell {
+    font-weight: 600;
+    color: white;
+}
+
+.provider-badge {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: #4285F4;
+    color: white;
+    border-radius: 4px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.date-cell {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    white-space: nowrap;
+}
+
+/* ─── Inline Controls ─── */
+.role-select {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 0.3rem 0.4rem;
+    color: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.role-select:focus {
+    outline: none;
+    border-color: #818cf8;
+}
+
+.status-toggle {
+    border: none;
+    border-radius: 6px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.status-toggle.active {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+}
+
+.status-toggle.inactive {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.status-toggle:hover {
+    transform: scale(1.05);
+}
+
+.action-cell {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.btn-sm {
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-sm:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+.btn-reset:hover {
+    border-color: #818cf8;
+}
+
+.btn-delete:hover {
+    border-color: #ef4444;
+}
+
+/* ─── Modal ─── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modal-card {
+    background: #1e1b4b;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 2rem;
+    min-width: 360px;
+    animation: fadeInUp 0.3s;
+}
+
+.modal-card h3 {
+    margin-bottom: 0.75rem;
+    color: #818cf8;
+}
+
+.modal-card p {
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 1rem;
+}
+
+.modal-card input {
+    width: 100%;
+    padding: 0.7rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.modal-card input:focus {
+    outline: none;
+    border-color: #818cf8;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.btn-cancel {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+    .admin-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .create-form {
+        flex-direction: column;
+    }
+
+    .create-form input,
+    .create-form select {
+        min-width: 100%;
+    }
+
+    .admin-table {
+        font-size: 0.8rem;
+    }
+
+    .admin-table th:nth-child(4),
+    .admin-table td:nth-child(4),
+    .admin-table th:nth-child(7),
+    .admin-table td:nth-child(7),
+    .admin-table th:nth-child(8),
+    .admin-table td:nth-child(8) {
+        display: none;
+    }
+}

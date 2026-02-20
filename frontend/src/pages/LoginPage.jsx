@@ -49,8 +49,8 @@ function LoginPage() {
             }
             const data = await res.json()
             localStorage.setItem('gaim_token', data.access_token)
-            localStorage.setItem('gaim_user', JSON.stringify({ username: data.username, role: data.role }))
-            setUser({ username: data.username, role: data.role })
+            localStorage.setItem('gaim_user', JSON.stringify({ username: data.username, name: data.name || data.username, role: data.role }))
+            setUser({ username: data.username, name: data.name || data.username, role: data.role })
         } catch (e) {
             setError(e.message)
         }

@@ -12,6 +12,7 @@ import LiveCoaching from './pages/LiveCoaching'
 import CohortCompare from './pages/CohortCompare'
 import LoginPage from './pages/LoginPage'
 import ABExperiment from './pages/ABExperiment'
+import AdminUsers from './pages/AdminUsers'
 import './App.css'
 
 const menuItems = [
@@ -31,9 +32,14 @@ function AppContent() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [collapsed, setCollapsed] = useState(false)
     const location = useLocation()
-    const user = (() => {
+    const [user, setUser] = useState(() => {
         try { return JSON.parse(localStorage.getItem('gaim_user')) } catch { return null }
-    })()
+    })
+
+    // Re-read user from storage on route change (login/logout updates localStorage)
+    useEffect(() => {
+        try { setUser(JSON.parse(localStorage.getItem('gaim_user'))) } catch { setUser(null) }
+    }, [location.pathname])
 
     // Close mobile sidebar on route change
     useEffect(() => {
@@ -70,6 +76,16 @@ function AppContent() {
                             {!collapsed && <span className="sidebar-item-label">{item.label}</span>}
                         </NavLink>
                     ))}
+                    {user?.role === 'admin' && (
+                        <NavLink
+                            to="/admin/users"
+                            className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+                            title="사용자 관리"
+                        >
+                            <span className="sidebar-item-icon">👑</span>
+                            {!collapsed && <span className="sidebar-item-label">사용자 관리</span>}
+                        </NavLink>
+                    )}
                 </nav>
 
                 <div className="sidebar-footer">
@@ -115,6 +131,7 @@ function AppContent() {
                         <Route path="/portfolio" element={<Portfolio />} />
                         <Route path="/experiment" element={<ABExperiment />} />
                         <Route path="/login" element={<LoginPage />} />
+                        <Route path="/admin/users" element={<AdminUsers />} />
                         <Route path="/analysis/:analysisId" element={<AnalysisResult />} />
                     </Routes>
                 </main>
