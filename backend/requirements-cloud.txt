@@ -1,4 +1,4 @@
-# GAIM Lab Cloud Run Dependencies (lightweight, auth-focused)
+# GAIM Lab Cloud Run Dependencies (auth + Cloud SQL)
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 python-multipart>=0.0.6
@@ -7,3 +7,6 @@ aiofiles>=23.2.1
 python-dotenv>=1.0.0
 httpx>=0.27.0
 jinja2>=3.1.2
+# Cloud SQL
+cloud-sql-python-connector[pg8000]>=1.6.0
+pg8000>=1.30.0
