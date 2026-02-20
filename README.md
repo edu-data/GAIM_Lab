@@ -17,6 +17,12 @@
   <a href="https://github.com/edu-data/GAIM_Lab/releases/tag/v7.1"><strong>📦 릴리스</strong></a>
 </p>
 
+> **🆕 NEW** — React 기반 새로운 홈페이지와 대시보드가 출시되었습니다! 로컬에서 `npm run dev`로 확인하세요.
+>
+> - 🏠 **홈페이지**: 히어로 섹션, 에이전트 파이프라인, 7차원 프레임워크, 기술 스택
+> - 📊 **대시보드**: 실시간 통계, 점수 추세 차트, 분석 이력, 데모 분석
+> - 👤 **로그인**: 2-column 레이아웃, Google OAuth + JWT 인증
+
 ---
 
 ## 🎯 프로젝트 소개
@@ -138,8 +144,12 @@ MAS/
 ├── frontend/                    # 💻 React 18 + Vite + PWA
 │   ├── public/                  # 📱 manifest.json, SW (v7.1 NEW)
 │   └── src/
+│       ├── App.jsx              # 🧭 사이드바 레이아웃 + 라우팅 (v7.1 NEW)
 │       ├── components/          # VideoHighlights 등 (v7.1 NEW)
-│       └── pages/               # 10개 페이지 (5개 신규 v7.1)
+│       └── pages/               # 11개 페이지 (HomePage 신규 v7.1)
+│           ├── HomePage.jsx     # 🏠 랜딩 페이지 (v7.1 NEW)
+│           ├── Dashboard.jsx    # 📊 위젯 대시보드 (v7.1 NEW)
+│           └── LoginPage.jsx    # 👤 2-column 로그인 (v7.1 NEW)
 ├── data/                        # 🗄️ SQLite DB
 ├── config/                      # ⚙️ rubric_config.yaml
 ├── scripts/                     # 📜 분석/배치/리포트 스크립트
@@ -275,6 +285,8 @@ python batch_analysis.py --limit 5
 
 | 대시보드 | 링크 |
 | -------- | ---- |
+| 🏠 **React 홈페이지 (NEW)** | `localhost:5173/` — 히어로·파이프라인·에이전트·기술스택 |
+| 📊 **React 대시보드 (NEW)** | `localhost:5173/dashboard` — 통계·차트·이력·데모 |
 | 🤖 MAS 홈페이지 | [edu-data.github.io/mas](https://edu-data.github.io/mas/mas-index.html) |
 | 📊 v5.0 배치 대시보드 | [18개 영상 시각화 + 화자 분리](https://edu-data.github.io/GAIM_Lab/batch_dashboard.html) |
 | 📊 MAS 대시보드 | [v4.2 분석 결과](https://edu-data.github.io/mas/mas-dashboard.html) |
@@ -293,8 +305,13 @@ python batch_analysis.py --limit 5
 
 ## 📜 버전 히스토리 (Changelog)
 
-### v7.1 — 신규 기능 7종 · PWA · 실시간 코칭 `2026-02-20`
+### v7.1 — 신규 기능 7종 · PWA · 실시간 코칭 · UI 리디자인 `2026-02-20`
 
+- **✨ UI 글라스모피즘 리디자인**: 사이드바 네비게이션 + 새 홈페이지 + 대시보드 위젯 (`App.jsx`, `HomePage.jsx`, `Dashboard.jsx`)
+  - 10개 메뉴 사이드바, 모바일 햄버거, 인디고/바이올렛 다크 테마
+  - 히어로 섹션 + 파이프라인 시각화 + 에이전트 그리드 + v7.1 기능 카드
+  - 4개 통계 카드 + 점수 추세 차트 + 분석 이력 테이블 + 데모 분석
+  - 2-column 로그인 페이지 (Google OAuth + JWT)
 - **🎯 성장 경로 (P0)**: 3/6/12주 맞춤 개선 로드맵 생성 (`growth_analyzer.py` + `GrowthPath.jsx`)
 - **🔴 실시간 코칭 라이트 (P1)**: WebSocket 기반 실시간 피드백 (`live_coaching.py` + `LiveCoaching.jsx`)
   - 필러워드 감지, WPM 모니터링, 침묵 탐지
