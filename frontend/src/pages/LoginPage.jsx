@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 
 const API_BASE = '/api/v1/auth'
 
@@ -12,7 +13,6 @@ function LoginPage() {
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        // Check for Google OAuth callback token
         const params = new URLSearchParams(window.location.search)
         const token = params.get('token')
         const uname = params.get('username')
@@ -23,7 +23,6 @@ function LoginPage() {
             setUser({ username: uname, name: displayName })
             window.history.replaceState({}, '', '/login')
         } else {
-            // Check stored token
             const stored = localStorage.getItem('gaim_user')
             if (stored) setUser(JSON.parse(stored))
         }
@@ -71,12 +70,34 @@ function LoginPage() {
     if (user) {
         return (
             <div className="login-page">
-                <div className="login-card">
-                    <div className="login-avatar">👤</div>
-                    <h2>환영합니다!</h2>
-                    <p className="login-username">{user.name || user.username}</p>
-                    <p className="login-role">{user.role || 'user'}</p>
-                    <button className="login-logout-btn" onClick={handleLogout}>로그아웃</button>
+                <div className="login-split">
+                    <div className="login-brand">
+                        <div className="login-brand-content">
+                            <div className="login-brand-icon">🤖</div>
+                            <h1>MAS <span>v7.1</span></h1>
+                            <p>Multi-Agent System for Class Analysis</p>
+                            <div className="login-features-mini">
+                                <div>🎯 성장 경로 로드맵</div>
+                                <div>🔴 실시간 코칭</div>
+                                <div>📊 코호트 비교 분석</div>
+                                <div>🧪 A/B 루브릭 실험</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="login-form-area">
+                        <div className="login-card">
+                            <div className="login-avatar">👤</div>
+                            <h2>환영합니다!</h2>
+                            <p className="login-username">{user.name || user.username}</p>
+                            <p className="login-role">{user.role || 'user'}</p>
+                            <div className="login-actions">
+                                <Link to="/dashboard" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
+                                    📊 대시보드
+                                </Link>
+                                <button className="btn-logout" onClick={handleLogout}>로그아웃</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <style>{styles}</style>
             </div>
@@ -85,41 +106,75 @@ function LoginPage() {
 
     return (
         <div className="login-page">
-            <div className="login-card">
-                <h2>🎓 GAIM Lab</h2>
-                <p className="login-subtitle">AI 수업 분석 시스템에 로그인하세요</p>
+            <div className="login-split">
+                {/* Brand Panel */}
+                <div className="login-brand">
+                    <div className="login-brand-content">
+                        <div className="login-brand-icon">🤖</div>
+                        <h1>MAS <span>v7.1</span></h1>
+                        <p className="login-brand-desc">
+                            8개 AI 에이전트가 협업하여 수업 영상을
+                            7차원 100점 만점으로 자동 평가합니다
+                        </p>
+                        <div className="login-features-mini">
+                            <div>🎯 성장 경로 로드맵</div>
+                            <div>🔴 실시간 코칭</div>
+                            <div>📊 코호트 비교 분석</div>
+                            <div>🧪 A/B 루브릭 실험</div>
+                        </div>
+                        <div className="login-stats-mini">
+                            <div className="login-stat-item">
+                                <strong>8</strong><span>에이전트</span>
+                            </div>
+                            <div className="login-stat-item">
+                                <strong>18</strong><span>영상 분석</span>
+                            </div>
+                            <div className="login-stat-item">
+                                <strong>100%</strong><span>성공률</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                {/* Google OAuth */}
-                <button className="google-btn" onClick={handleGoogleLogin}>
-                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" /><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" /><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" /><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" /></svg>
-                    Google로 로그인
-                </button>
+                {/* Form Panel */}
+                <div className="login-form-area">
+                    <div className="login-card">
+                        <h2>🎓 GAIM Lab</h2>
+                        <p className="login-subtitle">AI 수업 분석 시스템에 로그인하세요</p>
 
-                <div className="login-divider"><span>또는</span></div>
+                        {/* Google OAuth */}
+                        <button className="google-btn" onClick={handleGoogleLogin}>
+                            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" /><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" /><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" /><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" /></svg>
+                            Google로 로그인
+                        </button>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit}>
-                    {mode === 'register' && (
-                        <input type="text" placeholder="이름" value={name}
-                            onChange={e => setName(e.target.value)} className="login-input" />
-                    )}
-                    <input type="text" placeholder="아이디" value={username}
-                        onChange={e => setUsername(e.target.value)} className="login-input" required />
-                    <input type="password" placeholder="비밀번호" value={password}
-                        onChange={e => setPassword(e.target.value)} className="login-input" required />
-                    {error && <div className="login-error">{error}</div>}
-                    <button type="submit" className="login-submit" disabled={loading}>
-                        {loading ? '처리 중...' : mode === 'login' ? '로그인' : '회원가입'}
-                    </button>
-                </form>
+                        <div className="login-divider"><span>또는</span></div>
 
-                <p className="login-toggle">
-                    {mode === 'login' ? (
-                        <>계정이 없으신가요? <a onClick={() => setMode('register')}>회원가입</a></>
-                    ) : (
-                        <>이미 계정이 있으신가요? <a onClick={() => setMode('login')}>로그인</a></>
-                    )}
-                </p>
+                        {/* Form */}
+                        <form onSubmit={handleSubmit}>
+                            {mode === 'register' && (
+                                <input type="text" placeholder="이름" value={name}
+                                    onChange={e => setName(e.target.value)} className="login-input" />
+                            )}
+                            <input type="text" placeholder="아이디" value={username}
+                                onChange={e => setUsername(e.target.value)} className="login-input" required />
+                            <input type="password" placeholder="비밀번호" value={password}
+                                onChange={e => setPassword(e.target.value)} className="login-input" required />
+                            {error && <div className="login-error">{error}</div>}
+                            <button type="submit" className="login-submit" disabled={loading}>
+                                {loading ? '처리 중...' : mode === 'login' ? '로그인' : '회원가입'}
+                            </button>
+                        </form>
+
+                        <p className="login-toggle">
+                            {mode === 'login' ? (
+                                <>계정이 없으신가요? <a onClick={() => setMode('register')}>회원가입</a></>
+                            ) : (
+                                <>이미 계정이 있으신가요? <a onClick={() => setMode('login')}>로그인</a></>
+                            )}
+                        </p>
+                    </div>
+                </div>
             </div>
             <style>{styles}</style>
         </div>
@@ -127,36 +182,104 @@ function LoginPage() {
 }
 
 const styles = `
-  .login-page { display: flex; justify-content: center; align-items: center; min-height: 70vh; }
-  .login-card { background: rgba(26,26,46,0.9); border-radius: 16px; padding: 2rem;
-    width: 100%; max-width: 400px; border: 1px solid rgba(108,99,255,0.2); text-align: center; }
-  .login-card h2 { font-size: 1.5rem; margin-bottom: 0.3rem;
-    background: linear-gradient(135deg, #6c63ff, #00d2ff);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .login-subtitle { color: #888; font-size: 0.85rem; margin-bottom: 1.5rem; }
-  .google-btn { width: 100%; padding: 0.75rem; background: #fff; color: #333; border: none;
-    border-radius: 10px; font-size: 0.9rem; cursor: pointer; display: flex;
-    align-items: center; justify-content: center; gap: 0.6rem; font-weight: 500; }
-  .google-btn:hover { background: #f5f5f5; }
-  .login-divider { display: flex; align-items: center; margin: 1.2rem 0; color: #555; font-size: 0.8rem; }
-  .login-divider::before, .login-divider::after { content: ''; flex: 1; border-bottom: 1px solid #333; }
-  .login-divider span { padding: 0 0.8rem; }
-  .login-input { width: 100%; padding: 0.7rem 0.9rem; background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(108,99,255,0.2); border-radius: 8px; color: #e0e0ec;
-    font-size: 0.9rem; margin-bottom: 0.6rem; }
-  .login-input:focus { outline: none; border-color: #6c63ff; }
-  .login-error { color: #ff5252; font-size: 0.82rem; margin-bottom: 0.5rem; }
-  .login-submit { width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #6c63ff, #00d2ff);
-    color: #fff; border: none; border-radius: 10px; font-size: 0.95rem;
-    cursor: pointer; font-weight: 600; margin-top: 0.3rem; }
-  .login-submit:disabled { opacity: 0.5; }
-  .login-toggle { margin-top: 1rem; color: #888; font-size: 0.82rem; }
-  .login-toggle a { color: #6c63ff; cursor: pointer; text-decoration: underline; }
-  .login-avatar { font-size: 3rem; margin-bottom: 0.5rem; }
-  .login-username { color: #fff; font-size: 1.1rem; font-weight: 600; }
-  .login-role { color: #888; font-size: 0.8rem; margin-bottom: 1rem; }
-  .login-logout-btn { padding: 0.6rem 1.5rem; background: rgba(255,82,82,0.15); color: #ff5252;
-    border: 1px solid #ff5252; border-radius: 8px; cursor: pointer; }
+    .login-page { display: flex; min-height: calc(100vh - 120px); }
+    .login-split { display: flex; width: 100%; border-radius: 16px; overflow: hidden;
+        border: 1px solid rgba(99,102,241,0.12); }
+
+    /* Brand Panel */
+    .login-brand { flex: 1; background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(167,139,250,0.08) 100%);
+        display: flex; align-items: center; justify-content: center; padding: 3rem;
+        border-right: 1px solid rgba(99,102,241,0.1); }
+    .login-brand-content { text-align: center; max-width: 360px; }
+    .login-brand-icon { font-size: 4rem; margin-bottom: 1rem; }
+    .login-brand h1 { font-size: 2.5rem; font-weight: 900;
+        background: linear-gradient(135deg, #818cf8, #a78bfa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; }
+    .login-brand h1 span { font-size: 0.9rem; font-weight: 700;
+        background: rgba(99,102,241,0.25); -webkit-text-fill-color: #a5b4fc;
+        padding: 2px 8px; border-radius: 5px; vertical-align: middle; margin-left: 4px; }
+    .login-brand-desc { color: #94a3b8; font-size: 0.9rem; line-height: 1.7; margin-bottom: 2rem; }
+    .login-brand p { color: #94a3b8; font-size: 0.9rem; }
+
+    .login-features-mini { display: flex; flex-direction: column; gap: 0.5rem; margin: 2rem 0;
+        text-align: left; }
+    .login-features-mini div { font-size: 0.82rem; color: #94a3b8; padding: 0.5rem 0.75rem;
+        background: rgba(99,102,241,0.06); border-radius: 8px; border: 1px solid rgba(99,102,241,0.08); }
+
+    .login-stats-mini { display: flex; gap: 1.5rem; justify-content: center; margin-top: 1.5rem; }
+    .login-stat-item { text-align: center; }
+    .login-stat-item strong { display: block; font-size: 1.5rem; font-weight: 800;
+        background: linear-gradient(135deg, #818cf8, #a78bfa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .login-stat-item span { font-size: 0.72rem; color: #64748b; }
+
+    /* Form Area */
+    .login-form-area { flex: 1; display: flex; align-items: center; justify-content: center;
+        padding: 3rem; background: rgba(10,10,30,0.5); }
+    .login-card { width: 100%; max-width: 380px; text-align: center; }
+    .login-card h2 { font-size: 1.5rem; margin-bottom: 0.3rem; font-weight: 800;
+        background: linear-gradient(135deg, #818cf8, #a78bfa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .login-subtitle { color: #64748b; font-size: 0.82rem; margin-bottom: 1.5rem; }
+
+    .google-btn { width: 100%; padding: 0.75rem; background: #fff; color: #333; border: none;
+        border-radius: 10px; font-size: 0.88rem; cursor: pointer; display: flex;
+        align-items: center; justify-content: center; gap: 0.6rem; font-weight: 500;
+        transition: all 0.25s; }
+    .google-btn:hover { background: #f0f0f0; transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+    .login-divider { display: flex; align-items: center; margin: 1.2rem 0;
+        color: #475569; font-size: 0.78rem; }
+    .login-divider::before, .login-divider::after { content: ''; flex: 1;
+        border-bottom: 1px solid rgba(99,102,241,0.12); }
+    .login-divider span { padding: 0 0.8rem; }
+
+    .login-input { width: 100%; padding: 0.7rem 0.9rem; background: rgba(22,22,48,0.6);
+        border: 1px solid rgba(99,102,241,0.15); border-radius: 10px; color: #e2e8f0;
+        font-size: 0.88rem; margin-bottom: 0.6rem; outline: none; transition: border-color 0.25s;
+        font-family: 'Inter', sans-serif; }
+    .login-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .login-input::placeholder { color: #475569; }
+
+    .login-error { color: #f87171; font-size: 0.8rem; margin-bottom: 0.5rem;
+        padding: 0.4rem 0.75rem; background: rgba(239,68,68,0.08); border-radius: 6px; }
+
+    .login-submit { width: 100%; padding: 0.75rem;
+        background: linear-gradient(135deg, #6366f1, #a78bfa);
+        color: #fff; border: none; border-radius: 10px; font-size: 0.92rem;
+        cursor: pointer; font-weight: 700; margin-top: 0.3rem; transition: all 0.25s;
+        font-family: 'Inter', sans-serif; }
+    .login-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.3); }
+    .login-submit:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+    .login-toggle { margin-top: 1.25rem; color: #64748b; font-size: 0.8rem; }
+    .login-toggle a { color: #818cf8; cursor: pointer; text-decoration: none; font-weight: 600; }
+    .login-toggle a:hover { text-decoration: underline; }
+
+    .login-avatar { font-size: 3.5rem; margin-bottom: 0.5rem; }
+    .login-username { color: #e2e8f0; font-size: 1.1rem; font-weight: 700; margin-top: 0.3rem; }
+    .login-role { color: #64748b; font-size: 0.78rem; margin-bottom: 1.5rem; }
+
+    .login-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
+
+    .btn-logout { padding: 0.6rem 1.25rem; background: rgba(239,68,68,0.1); color: #f87171;
+        border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; cursor: pointer;
+        font-size: 0.85rem; font-weight: 600; transition: all 0.25s; font-family: 'Inter', sans-serif; }
+    .btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .login-split { flex-direction: column; }
+        .login-brand { padding: 2rem; border-right: none; border-bottom: 1px solid rgba(99,102,241,0.1); }
+        .login-brand-icon { font-size: 2.5rem; }
+        .login-brand h1 { font-size: 1.8rem; }
+        .login-features-mini { flex-direction: row; flex-wrap: wrap; }
+        .login-features-mini div { flex: 1 1 45%; }
+        .login-stats-mini { gap: 1rem; }
+        .login-form-area { padding: 2rem; }
+        .login-actions { flex-direction: column; }
+    }
 `
 
 export default LoginPage
