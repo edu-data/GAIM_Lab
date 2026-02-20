@@ -6,53 +6,84 @@
 // ── Extractor: 비디오에서 프레임 + 오디오 추출 ──
 export async function extractResources(videoFile, onProgress) {
     const url = URL.createObjectURL(videoFile)
+
+    // 오디오 먼저 추출 (ArrayBuffer 복사본 사용)
+    let audioData = null
+    try {
+        const arrayBuffer = await videoFile.arrayBuffer()
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+        audioData = await audioCtx.decodeAudioData(arrayBuffer)
+        audioCtx.close()
+    } catch (e) {
+        console.warn('Audio decode skipped:', e.message)
+    }
+
+    // 비디오 로드
     const video = document.createElement('video')
     video.muted = true
+    video.playsInline = true
     video.preload = 'auto'
     video.src = url
 
     await new Promise((resolve, reject) => {
-        video.onloadedmetadata = resolve
+        video.onloadeddata = resolve
         video.onerror = () => reject(new Error('비디오 로드 실패'))
+        setTimeout(() => reject(new Error('비디오 로드 시간 초과')), 30000)
     })
 
     const duration = video.duration
-    const width = Math.min(video.videoWidth, 360)
-    const height = Math.round(video.videoHeight * (width / video.videoWidth))
+    if (!duration || !isFinite(duration) || duration <= 0) {
+        URL.revokeObjectURL(url)
+        throw new Error('비디오 길이를 읽을 수 없습니다')
+    }
+
+    const width = Math.min(video.videoWidth || 320, 320)
+    const height = Math.round((video.videoHeight || 240) * (width / (video.videoWidth || 320)))
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
     const ctx = canvas.getContext('2d')
 
-    // 1fps로 프레임 추출
+    // 1fps로 프레임 추출 (최대 120프레임 = 2분)
     const fps = 1
-    const totalFrames = Math.min(Math.floor(duration * fps), 300) // 최대 300프레임 (5분)
+    const totalFrames = Math.min(Math.floor(duration * fps), 120)
     const frames = []
 
-    for (let i = 0; i < totalFrames; i++) {
-        const time = i / fps
-        video.currentTime = time
-        await new Promise(r => { video.onseeked = r })
-        ctx.drawImage(video, 0, 0, width, height)
-        const imageData = ctx.getImageData(0, 0, width, height)
-        frames.push({ time, imageData, width, height })
-        if (onProgress) onProgress(Math.round((i / totalFrames) * 100))
+    function seekTo(time) {
+        return new Promise((resolve) => {
+            const onSeeked = () => {
+                video.removeEventListener('seeked', onSeeked)
+                resolve()
+            }
+            video.addEventListener('seeked', onSeeked)
+            video.currentTime = time
+            // 탈출 타임아웃: 3초 안에 seek 안 되면 건너뜀
+            setTimeout(() => {
+                video.removeEventListener('seeked', onSeeked)
+                resolve()
+            }, 3000)
+        })
     }
 
-    // 오디오 컨텍스트 준비
-    let audioData = null
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
-        const response = await fetch(url)
-        const arrayBuffer = await response.arrayBuffer()
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
-        audioData = audioBuffer
-        audioCtx.close()
-    } catch (e) {
-        console.warn('Audio decode failed:', e)
+    for (let i = 0; i < totalFrames; i++) {
+        try {
+            const time = i / fps
+            await seekTo(time)
+            ctx.drawImage(video, 0, 0, width, height)
+            const imageData = ctx.getImageData(0, 0, width, height)
+            frames.push({ time, imageData, width, height })
+        } catch (e) {
+            // 프레임 추출 실패 시 건너뜀
+            console.warn(`Frame ${i} 추출 실패:`, e.message)
+        }
+        if (onProgress) onProgress(Math.round(((i + 1) / totalFrames) * 100))
     }
 
     URL.revokeObjectURL(url)
+
+    if (frames.length === 0) {
+        throw new Error('프레임을 추출할 수 없습니다')
+    }
 
     return {
         frames,
@@ -62,8 +93,8 @@ export async function extractResources(videoFile, onProgress) {
         height,
         totalFrames: frames.length,
         fps,
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
+        videoWidth: video.videoWidth || width,
+        videoHeight: video.videoHeight || height,
     }
 }
 

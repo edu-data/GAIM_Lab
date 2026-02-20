@@ -285,13 +285,19 @@ export default function AgentMonitor() {
             setElapsedTotal(totalTime)
             setPipelineStatus('failed')
             setIsRunning(false)
-            addLog(`❌ 분석 실패: ${e.message}`)
+            console.error('Pipeline error:', e)
+            addLog(`❌ 분석 실패: ${e.message || e}`)
         }
     }, [videoFile, addLog, updateAgent])
 
     // ── 값비싼 동기 연산을 비동기로 래핑 (UI freeze 방지) ──
     function runAsync(fn) {
-        return new Promise(resolve => setTimeout(() => resolve(fn()), 10))
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                try { resolve(fn()) }
+                catch (e) { reject(e) }
+            }, 10)
+        })
     }
 
     // ── 리셋 ──
