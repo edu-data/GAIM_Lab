@@ -291,13 +291,13 @@ export default function AgentMonitor() {
     }, [videoFile, addLog, updateAgent])
 
     // ── 값비싼 동기 연산을 비동기로 래핑 (UI freeze 방지) ──
-    function runAsync(fn) {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                try { resolve(fn()) }
-                catch (e) { reject(e) }
-            }, 10)
-        })
+    async function runAsync(fn) {
+        // UI가 업데이트되도록 flush
+        await new Promise(r => setTimeout(r, 50))
+        const result = fn()
+        // 결과 반영 후 다시 yield
+        await new Promise(r => setTimeout(r, 50))
+        return result
     }
 
     // ── 리셋 ──

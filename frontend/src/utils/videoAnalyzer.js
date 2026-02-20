@@ -7,18 +7,7 @@
 export async function extractResources(videoFile, onProgress) {
     const url = URL.createObjectURL(videoFile)
 
-    // 오디오 먼저 추출 (ArrayBuffer 복사본 사용)
-    let audioData = null
-    try {
-        const arrayBuffer = await videoFile.arrayBuffer()
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
-        audioData = await audioCtx.decodeAudioData(arrayBuffer)
-        audioCtx.close()
-    } catch (e) {
-        console.warn('Audio decode skipped:', e.message)
-    }
-
-    // 비디오 로드
+    // 비디오 로드 (먼저!)
     const video = document.createElement('video')
     video.muted = true
     video.playsInline = true
@@ -26,9 +15,10 @@ export async function extractResources(videoFile, onProgress) {
     video.src = url
 
     await new Promise((resolve, reject) => {
-        video.onloadeddata = resolve
-        video.onerror = () => reject(new Error('비디오 로드 실패'))
-        setTimeout(() => reject(new Error('비디오 로드 시간 초과')), 30000)
+        const done = () => { video.onloadeddata = null; video.onerror = null; resolve() }
+        video.onloadeddata = done
+        video.onerror = () => { video.onloadeddata = null; reject(new Error('비디오 로드 실패')) }
+        setTimeout(() => { video.onloadeddata = null; reject(new Error('비디오 로드 시간 초과 (30초)')) }, 30000)
     })
 
     const duration = video.duration
@@ -37,52 +27,63 @@ export async function extractResources(videoFile, onProgress) {
         throw new Error('비디오 길이를 읽을 수 없습니다')
     }
 
+    if (onProgress) onProgress(5)
+
     const width = Math.min(video.videoWidth || 320, 320)
     const height = Math.round((video.videoHeight || 240) * (width / (video.videoWidth || 320)))
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
 
-    // 1fps로 프레임 추출 (최대 120프레임 = 2분)
-    const fps = 1
-    const totalFrames = Math.min(Math.floor(duration * fps), 120)
+    // 동적 샘플링: 최대 60프레임까지만
+    const maxFrames = 60
+    const interval = Math.max(1, Math.floor(duration / maxFrames))
+    const totalFrames = Math.min(Math.floor(duration / interval), maxFrames)
     const frames = []
 
-    function seekTo(time) {
-        return new Promise((resolve) => {
-            const onSeeked = () => {
-                video.removeEventListener('seeked', onSeeked)
-                resolve()
-            }
-            video.addEventListener('seeked', onSeeked)
-            video.currentTime = time
-            // 탈출 타임아웃: 3초 안에 seek 안 되면 건너뜀
-            setTimeout(() => {
-                video.removeEventListener('seeked', onSeeked)
-                resolve()
-            }, 3000)
-        })
-    }
-
     for (let i = 0; i < totalFrames; i++) {
+        const time = i * interval
         try {
-            const time = i / fps
-            await seekTo(time)
+            // seek
+            await new Promise((resolve) => {
+                const handler = () => { video.removeEventListener('seeked', handler); resolve() }
+                video.addEventListener('seeked', handler)
+                video.currentTime = time
+                setTimeout(() => { video.removeEventListener('seeked', handler); resolve() }, 2000)
+            })
+            // UI 스레드에 양보 (검정 화면 방지)
+            await new Promise(r => setTimeout(r, 0))
             ctx.drawImage(video, 0, 0, width, height)
             const imageData = ctx.getImageData(0, 0, width, height)
             frames.push({ time, imageData, width, height })
         } catch (e) {
-            // 프레임 추출 실패 시 건너뜀
-            console.warn(`Frame ${i} 추출 실패:`, e.message)
+            console.warn(`Frame ${i} skip:`, e.message)
         }
-        if (onProgress) onProgress(Math.round(((i + 1) / totalFrames) * 100))
+        if (onProgress) onProgress(5 + Math.round((i / totalFrames) * 75))
+    }
+
+    // 오디오: 50MB 미만일 때만 추출 (메모리 보호)
+    let audioData = null
+    if (videoFile.size < 50 * 1024 * 1024) {
+        try {
+            if (onProgress) onProgress(85)
+            const ab = await videoFile.arrayBuffer()
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+            audioData = await audioCtx.decodeAudioData(ab)
+            audioCtx.close()
+        } catch (e) {
+            console.warn('Audio decode skipped:', e.message)
+        }
+    } else {
+        console.log('Audio skipped: file too large (' + (videoFile.size / 1024 / 1024).toFixed(0) + 'MB)')
     }
 
     URL.revokeObjectURL(url)
+    if (onProgress) onProgress(100)
 
     if (frames.length === 0) {
-        throw new Error('프레임을 추출할 수 없습니다')
+        throw new Error('프레임을 추출할 수 없습니다. 지원되는 비디오 형식인지 확인하세요.')
     }
 
     return {
@@ -92,7 +93,7 @@ export async function extractResources(videoFile, onProgress) {
         width,
         height,
         totalFrames: frames.length,
-        fps,
+        fps: 1 / interval,
         videoWidth: video.videoWidth || width,
         videoHeight: video.videoHeight || height,
     }
