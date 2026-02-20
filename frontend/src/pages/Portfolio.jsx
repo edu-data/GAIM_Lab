@@ -4,9 +4,8 @@ import {
     RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
     BarChart, Bar, Legend
 } from 'recharts'
+import { API_BASE } from '../apiConfig'
 import './Portfolio.css'
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
 
 function Portfolio() {
     const [studentId, setStudentId] = useState('')

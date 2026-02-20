@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import AgentCard from '../components/AgentCard'
 import AgentTimeline from '../components/AgentTimeline'
+import { API_BASE } from '../apiConfig'
 import './AgentMonitor.css'
 
-const API_BASE = 'http://localhost:8000/api/v1/agents'
+const AGENTS_API = `${API_BASE}/agents`
 
 export default function AgentMonitor() {
     const [registry, setRegistry] = useState(null)
@@ -14,7 +15,7 @@ export default function AgentMonitor() {
 
     // 에이전트 레지스트리 로드
     useEffect(() => {
-        fetch(`${API_BASE}/status`)
+        fetch(`${AGENTS_API}/status`)
             .then(res => res.json())
             .then(data => setRegistry(data))
             .catch(() => setRegistry(getDemoRegistry()))
@@ -22,7 +23,7 @@ export default function AgentMonitor() {
 
     // 파이프라인 목록 로드
     useEffect(() => {
-        fetch(`${API_BASE}/pipelines`)
+        fetch(`${AGENTS_API}/pipelines`)
             .then(res => res.json())
             .then(data => setPipelines(data.pipelines || []))
             .catch(() => { })
@@ -32,7 +33,7 @@ export default function AgentMonitor() {
     useEffect(() => {
         if (!activePipeline || activePipeline.status === 'completed' || activePipeline.status === 'failed') return
         const interval = setInterval(() => {
-            fetch(`${API_BASE}/pipeline/${activePipeline.pipeline_id}`)
+            fetch(`${AGENTS_API}/pipeline/${activePipeline.pipeline_id}`)
                 .then(res => res.json())
                 .then(data => setActivePipeline(data))
                 .catch(() => { })
@@ -45,7 +46,7 @@ export default function AgentMonitor() {
         setIsAnalyzing(true)
         setError(null)
         try {
-            const res = await fetch(`${API_BASE}/analyze`, {
+            const res = await fetch(`${AGENTS_API}/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({}),

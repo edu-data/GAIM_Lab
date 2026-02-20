@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { API_HOST } from '../apiConfig';
 import './RealtimeFeedback.css';
+
+const WS_BASE = API_HOST
+    ? API_HOST.replace(/^https?:\/\//, (m) => m.startsWith('https') ? 'wss://' : 'ws://')
+    : 'ws://localhost:8000';
 
 const RealtimeFeedback = ({ analysisId, onComplete, onError }) => {
     const [connected, setConnected] = useState(false);
@@ -15,7 +20,7 @@ const RealtimeFeedback = ({ analysisId, onComplete, onError }) => {
     const connectWebSocket = useCallback(() => {
         if (!analysisId) return;
 
-        const wsUrl = `ws://localhost:8000/api/v1/ws/analysis/${analysisId}`;
+        const wsUrl = `${WS_BASE}/api/v1/ws/analysis/${analysisId}`;
 
         try {
             wsRef.current = new WebSocket(wsUrl);
