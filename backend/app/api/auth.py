@@ -39,7 +39,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
 # ─── SQLite User Database ───
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data"
+_DATA_DIR = Path(os.getenv("GAIM_DATA_DIR", str(Path(__file__).resolve().parent.parent.parent.parent / "data")))
 _DB_PATH = _DATA_DIR / "users.db"
 
 

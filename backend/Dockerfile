@@ -19,6 +19,7 @@ RUN mkdir -p /app/data
 
 # Cloud Run sets PORT env var
 ENV PORT=8080
+ENV GAIM_DATA_DIR=/app/data
 EXPOSE 8080
 
 CMD ["sh", "-c", "uvicorn app.main_cloud:app --host 0.0.0.0 --port $PORT"]
