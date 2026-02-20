@@ -67,6 +67,33 @@ function LoginPage() {
         setUser(null)
     }
 
+    const [pwCurrent, setPwCurrent] = useState('')
+    const [pwNew, setPwNew] = useState('')
+    const [pwConfirm, setPwConfirm] = useState('')
+    const [pwMsg, setPwMsg] = useState(null)
+    const [pwLoading, setPwLoading] = useState(false)
+
+    const handleChangePassword = async (e) => {
+        e.preventDefault()
+        if (pwNew !== pwConfirm) { setPwMsg('❌ 새 비밀번호가 일치하지 않습니다'); return }
+        if (pwNew.length < 4) { setPwMsg('❌ 새 비밀번호는 4자 이상이어야 합니다'); return }
+        setPwLoading(true)
+        setPwMsg(null)
+        try {
+            const token = localStorage.getItem('gaim_token')
+            const res = await fetch(`${API_BASE}/me/password`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ current_password: pwCurrent, new_password: pwNew }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+            setPwMsg(`✅ ${data.message}`)
+            setPwCurrent(''); setPwNew(''); setPwConfirm('')
+        } catch (e) { setPwMsg(`❌ ${e.message}`) }
+        setPwLoading(false)
+    }
+
     if (user) {
         return (
             <div className="login-page">
@@ -89,12 +116,34 @@ function LoginPage() {
                             <div className="login-avatar">👤</div>
                             <h2>환영합니다!</h2>
                             <p className="login-username">{user.name || user.username}</p>
-                            <p className="login-role">{user.role || 'user'}</p>
+                            <p className="login-role">{user.role === 'admin' ? '👑 관리자' : user.role === 'teacher' ? '👨‍🏫 교사' : '🎓 학생'}</p>
                             <div className="login-actions">
                                 <Link to="/dashboard" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
                                     📊 대시보드
                                 </Link>
+                                {user.role === 'admin' && (
+                                    <Link to="/admin/users" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center', background: 'rgba(245,158,11,0.2)', borderColor: '#f59e0b' }}>
+                                        👑 사용자 관리
+                                    </Link>
+                                )}
                                 <button className="btn-logout" onClick={handleLogout}>로그아웃</button>
+                            </div>
+
+                            {/* Password Change */}
+                            <div className="pw-change-section">
+                                <h3>🔑 비밀번호 변경</h3>
+                                {pwMsg && <div className={`pw-msg ${pwMsg.startsWith('✅') ? 'success' : 'error'}`}>{pwMsg}</div>}
+                                <form onSubmit={handleChangePassword}>
+                                    <input type="password" placeholder="현재 비밀번호" required
+                                        value={pwCurrent} onChange={e => setPwCurrent(e.target.value)} />
+                                    <input type="password" placeholder="새 비밀번호 (4자 이상)" required
+                                        value={pwNew} onChange={e => setPwNew(e.target.value)} />
+                                    <input type="password" placeholder="새 비밀번호 확인" required
+                                        value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} />
+                                    <button type="submit" className="btn btn-primary" disabled={pwLoading}>
+                                        {pwLoading ? '변경 중...' : '비밀번호 변경'}
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -267,6 +316,21 @@ const styles = `
         border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; cursor: pointer;
         font-size: 0.85rem; font-weight: 600; transition: all 0.25s; font-family: 'Inter', sans-serif; }
     .btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+    /* Password Change */
+    .pw-change-section { margin-top: 1.5rem; padding-top: 1.5rem;
+        border-top: 1px solid rgba(99,102,241,0.12); text-align: left; }
+    .pw-change-section h3 { font-size: 0.95rem; color: #818cf8; margin-bottom: 0.75rem; text-align: center; }
+    .pw-change-section input { width: 100%; padding: 0.6rem 0.8rem; background: rgba(22,22,48,0.6);
+        border: 1px solid rgba(99,102,241,0.15); border-radius: 8px; color: #e2e8f0;
+        font-size: 0.85rem; margin-bottom: 0.5rem; outline: none; transition: border-color 0.25s;
+        font-family: 'Inter', sans-serif; box-sizing: border-box; }
+    .pw-change-section input:focus { border-color: #6366f1; }
+    .pw-change-section input::placeholder { color: #475569; }
+    .pw-change-section .btn { width: 100%; margin-top: 0.3rem; padding: 0.6rem; font-size: 0.85rem; }
+    .pw-msg { font-size: 0.8rem; padding: 0.5rem 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; text-align: center; }
+    .pw-msg.success { background: rgba(52,211,153,0.1); color: #34d399; }
+    .pw-msg.error { background: rgba(239,68,68,0.08); color: #f87171; }
 
     /* Responsive */
     @media (max-width: 768px) {

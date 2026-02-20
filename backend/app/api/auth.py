@@ -208,6 +208,11 @@ class PasswordResetRequest(BaseModel):
     new_password: str
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class UserCreateRequest(BaseModel):
     username: str
     password: str
@@ -288,6 +293,29 @@ async def get_me(user=Depends(require_auth)):
         "created_at": row["created_at"],
         "last_login": row["last_login"],
     }
+
+
+@router.put("/me/password")
+async def change_my_password(req: PasswordChangeRequest, user=Depends(require_auth)):
+    """현재 비밀번호 확인 후 변경 (일반 사용자)"""
+    conn = _get_db()
+    row = conn.execute("SELECT password_hash FROM users WHERE username = ?", (user["username"],)).fetchone()
+
+    if not row or row["password_hash"] != _hash_password(req.current_password):
+        conn.close()
+        raise HTTPException(status_code=401, detail="현재 비밀번호가 잘못되었습니다")
+
+    if len(req.new_password) < 4:
+        conn.close()
+        raise HTTPException(status_code=400, detail="새 비밀번호는 4자 이상이어야 합니다")
+
+    conn.execute(
+        "UPDATE users SET password_hash = ? WHERE username = ?",
+        (_hash_password(req.new_password), user["username"])
+    )
+    conn.commit()
+    conn.close()
+    return {"message": "비밀번호가 변경되었습니다"}
 
 
 # ─── Admin: User Management ───
