@@ -25,14 +25,15 @@ function wpmGrade(wpm) {
     return { label: '과속', color: '#ff5252' }
 }
 
-// ── 7차원 간이 평가 ──
+// ── 7차원 간이 평가 (음성 + 영상) ──
 function calcDimensions(stats) {
     const { avgWpm, fillerCount, silenceRatio, totalWords, durationSec } = stats
     const mins = durationSec / 60 || 1
     const fillerRate = fillerCount / mins
-
     const score = (val, ideal, range) => Math.max(0, Math.min(100, 100 - Math.abs(val - ideal) / range * 100))
-
+    const vm = stats.videoMetrics || {}
+    const movScore = vm.avgMovement != null ? Math.round(score(vm.avgMovement, 35, 50)) : null
+    const gestScore = vm.gestureCount != null ? Math.round(Math.min(100, (vm.gestureCount / Math.max(mins, 1)) * 15)) : null
     return [
         { name: '발화 유창성', score: Math.round(Math.max(0, 100 - fillerRate * 8)), icon: '🗣️' },
         { name: '말 속도', score: Math.round(score(avgWpm, 130, 80)), icon: '⏱️' },
@@ -40,6 +41,7 @@ function calcDimensions(stats) {
         { name: '발화량', score: Math.round(Math.min(100, (totalWords / (mins * 80)) * 100)), icon: '📝' },
         { name: '속도 안정성', score: Math.round(Math.max(0, 100 - (stats.wpmStdDev || 0) * 2)), icon: '📊' },
         { name: '어휘 다양성', score: Math.round(Math.min(100, (stats.uniqueWords || 0) / Math.max(totalWords * 0.4, 1) * 100)), icon: '📚' },
+        { name: '제스처·움직임', score: movScore != null && gestScore != null ? Math.round((movScore + gestScore) / 2) : 70, icon: '🤸' },
         { name: '종합 전달력', score: 0, icon: '🎯' },
     ]
 }
@@ -53,6 +55,10 @@ function LiveCoaching() {
     const [wpmHistory, setWpmHistory] = useState([])
     const [sessionReport, setSessionReport] = useState(null)
     const [interimText, setInterimText] = useState('')
+    // ── Camera state ──
+    const [cameraOn, setCameraOn] = useState(false)
+    const [videoMetrics, setVideoMetrics] = useState({ movement: 0, gestureCount: 0, avgMovement: 0 })
+    const [movementHistory, setMovementHistory] = useState([])
 
     const recognitionRef = useRef(null)
     const timerRef = useRef(null)
@@ -63,6 +69,15 @@ function LiveCoaching() {
     const allWordsRef = useRef([])
     const wpmWindowRef = useRef([]) // {time, words}
     const transcriptEndRef = useRef(null)
+    // ── Camera refs ──
+    const videoRef = useRef(null)
+    const canvasRef = useRef(null)
+    const prevFrameRef = useRef(null)
+    const streamRef = useRef(null)
+    const videoTimerRef = useRef(null)
+    const movementSamplesRef = useRef([])
+    const gestureCountRef = useRef(0)
+    const lastMovementRef = useRef(0)
 
     // ── 메트릭 업데이트 ──
     const updateMetrics = useCallback((newText) => {
@@ -168,6 +183,66 @@ function LiveCoaching() {
         recognitionRef.current = recog
     }, [updateMetrics])
 
+    // ── 카메라 시작 ──
+    const startCamera = useCallback(async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, facingMode: 'user' }, audio: false })
+            streamRef.current = stream
+            if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play() }
+            setCameraOn(true)
+            prevFrameRef.current = null
+            movementSamplesRef.current = []
+            gestureCountRef.current = 0
+            lastMovementRef.current = 0
+            // 프레임 분석 (500ms 간격)
+            videoTimerRef.current = setInterval(() => analyzeFrame(), 500)
+        } catch (e) {
+            console.warn('Camera not available:', e.message)
+            setCameraOn(false)
+        }
+    }, [])
+
+    // ── 프레임 분석 (움직임 감지) ──
+    const analyzeFrame = useCallback(() => {
+        const video = videoRef.current
+        const canvas = canvasRef.current
+        if (!video || !canvas || video.readyState < 2) return
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        canvas.width = 160; canvas.height = 120
+        ctx.drawImage(video, 0, 0, 160, 120)
+        const frame = ctx.getImageData(0, 0, 160, 120)
+        const data = frame.data
+        if (prevFrameRef.current) {
+            let diff = 0
+            const prev = prevFrameRef.current
+            for (let i = 0; i < data.length; i += 16) { // sample every 4th pixel
+                diff += Math.abs(data[i] - prev[i]) + Math.abs(data[i + 1] - prev[i + 1]) + Math.abs(data[i + 2] - prev[i + 2])
+            }
+            const movement = Math.round(diff / (data.length / 16) / 3)
+            movementSamplesRef.current.push(movement)
+            // 급격한 움직임 = 제스처
+            if (movement > 25 && lastMovementRef.current < 10) gestureCountRef.current += 1
+            lastMovementRef.current = movement
+            const avg = movementSamplesRef.current.reduce((a, b) => a + b, 0) / movementSamplesRef.current.length
+            setVideoMetrics({ movement, gestureCount: gestureCountRef.current, avgMovement: Math.round(avg) })
+            // 히스토리 (10초 간격)
+            const elapsed = (Date.now() - startTimeRef.current) / 1000
+            setMovementHistory(prev => {
+                if (prev.length === 0 || elapsed - (prev[prev.length - 1]?.t || 0) >= 10)
+                    return [...prev, { t: Math.round(elapsed), mov: Math.round(avg) }]
+                return prev
+            })
+        }
+        prevFrameRef.current = new Uint8ClampedArray(data)
+    }, [])
+
+    // ── 카메라 종료 ──
+    const stopCamera = useCallback(() => {
+        if (videoTimerRef.current) { clearInterval(videoTimerRef.current); videoTimerRef.current = null }
+        if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null }
+        setCameraOn(false)
+    }, [])
+
     // ── 세션 시작 ──
     const startSession = () => {
         // 초기화
@@ -179,6 +254,8 @@ function LiveCoaching() {
         setSessionReport(null)
         setInterimText('')
         setElapsed(0)
+        setVideoMetrics({ movement: 0, gestureCount: 0, avgMovement: 0 })
+        setMovementHistory([])
         allWordsRef.current = []
         wpmWindowRef.current = []
         silenceCountRef.current = 0
@@ -191,26 +268,18 @@ function LiveCoaching() {
         timerRef.current = setInterval(() => {
             const sec = Math.round((Date.now() - startTimeRef.current) / 1000)
             setElapsed(sec)
-            // 3초 이상 침묵 감지
-            if (Date.now() - lastSpeechRef.current > 3000) {
-                updateMetrics('')
-            }
+            if (Date.now() - lastSpeechRef.current > 3000) updateMetrics('')
         }, 1000)
 
         startRecognition()
+        startCamera()
     }
 
     // ── 세션 종료 ──
     const stopSession = () => {
-        if (recognitionRef.current) {
-            const r = recognitionRef.current
-            recognitionRef.current = null
-            r.stop()
-        }
-        if (timerRef.current) {
-            clearInterval(timerRef.current)
-            timerRef.current = null
-        }
+        if (recognitionRef.current) { const r = recognitionRef.current; recognitionRef.current = null; r.stop() }
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+        stopCamera()
 
         const durationSec = (Date.now() - startTimeRef.current) / 1000
         const totalWords = allWordsRef.current.length
@@ -228,7 +297,10 @@ function LiveCoaching() {
             wpmStdDev = Math.sqrt(wpmHistory.reduce((s, h) => s + (h.wpm - mean) ** 2, 0) / wpmHistory.length)
         }
 
-        const stats = { avgWpm, fillerCount: fillers.length, silenceRatio, totalWords, durationSec, wpmStdDev, uniqueWords }
+        const stats = {
+            avgWpm, fillerCount: fillers.length, silenceRatio, totalWords, durationSec, wpmStdDev, uniqueWords,
+            videoMetrics: { avgMovement: videoMetrics.avgMovement, gestureCount: gestureCountRef.current }
+        }
         const dims = calcDimensions(stats)
         // 종합 전달력 = 다른 6차원 평균
         const otherScores = dims.filter(d => d.name !== '종합 전달력').map(d => d.score)
@@ -256,8 +328,9 @@ function LiveCoaching() {
         return () => {
             if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null }
             if (timerRef.current) clearInterval(timerRef.current)
+            stopCamera()
         }
-    }, [])
+    }, [stopCamera])
 
     // auto-scroll transcript
     useEffect(() => {
@@ -269,10 +342,13 @@ function LiveCoaching() {
 
     return (
         <div className="lc-page">
+            {/* Hidden canvas for frame analysis */}
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+
             {/* ── Header ── */}
             <div className="lc-header">
                 <h2>🔴 실시간 코칭</h2>
-                <p>마이크 기반 실시간 수업 분석 — 필러, 말 속도, 침묵 비율 즉시 피드백</p>
+                <p>마이크 + 카메라 기반 실시간 수업 분석 — 음성·제스처 즉시 피드백</p>
             </div>
 
             {/* ── Control ── */}
@@ -303,29 +379,51 @@ function LiveCoaching() {
             {/* ── Recording Dashboard ── */}
             {phase === 'recording' && (
                 <div className="lc-dashboard">
-                    {/* Metric Cards */}
-                    <div className="lc-metric-grid">
-                        <div className="lc-metric-card">
-                            <div className="lc-metric-val" style={{ color: wg.color }}>{metrics.wpm}</div>
-                            <div className="lc-metric-sub">{wg.label}</div>
-                            <div className="lc-metric-lbl">WPM (말 속도)</div>
+                    {/* Camera + Metrics row */}
+                    <div className="lc-cam-row">
+                        {/* Camera Preview */}
+                        <div className="lc-cam-box">
+                            <video ref={videoRef} muted playsInline className="lc-cam-video" />
+                            {!cameraOn && <div className="lc-cam-off">📷 카메라 연결 중...</div>}
+                            {cameraOn && (
+                                <div className="lc-cam-overlay">
+                                    <span className="lc-cam-dot"></span>
+                                    <span>🎥 움직임: {videoMetrics.movement}</span>
+                                </div>
+                            )}
                         </div>
-                        <div className="lc-metric-card">
-                            <div className="lc-metric-val" style={{
-                                color: metrics.fillerCount > 5 ? '#ff5252' : metrics.fillerCount > 2 ? '#ffc107' : '#00e676'
-                            }}>{metrics.fillerCount}</div>
-                            <div className="lc-metric-sub">{metrics.fillerCount > 5 ? '많음' : metrics.fillerCount > 2 ? '보통' : '좋음'}</div>
-                            <div className="lc-metric-lbl">필러 횟수</div>
-                        </div>
-                        <div className="lc-metric-card">
-                            <div className="lc-metric-val">{(metrics.silenceRatio * 100).toFixed(0)}%</div>
-                            <div className="lc-metric-sub">{metrics.silenceRatio > 0.4 ? '과다' : metrics.silenceRatio > 0.15 ? '양호' : '적극'}</div>
-                            <div className="lc-metric-lbl">침묵 비율</div>
-                        </div>
-                        <div className="lc-metric-card">
-                            <div className="lc-metric-val">{metrics.totalWords}</div>
-                            <div className="lc-metric-sub">단어</div>
-                            <div className="lc-metric-lbl">발화량</div>
+
+                        {/* Metric Cards */}
+                        <div className="lc-metric-grid">
+                            <div className="lc-metric-card">
+                                <div className="lc-metric-val" style={{ color: wg.color }}>{metrics.wpm}</div>
+                                <div className="lc-metric-sub">{wg.label}</div>
+                                <div className="lc-metric-lbl">WPM (말 속도)</div>
+                            </div>
+                            <div className="lc-metric-card">
+                                <div className="lc-metric-val" style={{
+                                    color: metrics.fillerCount > 5 ? '#ff5252' : metrics.fillerCount > 2 ? '#ffc107' : '#00e676'
+                                }}>{metrics.fillerCount}</div>
+                                <div className="lc-metric-sub">{metrics.fillerCount > 5 ? '많음' : metrics.fillerCount > 2 ? '보통' : '좋음'}</div>
+                                <div className="lc-metric-lbl">필러 횟수</div>
+                            </div>
+                            <div className="lc-metric-card">
+                                <div className="lc-metric-val">{(metrics.silenceRatio * 100).toFixed(0)}%</div>
+                                <div className="lc-metric-sub">{metrics.silenceRatio > 0.4 ? '과다' : metrics.silenceRatio > 0.15 ? '양호' : '적극'}</div>
+                                <div className="lc-metric-lbl">침묵 비율</div>
+                            </div>
+                            <div className="lc-metric-card">
+                                <div className="lc-metric-val">{metrics.totalWords}</div>
+                                <div className="lc-metric-sub">단어</div>
+                                <div className="lc-metric-lbl">발화량</div>
+                            </div>
+                            {cameraOn && (
+                                <div className="lc-metric-card">
+                                    <div className="lc-metric-val" style={{ color: '#e040fb' }}>{videoMetrics.gestureCount}</div>
+                                    <div className="lc-metric-sub">회</div>
+                                    <div className="lc-metric-lbl">제스처</div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -516,7 +614,7 @@ function LiveCoaching() {
                         <h4>⚙️ 요구 사항</h4>
                         <ul>
                             <li>Chrome 브라우저 권장 (Web Speech API 지원)</li>
-                            <li>마이크 접근 권한 필요</li>
+                            <li>마이크 + 카메라 접근 권한 필요</li>
                             <li>인터넷 연결 필요 (음성인식 서버 사용)</li>
                         </ul>
                     </div>
@@ -571,14 +669,35 @@ function LiveCoaching() {
 /* Dashboard */
 .lc-dashboard { display: flex; flex-direction: column; gap: 1rem; }
 
+/* Camera + Metrics Row */
+.lc-cam-row { display: flex; gap: 1rem; align-items: stretch; }
+.lc-cam-box {
+    width: 280px; min-height: 210px; flex-shrink: 0; border-radius: 14px; overflow: hidden;
+    background: rgba(0,0,0,0.4); border: 1px solid rgba(108,99,255,0.2); position: relative;
+}
+.lc-cam-video { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 14px; }
+.lc-cam-off {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #888; font-size: 0.9rem; background: rgba(0,0,0,0.6);
+}
+.lc-cam-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0; padding: 0.4rem 0.6rem;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+    display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: #0f0;
+}
+.lc-cam-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #0f0;
+    animation: dotPulse 1.2s ease infinite;
+}
+
 /* Metric Cards */
-.lc-metric-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0.75rem; }
+.lc-metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); gap: 0.6rem; flex: 1; }
 .lc-metric-card {
-    text-align: center; padding: 1.2rem 0.6rem; border-radius: 14px;
+    text-align: center; padding: 1rem 0.4rem; border-radius: 14px;
     background: rgba(26,26,46,0.85); border: 1px solid rgba(108,99,255,0.12);
     backdrop-filter: blur(8px);
 }
-.lc-metric-val { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+.lc-metric-val { font-size: 1.8rem; font-weight: 800; line-height: 1.1; }
 .lc-metric-sub { font-size: 0.7rem; font-weight: 600; margin: 0.15rem 0 0.3rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
 .lc-metric-lbl { font-size: 0.72rem; color: #777; }
 
@@ -709,6 +828,8 @@ function LiveCoaching() {
 
 /* ═══ RESPONSIVE ═══ */
 @media (max-width: 768px) {
+    .lc-cam-row { flex-direction: column; }
+    .lc-cam-box { width: 100%; min-height: 180px; }
     .lc-metric-grid { grid-template-columns: repeat(2,1fr); }
     .lc-summary-grid { grid-template-columns: repeat(2,1fr); }
     .lc-dim-name { width: 85px; font-size: 0.72rem; }
@@ -718,6 +839,7 @@ function LiveCoaching() {
     .lc-metric-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     .lc-summary-grid { grid-template-columns: 1fr 1fr; }
     .lc-controls { flex-wrap: wrap; }
+    .lc-cam-box { min-height: 140px; }
 }
             `}</style>
         </div>
