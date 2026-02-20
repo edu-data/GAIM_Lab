@@ -10,3 +10,5 @@ jinja2>=3.1.2
 # Cloud SQL
 cloud-sql-python-connector[pg8000]>=1.6.0
 pg8000>=1.30.0
+# Gemini AI
+google-generativeai>=0.8.0

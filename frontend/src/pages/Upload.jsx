@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import RealtimeFeedback from '../components/RealtimeFeedback'
+import { API_BASE } from '../apiConfig'
 import './Upload.css'
 
 function Upload() {
@@ -43,7 +44,7 @@ function Upload() {
 
         try {
             // 업로드 및 분석 시작
-            const response = await fetch('/api/v1/analysis/upload?use_turbo=true&use_text=true', {
+            const response = await fetch(`${API_BASE}/analysis/upload?use_turbo=true&use_text=true`, {
                 method: 'POST',
                 body: formData
             })
@@ -64,14 +65,14 @@ function Upload() {
     const pollStatus = async (id) => {
         const interval = setInterval(async () => {
             try {
-                const response = await fetch(`/api/v1/analysis/${id}`)
+                const response = await fetch(`${API_BASE}/analysis/${id}`)
                 const data = await response.json()
                 setStatus(data)
 
                 if (data.status === 'completed') {
                     clearInterval(interval)
                     // 결과 가져오기
-                    const resultResponse = await fetch(`/api/v1/analysis/${id}/result`)
+                    const resultResponse = await fetch(`${API_BASE}/analysis/${id}/result`)
                     const resultData = await resultResponse.json()
                     setResult(resultData)
                     setShowRealtime(false)

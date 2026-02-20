@@ -1,6 +1,6 @@
 """
-GAIM Lab Auth API - Cloud Run Standalone Server
-PostgreSQL via Cloud SQL Python Connector
+GAIM Lab Auth + Analysis API - Cloud Run Standalone Server
+PostgreSQL via Cloud SQL Python Connector + Gemini Multimodal Analysis
 """
 
 import os
@@ -8,10 +8,13 @@ import hashlib
 import json
 import time
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List, Dict
 import base64
+import uuid
+import tempfile
+import threading
 
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -19,6 +22,7 @@ from pydantic import BaseModel
 # ─── Configuration ───
 SECRET_KEY = os.getenv("GAIM_SECRET_KEY", "gaim-lab-v71-dev-secret-key")
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 
 # ─── Database Configuration ───
 DB_USER = os.getenv("DB_USER", "gaim_user")
@@ -112,7 +116,31 @@ def _init_db():
     conn.close()
 
 
+def _init_analyses_table():
+    conn = _get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS analyses (
+            id VARCHAR(50) PRIMARY KEY,
+            username VARCHAR(100),
+            video_name VARCHAR(500) NOT NULL,
+            status VARCHAR(20) DEFAULT 'pending',
+            progress INTEGER DEFAULT 0,
+            message VARCHAR(500) DEFAULT '',
+            total_score REAL,
+            grade VARCHAR(10),
+            result_json TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP
+        )
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
 _init_db()
+_init_analyses_table()
 
 # ─── Auth dependency ───
 security = HTTPBearer(auto_error=False)
@@ -338,11 +366,293 @@ async def reset_password(username: str, req: PasswordResetRequest, user=Depends(
     return {"message": f"'{username}' 비밀번호가 초기화되었습니다"}
 
 
+# ═══════════════════════════════════════════════════════════
+# Analysis Router — Gemini Multimodal Video Analysis
+# ═══════════════════════════════════════════════════════════
+
+analysis_router = APIRouter(prefix="/analysis", tags=["분석"])
+
+# In-memory status cache (supplements DB)
+_analysis_cache: Dict[str, Dict] = {}
+
+# 7-Dimension Evaluation Prompt for Gemini
+EVALUATION_PROMPT = """
+당신은 초등학교 교사 임용 2차 수업실연 평가 전문가입니다.
+이 수업 시연 영상을 시청하고 7차원으로 평가해주세요.
+
+[평가 기준]
+1. 수업 전문성 (20점 만점)
+   - 학습목표_명료성 (0-10): 학습 목표가 명확하게 제시되었는가
+   - 학습내용_충실성 (0-10): 교육과정에 맞는 내용을 충실히 다루었는가
+
+2. 교수학습 방법 (20점 만점)
+   - 교수법_다양성 (0-10): 다양한 교수 방법을 활용하는가
+   - 학습활동_효과성 (0-10): 학습 활동이 목표 달성에 효과적인가
+
+3. 판서 및 언어 (15점 만점)
+   - 판서_가독성 (0-5): 핵심 내용을 명료하게 정리하는가
+   - 언어_명료성 (0-5): 발화가 정확하고 명료한가
+   - 발화속도_적절성 (0-5): 학습자 수준에 맞는 속도인가
+
+4. 수업 태도 (15점 만점)
+   - 교사_열정 (0-5): 수업에 대한 열정이 느껴지는가
+   - 학생_소통 (0-5): 학생과의 상호작용이 자연스러운가
+   - 자신감 (0-5): 자신감 있는 태도로 수업하는가
+
+5. 학생 참여 (15점 만점)
+   - 질문_기법 (0-7): 효과적인 발문을 사용하는가
+   - 피드백_제공 (0-8): 학생 반응에 적절히 피드백하는가
+
+6. 시간 배분 (10점 만점)
+   - 시간_균형 (0-10): 도입-전개-정리가 균형 있게 배분되었는가
+
+7. 창의성 (5점 만점)
+   - 수업_창의성 (0-5): 독창적인 아이디어와 교수 기법을 사용하는가
+
+[응답 형식]
+반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
+
+{{
+  "dimensions": [
+    {{"name": "수업 전문성", "score": 0, "max_score": 20, "percentage": 0, "feedback": ["피드백"]}},
+    {{"name": "교수학습 방법", "score": 0, "max_score": 20, "percentage": 0, "feedback": ["피드백"]}},
+    {{"name": "판서 및 언어", "score": 0, "max_score": 15, "percentage": 0, "feedback": ["피드백"]}},
+    {{"name": "수업 태도", "score": 0, "max_score": 15, "percentage": 0, "feedback": ["피드백"]}},
+    {{"name": "학생 참여", "score": 0, "max_score": 15, "percentage": 0, "feedback": ["피드백"]}},
+    {{"name": "시간 배분", "score": 0, "max_score": 10, "percentage": 0, "feedback": ["피드백"]}},
+    {{"name": "창의성", "score": 0, "max_score": 5, "percentage": 0, "feedback": ["피드백"]}}
+  ],
+  "total_score": 0,
+  "grade": "A+/A/B+/B/C+/C/D+/D/F 중 하나",
+  "strengths": ["강점 1", "강점 2", "강점 3"],
+  "improvements": ["개선점 1", "개선점 2", "개선점 3"],
+  "overall_feedback": "전반적인 수업 시연에 대한 종합 평가 (2-3문장)"
+}}
+"""
+
+
+def _run_gemini_analysis(analysis_id: str, video_bytes: bytes, video_name: str):
+    """Background thread: upload video to Gemini and run analysis"""
+    import google.generativeai as genai
+
+    try:
+        # Update status
+        _update_analysis(analysis_id, status="processing", progress=10, message="Gemini API 연결 중...")
+
+        if not GOOGLE_API_KEY:
+            raise RuntimeError("GOOGLE_API_KEY가 설정되지 않았습니다")
+
+        genai.configure(api_key=GOOGLE_API_KEY)
+
+        # Save video to temp file for Gemini upload
+        _update_analysis(analysis_id, progress=20, message="동영상 업로드 중...")
+        suffix = "." + video_name.rsplit(".", 1)[-1] if "." in video_name else ".mp4"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(video_bytes)
+            tmp_path = tmp.name
+
+        # Upload to Gemini File API
+        _update_analysis(analysis_id, progress=30, message="Gemini에 동영상 전송 중...")
+        video_file = genai.upload_file(path=tmp_path, mime_type=f"video/{suffix[1:]}")
+
+        # Wait for file processing
+        _update_analysis(analysis_id, progress=40, message="동영상 처리 대기 중...")
+        import time as _time
+        while video_file.state.name == "PROCESSING":
+            _time.sleep(5)
+            video_file = genai.get_file(video_file.name)
+
+        if video_file.state.name == "FAILED":
+            raise RuntimeError(f"Gemini 동영상 처리 실패: {video_file.state.name}")
+
+        # Run 7-dimension analysis
+        _update_analysis(analysis_id, progress=60, message="AI 수업 분석 중...")
+        model = genai.GenerativeModel(model_name="gemini-2.0-flash")
+        response = model.generate_content(
+            [video_file, EVALUATION_PROMPT],
+            generation_config=genai.GenerationConfig(response_mime_type="application/json")
+        )
+
+        # Parse result
+        _update_analysis(analysis_id, progress=80, message="결과 처리 중...")
+        result_text = response.text.strip()
+        if "```json" in result_text:
+            result_text = result_text.split("```json")[1].split("```")[0]
+        elif "```" in result_text:
+            result_text = result_text.split("```")[1].split("```")[0]
+
+        result = json.loads(result_text)
+
+        # Save to DB
+        conn = _get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """UPDATE analyses SET status=%s, progress=%s, message=%s,
+               total_score=%s, grade=%s, result_json=%s, completed_at=CURRENT_TIMESTAMP
+               WHERE id=%s""",
+            ("completed", 100, "분석 완료",
+             result.get("total_score", 0), result.get("grade", ""),
+             json.dumps(result, ensure_ascii=False), analysis_id)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        _analysis_cache[analysis_id] = {
+            "status": "completed", "progress": 100, "message": "분석 완료",
+            "result": result
+        }
+
+        # Cleanup
+        try:
+            os.unlink(tmp_path)
+            genai.delete_file(video_file.name)
+        except Exception:
+            pass
+
+    except Exception as e:
+        _update_analysis(analysis_id, status="failed", progress=0, message=f"분석 실패: {str(e)[:200]}")
+        _analysis_cache[analysis_id] = {
+            "status": "failed", "progress": 0, "message": f"분석 실패: {str(e)[:200]}"
+        }
+
+
+def _update_analysis(analysis_id: str, **kwargs):
+    """Update analysis status in DB and cache"""
+    _analysis_cache.setdefault(analysis_id, {}).update(kwargs)
+    try:
+        conn = _get_db()
+        cur = conn.cursor()
+        sets = []
+        vals = []
+        for k, v in kwargs.items():
+            if k in ("status", "progress", "message"):
+                sets.append(f"{k}=%s")
+                vals.append(v)
+        if sets:
+            vals.append(analysis_id)
+            cur.execute(f"UPDATE analyses SET {', '.join(sets)} WHERE id=%s", vals)
+            conn.commit()
+        cur.close()
+        conn.close()
+    except Exception:
+        pass
+
+
+@analysis_router.post("/upload")
+async def upload_video(
+    file: UploadFile = File(...),
+    use_turbo: bool = True,
+    use_text: bool = True
+):
+    """동영상 업로드 및 Gemini 분석 시작"""
+    allowed = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
+    ext = "." + file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in allowed:
+        raise HTTPException(status_code=400, detail=f"지원하지 않는 파일 형식입니다. 허용: {allowed}")
+
+    analysis_id = str(uuid.uuid4())
+    video_bytes = await file.read()
+    video_name = file.filename
+
+    # Insert into DB
+    conn = _get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO analyses (id, video_name, status, progress, message) VALUES (%s, %s, %s, %s, %s)",
+        (analysis_id, video_name, "pending", 0, "분석 대기 중")
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    _analysis_cache[analysis_id] = {
+        "status": "pending", "progress": 0, "message": "분석 대기 중"
+    }
+
+    # Start background analysis
+    t = threading.Thread(target=_run_gemini_analysis, args=(analysis_id, video_bytes, video_name))
+    t.daemon = True
+    t.start()
+
+    return {
+        "id": analysis_id,
+        "status": "pending",
+        "progress": 0,
+        "message": "분석이 시작되었습니다",
+        "created_at": datetime.now().isoformat()
+    }
+
+
+@analysis_router.get("/{analysis_id}")
+async def get_analysis_status(analysis_id: str):
+    """분석 상태 조회"""
+    # Check cache first
+    if analysis_id in _analysis_cache:
+        cache = _analysis_cache[analysis_id]
+        return {
+            "id": analysis_id,
+            "status": cache.get("status", "pending"),
+            "progress": cache.get("progress", 0),
+            "message": cache.get("message", "")
+        }
+
+    # Fall back to DB
+    conn = _get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, status, progress, message, created_at, completed_at FROM analyses WHERE id=%s", (analysis_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="분석을 찾을 수 없습니다")
+
+    return {
+        "id": row[0], "status": row[1], "progress": row[2], "message": row[3],
+        "created_at": str(row[4]) if row[4] else None,
+        "completed_at": str(row[5]) if row[5] else None
+    }
+
+
+@analysis_router.get("/{analysis_id}/result")
+async def get_analysis_result(analysis_id: str):
+    """분석 결과 조회"""
+    # Check cache
+    if analysis_id in _analysis_cache and "result" in _analysis_cache[analysis_id]:
+        result = _analysis_cache[analysis_id]["result"]
+        return {
+            "id": analysis_id,
+            "video_name": "",
+            **result
+        }
+
+    # Fall back to DB
+    conn = _get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT video_name, status, result_json FROM analyses WHERE id=%s", (analysis_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="분석을 찾을 수 없습니다")
+    if row[1] != "completed":
+        raise HTTPException(status_code=400, detail="분석이 아직 완료되지 않았습니다")
+
+    result = json.loads(row[2]) if row[2] else {}
+    return {
+        "id": analysis_id,
+        "video_name": row[0],
+        **result
+    }
+
+
 # ─── App ───
 app = FastAPI(
-    title="GAIM Lab Auth API",
-    description="GAIM Lab 인증 서비스 (Cloud Run + Cloud SQL)",
-    version="7.1.0",
+    title="GAIM Lab API",
+    description="GAIM Lab 인증 + 수업분석 서비스 (Cloud Run + Cloud SQL + Gemini)",
+    version="7.2.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc"
 )
@@ -361,11 +671,12 @@ app.add_middleware(
 )
 
 app.include_router(router, prefix="/api/v1", tags=["인증"])
+app.include_router(analysis_router, prefix="/api/v1", tags=["분석"])
 
 
 @app.get("/")
 async def root():
-    return {"name": "GAIM Lab Auth API", "version": "7.1.0", "status": "running", "db": "cloud-sql"}
+    return {"name": "GAIM Lab API", "version": "7.2.0", "status": "running", "db": "cloud-sql", "analysis": "gemini-2.0-flash"}
 
 
 @app.get("/health")
