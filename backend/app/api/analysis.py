@@ -416,7 +416,7 @@ async def run_batch_analysis(batch_id: str):
                 capture_output=True,
                 text=True,
                 cwd=str(_PROJECT_ROOT),
-                timeout=1800  # 30분 타임아웃
+                timeout=7200  # 2시간 타임아웃
             )
             
             if result.returncode == 0:

@@ -1,11 +1,13 @@
 """
-⚡ Time-Lapse Analyzer - 초고속 타임랩스 분석 모듈
+⚡ Time-Lapse Analyzer v3 - 초고속 타임랩스 분석 모듈
 FFmpeg + Multiprocessing으로 15분 영상을 60초 내에 분석
 
 핵심 전략:
 1. FFmpeg C 레벨 디코딩으로 I/O 병목 제거
 2. MediaPipe Lite (model_complexity=0) 사용
 3. Vision + Audio 완전 병렬 처리
+4. Perceptual Hash 기반 중복 프레임 건너뛰기 (유니크 프레임만 분석)
+5. 최적화된 CPU 병렬 청크 + 메모리 관리
 """
 
 import os
@@ -55,6 +57,73 @@ class TurboAnalysisResult:
     audio_timeline: List[Dict]  # 세그먼트별 오디오 타임라인
     elapsed_seconds: float
     frame_count: int
+    unique_frame_count: int = 0  # 유니크 프레임 수
+    skipped_frames: int = 0     # 건너뛴 중복 프레임 수
+
+
+# ---------------------------------------------------------
+# 0. [Dedup] Perceptual Hash 기반 중복 프레임 제거
+# ---------------------------------------------------------
+def compute_phash(image_path: str, hash_size: int = 8) -> str:
+    """
+    Average Hash (aHash) 기반 Perceptual Hash 계산
+    
+    Args:
+        image_path: 이미지 파일 경로
+        hash_size: 해시 크기 (8 = 64bit hash)
+        
+    Returns:
+        해시 문자열
+    """
+    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        return ""
+    # 해시 크기로 리사이즈 → 평균 기준 이진화
+    resized = cv2.resize(img, (hash_size, hash_size), interpolation=cv2.INTER_AREA)
+    mean_val = resized.mean()
+    bits = (resized > mean_val).flatten()
+    return ''.join(['1' if b else '0' for b in bits])
+
+
+def hamming_distance(h1: str, h2: str) -> int:
+    """두 해시 간 Hamming Distance"""
+    return sum(c1 != c2 for c1, c2 in zip(h1, h2))
+
+
+def deduplicate_frames(image_paths: List[str], threshold: int = 4) -> Tuple[List[str], List[int]]:
+    """
+    유사한 프레임을 건너뛰고 유니크한 프레임만 반환
+    
+    Args:
+        image_paths: 정렬된 이미지 경로 리스트
+        threshold: Hamming Distance 임계값 (낮을수록 엄격)
+                   4 = 93.75% 유사도 이상이면 중복으로 판정
+        
+    Returns:
+        (유니크 이미지 경로 리스트, 스킵된 프레임 인덱스 리스트)
+    """
+    if not image_paths:
+        return [], []
+    
+    unique = [image_paths[0]]
+    skipped_indices = []
+    prev_hash = compute_phash(image_paths[0])
+    
+    for i, path in enumerate(image_paths[1:], start=1):
+        curr_hash = compute_phash(path)
+        if not curr_hash:
+            skipped_indices.append(i)
+            continue
+        
+        dist = hamming_distance(prev_hash, curr_hash)
+        if dist > threshold:
+            # 유니크 프레임
+            unique.append(path)
+            prev_hash = curr_hash
+        else:
+            skipped_indices.append(i)
+    
+    return unique, skipped_indices
 
 
 # ---------------------------------------------------------
@@ -381,9 +450,12 @@ def _analyze_audio_segment(args: Tuple) -> Dict:
 
 def run_turbo_analysis(video_path: str, temp_dir: str = None, use_gpu: bool = True) -> TurboAnalysisResult:
     """
-    초고속 타임랩스 분석 메인 오케스트레이터
+    초고속 타임랩스 분석 메인 오케스트레이터 v3
     
-    15분 영상을 60초 이내에 분석합니다.
+    v3 개선:
+    - Perceptual Hash 기반 중복 프레임 제거 (유니크 프레임만 분석)
+    - CPU 병렬 처리 최적화 (코어 수 × 2 청크로 부하 분산)
+    - 메모리 관리 강화
     
     Args:
         video_path: 분석할 비디오 파일 경로
@@ -400,8 +472,8 @@ def run_turbo_analysis(video_path: str, temp_dir: str = None, use_gpu: bool = Tr
         temp_dir = os.path.join(os.path.dirname(video_path), ".turbo_cache")
     
     print("=" * 60)
-    print("  ⚡ TURBO MODE v2: 초고속 타임랩스 분석")
-    print("  GPU 가속 + 최적화된 청크 + 오디오 세그먼트")
+    print("  ⚡ TURBO MODE v3: 초고속 타임랩스 분석")
+    print("  GPU가속 + 중복프레임 제거 + CPU 병렬 최적화")
     print("=" * 60)
     print(f"📁 입력: {os.path.basename(video_path)}")
     
@@ -413,36 +485,45 @@ def run_turbo_analysis(video_path: str, temp_dir: str = None, use_gpu: bool = Tr
     if not images:
         raise ValueError("프레임 추출 실패: 이미지가 생성되지 않았습니다.")
     
-    # [Step 2] 최적 청크 크기 계산
-    num_cores = multiprocessing.cpu_count()
     total_images = len(images)
     
-    # 최적 청크 크기: 코어당 50-100장이 가장 효율적
-    # (모델 로딩 오버헤드 vs 메모리 사용량 균형)
-    optimal_chunk_size = max(50, min(100, total_images // num_cores))
+    # [Step 1.5] 중복 프레임 제거 (Perceptual Hash)
+    print(f"\n🔍 [Phase 1.5] 중복 프레임 제거 중...")
+    dedup_start = time.time()
+    unique_images, skipped = deduplicate_frames(images, threshold=4)
+    dedup_time = time.time() - dedup_start
+    skipped_count = len(skipped)
+    print(f"   📊 전체 {total_images}장 → 유니크 {len(unique_images)}장 (중복 {skipped_count}장 건너뜀)")
+    print(f"   💾 분석 절감: {skipped_count / max(total_images, 1) * 100:.1f}%")
+    print(f"   ⏱️ 중복 제거 시간: {dedup_time:.1f}초")
     
-    # 청크 수가 코어 수의 1.5~2배가 되도록 조정 (부하 균형)
-    target_chunks = int(num_cores * 1.5)
-    if total_images > target_chunks * optimal_chunk_size:
-        optimal_chunk_size = total_images // target_chunks + 1
+    # [Step 2] 최적 청크 크기 계산 (CPU 코어 수 기반)
+    num_cores = max(2, multiprocessing.cpu_count())
+    unique_count = len(unique_images)
     
-    image_chunks = [images[i:i + optimal_chunk_size] for i in range(0, total_images, optimal_chunk_size)]
+    # 최적 청크 크기: 코어당 30-80장 (모델 로딩 오버헤드 vs 메모리 균형)
+    # 코어 × 2 청크로 부하 분산 극대화
+    target_chunks = num_cores * 2
+    optimal_chunk_size = max(20, min(80, unique_count // target_chunks + 1))
     
-    print(f"\n⚡ [Phase 2] 병렬 분석 시작...")
+    image_chunks = [unique_images[i:i + optimal_chunk_size] for i in range(0, unique_count, optimal_chunk_size)]
+    
+    print(f"\n⚡ [Phase 2] CPU 병렬 분석 시작...")
     print(f"   코어: {num_cores}개, 청크: {len(image_chunks)}개 (청크당 ~{optimal_chunk_size}장)")
     
     # [Step 3] 병렬 실행 (Vision과 Audio가 동시에 돌아감)
     analysis_start = time.time()
     
-    with multiprocessing.Pool(processes=num_cores) as pool:
+    # maxtasksperchild로 메모리 누수 방지
+    with multiprocessing.Pool(processes=num_cores, maxtasksperchild=4) as pool:
         # A. 오디오 분석을 비동기(Async)로 던짐 (세그먼트 타임라인 포함)
         audio_job = pool.apply_async(analyze_audio_track, (audio_path, 10.0))
         
-        # B. 비전 분석을 병렬(Map)로 수행
+        # B. 비전 분석을 병렬(Map)로 수행 (유니크 프레임만)
         vision_results_list = pool.map(analyze_vision_batch, image_chunks)
         
         # C. 오디오 결과 회수 (metrics, timeline)
-        audio_result = audio_job.get()
+        audio_result = audio_job.get(timeout=600)  # 10분 타임아웃
         audio_metrics, audio_timeline = audio_result
     
     analysis_time = time.time() - analysis_start
@@ -461,7 +542,7 @@ def run_turbo_analysis(video_path: str, temp_dir: str = None, use_gpu: bool = Tr
     elapsed = time.time() - start_time
     
     print(f"\n✨ 전체 분석 완료!")
-    print(f"   📊 Vision 프레임: {len(final_timeline)}개")
+    print(f"   📊 Vision 프레임: {len(final_timeline)}개 (전체 {total_images}장 중 유니크 {len(unique_images)}장 분석)")
     print(f"   🔊 Audio 세그먼트: {len(audio_timeline)}개")
     print(f"   ⏱️ 총 소요: {elapsed:.2f}초")
     print("=" * 60)
@@ -471,7 +552,9 @@ def run_turbo_analysis(video_path: str, temp_dir: str = None, use_gpu: bool = Tr
         audio_metrics=audio_metrics,
         audio_timeline=audio_timeline,
         elapsed_seconds=elapsed,
-        frame_count=len(final_timeline)
+        frame_count=len(final_timeline),
+        unique_frame_count=len(unique_images),
+        skipped_frames=skipped_count
     )
 
 
