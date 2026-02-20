@@ -2,7 +2,7 @@
 
 **멀티 에이전트 수업 분석 시스템** · 8개 AI 에이전트가 협업하여 수업 영상을 7차원 평가하는 플랫폼
 
-[![Version](https://img.shields.io/badge/version-7.1.0-7c3aed)](https://github.com/edu-data/GAIM_Lab/releases/tag/v7.1)
+[![Version](https://img.shields.io/badge/version-7.2.0-7c3aed)](https://github.com/edu-data/GAIM_Lab/releases)
 [![Python](https://img.shields.io/badge/python-3.9+-3776AB)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React_18-61DAFB)](https://react.dev)
@@ -12,9 +12,9 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <p align="center">
-  <a href="https://edu-data.github.io/mas/mas-index.html"><strong>🌐 홈페이지</strong></a> ·
-  <a href="https://edu-data.github.io/mas/mas-dashboard.html"><strong>📊 대시보드</strong></a> ·
-  <a href="https://github.com/edu-data/GAIM_Lab/releases/tag/v7.1"><strong>📦 릴리스</strong></a>
+  <a href="https://edu-data.github.io/GAIM_Lab/app/"><strong>🌐 홈페이지</strong></a> ·
+  <a href="https://edu-data.github.io/GAIM_Lab/app/#/dashboard"><strong>📊 대시보드</strong></a> ·
+  <a href="https://github.com/edu-data/GAIM_Lab/releases"><strong>📦 릴리스</strong></a>
 </p>
 
 > **🆕 NEW** — React 기반 새로운 홈페이지와 대시보드가 출시되었습니다!
@@ -467,5 +467,5 @@ MIT License · 경인교육대학교 GAIM Lab
   <strong>경인교육대학교 GINUE AI Microteaching Lab</strong><br/>
   <a href="mailto:educpa@ginue.ac.kr">educpa@ginue.ac.kr</a> ·
   <a href="https://github.com/edu-data/GAIM_Lab">GitHub</a> ·
-  <a href="https://edu-data.github.io/mas/mas-index.html">웹사이트</a>
+  <a href="https://edu-data.github.io/GAIM_Lab/app/">웹사이트</a>
 </p>
