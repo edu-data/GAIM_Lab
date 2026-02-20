@@ -356,17 +356,23 @@ class AgentOrchestrator:
         return self.context.vision_summary
 
     def _phase_content(self) -> Dict:
-        """Phase 2b: 콘텐츠 분석"""
+        """Phase 2b: 콘텐츠 분석 (v7.1: batch SSIM dedup + parallel OCR)"""
         ca_mod = _load_module("content_agent", _AGENTS_DIR / "content_agent.py")
         ContentAgent = ca_mod.ContentAgent
         import cv2
 
         agent = ContentAgent()
+
+        # v7.1: Load all frames first, then batch-analyze
+        frames_with_ts = []
         for frame_path in self.context.extracted_frames:
             frame = cv2.imread(frame_path)
             if frame is not None:
                 timestamp = self._path_to_timestamp(frame_path)
-                agent.analyze_frame(frame, timestamp)
+                frames_with_ts.append((frame, timestamp))
+
+        if frames_with_ts:
+            agent.analyze_frames_batch(frames_with_ts)
 
         self.context.content_summary = agent.get_summary()
         self.context.content_timeline = agent.get_timeline()

@@ -6,106 +6,124 @@ import {
 } from 'recharts'
 import './Portfolio.css'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+
 function Portfolio() {
     const [studentId, setStudentId] = useState('')
     const [portfolio, setPortfolio] = useState(null)
     const [sessions, setSessions] = useState([])
     const [badges, setBadges] = useState([])
-    const [dimensionHistory, setDimensionHistory] = useState([])
     const [loading, setLoading] = useState(false)
     const [selectedSession, setSelectedSession] = useState(null)
+    const [error, setError] = useState(null)
+    const [dataSource, setDataSource] = useState(null) // 'db' or 'demo'
 
-    // 데모 데이터
-    const demoPortfolio = {
-        student_id: 'demo_student',
-        name: '김예비',
-        total_sessions: 5,
-        average_score: 78.5,
-        best_score: 85.0,
-        improvement_rate: 12.5,
-        badges: ['first_session', 'five_sessions', 'score_80']
-    }
-
-    const demoSessions = [
-        {
-            date: '2026-01-15', total_score: 72, grade: 'C+',
-            dimensions: [
-                { name: '수업 전문성', score: 12, max: 20 },
-                { name: '교수학습 방법', score: 13, max: 20 },
-                { name: '판서 및 언어', score: 10, max: 15 },
-                { name: '수업 태도', score: 11, max: 15 },
-                { name: '학생 참여', score: 10, max: 15 },
-                { name: '시간 배분', score: 7, max: 10 },
-                { name: '창의성', score: 3, max: 5 }
-            ]
-        },
-        {
-            date: '2026-01-22', total_score: 75, grade: 'C+',
-            dimensions: [
-                { name: '수업 전문성', score: 13, max: 20 },
-                { name: '교수학습 방법', score: 14, max: 20 },
-                { name: '판서 및 언어', score: 11, max: 15 },
-                { name: '수업 태도', score: 11, max: 15 },
-                { name: '학생 참여', score: 11, max: 15 },
-                { name: '시간 배분', score: 7, max: 10 },
-                { name: '창의성', score: 3, max: 5 }
-            ]
-        },
-        {
-            date: '2026-01-29', total_score: 78, grade: 'B',
-            dimensions: [
-                { name: '수업 전문성', score: 14, max: 20 },
-                { name: '교수학습 방법', score: 15, max: 20 },
-                { name: '판서 및 언어', score: 12, max: 15 },
-                { name: '수업 태도', score: 12, max: 15 },
-                { name: '학생 참여', score: 11, max: 15 },
-                { name: '시간 배분', score: 7, max: 10 },
-                { name: '창의성', score: 3, max: 5 }
-            ]
-        },
-        {
-            date: '2026-02-02', total_score: 82, grade: 'B+',
-            dimensions: [
-                { name: '수업 전문성', score: 15, max: 20 },
-                { name: '교수학습 방법', score: 16, max: 20 },
-                { name: '판서 및 언어', score: 12, max: 15 },
-                { name: '수업 태도', score: 13, max: 15 },
-                { name: '학생 참여', score: 12, max: 15 },
-                { name: '시간 배분', score: 8, max: 10 },
-                { name: '창의성', score: 4, max: 5 }
-            ]
-        },
-        {
-            date: '2026-02-05', total_score: 85, grade: 'B+',
-            dimensions: [
-                { name: '수업 전문성', score: 16, max: 20 },
-                { name: '교수학습 방법', score: 17, max: 20 },
-                { name: '판서 및 언어', score: 13, max: 15 },
-                { name: '수업 태도', score: 13, max: 15 },
-                { name: '학생 참여', score: 13, max: 15 },
-                { name: '시간 배분', score: 8, max: 10 },
-                { name: '창의성', score: 4, max: 5 }
-            ]
-        }
-    ]
-
-    const demoBadges = [
-        { badge_id: 'first_session', name: '첫 수업 시연', icon: '🎬', category: 'milestone', points: 10, earned_at: '2026-01-15' },
-        { badge_id: 'five_sessions', name: '꾸준한 연습', icon: '🔄', category: 'milestone', points: 30, earned_at: '2026-02-05' },
-        { badge_id: 'score_80', name: '우수 수업', icon: '⭐', category: 'achievement', points: 25, earned_at: '2026-02-02' },
-        { badge_id: 'improve_10', name: '10% 성장', icon: '📈', category: 'growth', points: 20, earned_at: '2026-02-05' }
-    ]
-
-    const loadDemoData = () => {
+    // v7.1: DB에서 분석 이력 로드
+    const loadFromDB = async () => {
         setLoading(true)
-        setTimeout(() => {
-            setPortfolio(demoPortfolio)
-            setSessions(demoSessions)
-            setBadges(demoBadges)
-            setSelectedSession(demoSessions[demoSessions.length - 1])
-            setLoading(false)
-        }, 500)
+        setError(null)
+        try {
+            const res = await fetch(`${API_BASE}/history?limit=50`)
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            const data = await res.json()
+
+            if (data.history && data.history.length > 0) {
+                // DB 데이터를 세션 형식으로 변환
+                const dbSessions = data.history.map(item => ({
+                    date: item.created_at?.split('T')[0] || item.video_name || '날짜 없음',
+                    total_score: item.total_score || 0,
+                    grade: item.grade || 'N/A',
+                    video_name: item.video_name || '',
+                    dimensions: item.dimensions || [
+                        { name: '수업 전문성', score: item.dimension_scores?.['수업 전문성'] || 0, max: 20 },
+                        { name: '교수학습 방법', score: item.dimension_scores?.['교수학습 방법'] || 0, max: 20 },
+                        { name: '판서 및 언어', score: item.dimension_scores?.['판서 및 언어'] || 0, max: 15 },
+                        { name: '수업 태도', score: item.dimension_scores?.['수업 태도'] || 0, max: 15 },
+                        { name: '학생 참여', score: item.dimension_scores?.['학생 참여'] || 0, max: 15 },
+                        { name: '시간 배분', score: item.dimension_scores?.['시간 배분'] || 0, max: 10 },
+                        { name: '창의성', score: item.dimension_scores?.['창의성'] || 0, max: 5 },
+                    ]
+                }))
+
+                const scores = dbSessions.map(s => s.total_score)
+                const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length
+                const bestScore = Math.max(...scores)
+                const firstScore = scores[scores.length - 1] || 0
+                const lastScore = scores[0] || 0
+                const improvementRate = firstScore > 0
+                    ? Math.round((lastScore - firstScore) / firstScore * 1000) / 10
+                    : 0
+
+                setPortfolio({
+                    student_id: studentId || 'DB 사용자',
+                    name: studentId || '분석 이력',
+                    total_sessions: dbSessions.length,
+                    average_score: Math.round(avgScore * 10) / 10,
+                    best_score: Math.round(bestScore * 10) / 10,
+                    improvement_rate: improvementRate,
+                })
+
+                // 시간순 정렬 (오래된 것 먼저)
+                const sorted = [...dbSessions].reverse()
+                setSessions(sorted)
+                setSelectedSession(sorted[sorted.length - 1])
+                setDataSource('db')
+
+                // 배지 자동 산출
+                const autoBadges = []
+                if (sorted.length >= 1) autoBadges.push({ badge_id: 'first_session', name: '첫 수업 시연', icon: '🎬', category: 'milestone', points: 10, earned_at: sorted[0].date })
+                if (sorted.length >= 5) autoBadges.push({ badge_id: 'five_sessions', name: '꾸준한 연습', icon: '🔄', category: 'milestone', points: 30, earned_at: sorted[4].date })
+                if (sorted.length >= 10) autoBadges.push({ badge_id: 'ten_sessions', name: '10회 달성', icon: '🏆', category: 'milestone', points: 50, earned_at: sorted[9].date })
+                if (bestScore >= 80) autoBadges.push({ badge_id: 'score_80', name: '우수 수업', icon: '⭐', category: 'achievement', points: 25, earned_at: '-' })
+                if (bestScore >= 90) autoBadges.push({ badge_id: 'score_90', name: '모범 수업', icon: '🌟', category: 'achievement', points: 50, earned_at: '-' })
+                if (improvementRate >= 10) autoBadges.push({ badge_id: 'improve_10', name: '10% 성장', icon: '📈', category: 'growth', points: 20, earned_at: '-' })
+                setBadges(autoBadges)
+            } else {
+                setError('DB에 분석 이력이 없습니다. 먼저 영상 분석을 실행하세요.')
+            }
+        } catch (e) {
+            console.error('DB load failed, falling back to demo:', e)
+            setError(`DB 연결 실패 (${e.message}). 데모 데이터를 표시합니다.`)
+            loadDemoData()
+        }
+        setLoading(false)
     }
+
+    // 기존 데모 데이터 (폴백용)
+    const loadDemoData = () => {
+        const demoSessions = [
+            {
+                date: '2026-01-15', total_score: 72, grade: 'C+', dimensions: [
+                    { name: '수업 전문성', score: 12, max: 20 }, { name: '교수학습 방법', score: 13, max: 20 },
+                    { name: '판서 및 언어', score: 10, max: 15 }, { name: '수업 태도', score: 11, max: 15 },
+                    { name: '학생 참여', score: 10, max: 15 }, { name: '시간 배분', score: 7, max: 10 }, { name: '창의성', score: 3, max: 5 }
+                ]
+            },
+            {
+                date: '2026-02-05', total_score: 85, grade: 'B+', dimensions: [
+                    { name: '수업 전문성', score: 16, max: 20 }, { name: '교수학습 방법', score: 17, max: 20 },
+                    { name: '판서 및 언어', score: 13, max: 15 }, { name: '수업 태도', score: 13, max: 15 },
+                    { name: '학생 참여', score: 13, max: 15 }, { name: '시간 배분', score: 8, max: 10 }, { name: '창의성', score: 4, max: 5 }
+                ]
+            }
+        ]
+        setPortfolio({
+            student_id: 'demo_student', name: '김예비 (데모)',
+            total_sessions: 2, average_score: 78.5, best_score: 85.0, improvement_rate: 12.5,
+        })
+        setSessions(demoSessions)
+        setSelectedSession(demoSessions[demoSessions.length - 1])
+        setBadges([
+            { badge_id: 'first_session', name: '첫 수업 시연', icon: '🎬', category: 'milestone', points: 10, earned_at: '2026-01-15' },
+            { badge_id: 'score_80', name: '우수 수업', icon: '⭐', category: 'achievement', points: 25, earned_at: '2026-02-05' },
+        ])
+        setDataSource('demo')
+    }
+
+    // 페이지 로드 시 자동으로 DB 조회 시도
+    useEffect(() => {
+        loadFromDB()
+    }, [])
 
     const getProgressData = () => {
         return sessions.map((s, idx) => ({
@@ -161,11 +179,17 @@ function Portfolio() {
                         onChange={(e) => setStudentId(e.target.value)}
                         className="search-input"
                     />
-                    <button className="btn btn-primary">검색</button>
-                    <button className="btn btn-secondary" onClick={loadDemoData}>
+                    <button className="btn btn-primary" onClick={loadFromDB}>DB 조회</button>
+                    <button className="btn btn-secondary" onClick={() => { loadDemoData(); setDataSource('demo') }}>
                         데모 보기
                     </button>
                 </div>
+                {dataSource && (
+                    <div className={`data-source-badge ${dataSource}`}>
+                        {dataSource === 'db' ? '📊 DB 실제 데이터' : '🎭 데모 데이터'}
+                    </div>
+                )}
+                {error && <div className="error-message">{error}</div>}
             </div>
 
             {loading && (
@@ -204,7 +228,9 @@ function Portfolio() {
                                 <div className="stat-label">최고 점수</div>
                             </div>
                             <div className="stat">
-                                <div className="stat-value positive">+{portfolio.improvement_rate}%</div>
+                                <div className={`stat-value ${portfolio.improvement_rate >= 0 ? 'positive' : 'negative'}`}>
+                                    {portfolio.improvement_rate >= 0 ? '+' : ''}{portfolio.improvement_rate}%
+                                </div>
                                 <div className="stat-label">개선율</div>
                             </div>
                         </div>
@@ -338,4 +364,3 @@ function Portfolio() {
 }
 
 export default Portfolio
-

@@ -159,6 +159,13 @@ class GrowthAnalyzer:
                     "tips": tips[:2],  # 각 차원 2개씩
                 })
 
+        # v7.1: 3/6/12주 개선 로드맵 생성
+        profile = {
+            "strengths": strengths,
+            "weaknesses": weaknesses,
+        }
+        roadmap = self.generate_roadmap(profile, dim_trends, latest_dims)
+
         return {
             "sessions": n_sessions,
             "period": {
@@ -177,5 +184,80 @@ class GrowthAnalyzer:
                 "most_declined": most_declined[0] if most_declined[1].get("change", 0) < 0 else "",
             },
             "improvement_feedback": feedback,
-            "version": "7.0",
+            "roadmap": roadmap,
+            "version": "7.1",
         }
+
+    def generate_roadmap(self, profile: Dict, dim_trends: Dict,
+                         latest_dims: List[Dict]) -> Dict:
+        """
+        v7.1: 3주/6주/12주 개인별 개선 로드맵 자동 생성
+
+        약점 차원을 우선순위로, 각 기간별 구체적 목표와 실천 과제를 생성합니다.
+        """
+        weaknesses = profile.get("weaknesses", [])
+        if not weaknesses:
+            weaknesses = [d["name"] for d in sorted(
+                latest_dims, key=lambda x: x.get("percentage", 0)
+            )[:3]]
+
+        # 현재 점수 매핑
+        current_scores = {d.get("name", ""): d.get("percentage", 0)
+                          for d in latest_dims}
+
+        # 주차별 템플릿 — 단계적 난이도
+        _PHASE_TEMPLATES = {
+            "3주": {"label": "기초 역량 강화", "target_boost": 5, "focus": "인식 및 습관화"},
+            "6주": {"label": "심화 적용", "target_boost": 12, "focus": "전략적 실천"},
+            "12주": {"label": "전문성 내면화", "target_boost": 20, "focus": "자기 모니터링 & 코칭"},
+        }
+
+        # 주차별 활동 유형
+        _WEEKLY_ACTIVITIES = [
+            "자기 수업 영상 분석 (10분)",
+            "동료 수업 참관 및 피드백 작성",
+            "교수법 논문/자료 1편 읽기",
+            "마이크로티칭 실습 (5분 모의수업)",
+            "수업 일지 작성 및 성찰",
+            "학생 반응 분석 체크리스트 작성",
+            "수업 설계안 작성 및 동료 검토",
+            "교수학습 전략 워크숍 참석",
+            "자기 점검표(rubric) 기반 자가평가",
+            "멘토 교사 피드백 세션",
+            "수업 동영상 비교 분석 (이전 vs 현재)",
+            "최종 수업 시연 및 종합 평가",
+        ]
+
+        roadmap = {}
+        for period, meta in _PHASE_TEMPLATES.items():
+            weeks_count = int(period.replace("주", ""))
+            plan_weeks = []
+
+            for week_idx in range(weeks_count):
+                # 이번 주에 집중할 차원 (순환)
+                focus_dim = weaknesses[week_idx % len(weaknesses)]
+                tips = _IMPROVEMENT_TIPS.get(focus_dim, ["일반 교수법 개선 연습"])
+                current = current_scores.get(focus_dim, 50)
+
+                # 주차별 목표 점수 (점진적 상승)
+                progress_ratio = (week_idx + 1) / weeks_count
+                target = min(100, round(current + meta["target_boost"] * progress_ratio, 1))
+
+                plan_weeks.append({
+                    "week": week_idx + 1,
+                    "focus_dimension": focus_dim,
+                    "goal": tips[week_idx % len(tips)],
+                    "activity": _WEEKLY_ACTIVITIES[week_idx % len(_WEEKLY_ACTIVITIES)],
+                    "target_score": target,
+                    "current_score": current,
+                })
+
+            roadmap[period] = {
+                "label": meta["label"],
+                "focus": meta["focus"],
+                "target_dimensions": weaknesses[:3],
+                "weeks": plan_weeks,
+                "expected_improvement": meta["target_boost"],
+            }
+
+        return roadmap

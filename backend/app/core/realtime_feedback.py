@@ -144,6 +144,31 @@ class AnalysisProgressTracker:
             "stage": self.stages[self.current_stage_idx]["name"]
         })
     
+    def get_status(self) -> dict:
+        """v7.1: 현재 상태를 동기적으로 반환 (SSE용)"""
+        current_stage = self.stages[self.current_stage_idx] if self.current_stage_idx < len(self.stages) else None
+        return {
+            "type": "progress",
+            "analysis_id": self.analysis_id,
+            "overall_progress": self.get_overall_progress(),
+            "current_stage": {
+                "id": current_stage["id"] if current_stage else "complete",
+                "name": current_stage["name"] if current_stage else "완료",
+                "progress": self.current_stage_progress
+            },
+            "stages": [
+                {
+                    "id": s["id"],
+                    "name": s["name"],
+                    "status": "completed" if i < self.current_stage_idx
+                              else ("in_progress" if i == self.current_stage_idx else "pending")
+                }
+                for i, s in enumerate(self.stages)
+            ],
+            "elapsed_time": (datetime.now() - self.start_time).total_seconds(),
+            "timeline": self.timeline_events[-5:]
+        }
+
     async def _send_update(self):
         """진행 상황 업데이트 전송"""
         current_stage = self.stages[self.current_stage_idx] if self.current_stage_idx < len(self.stages) else None

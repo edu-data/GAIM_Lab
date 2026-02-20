@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import VideoHighlights from '../components/VideoHighlights'
 import './AnalysisResult.css'
 
 const API_BASE = 'http://localhost:8000/api/v1'
@@ -211,6 +212,21 @@ function AnalysisResult() {
                     <h3>💬 종합 피드백</h3>
                     <p>{result.overall_feedback}</p>
                 </div>
+
+                {/* 영상 하이라이트 (v7.1) */}
+                {result.video_url && (
+                    <div className="highlights-section">
+                        <h3>🎬 영상 하이라이트</h3>
+                        <VideoHighlights
+                            videoUrl={result.video_url}
+                            highlights={result.highlights || [
+                                { time: 30, label: '수업 도입 시작', type: 'info', detail: '동기유발 활동' },
+                                { time: 120, label: '교수학습 전략 우수', type: 'positive', detail: '학생 참여 유도 구간' },
+                                { time: 300, label: '긴 침묵 구간', type: 'warning', detail: '3초 이상 침묵 발생' },
+                            ]}
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="result-actions">

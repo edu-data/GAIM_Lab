@@ -2,18 +2,19 @@
 
 **멀티 에이전트 수업 분석 시스템** · 8개 AI 에이전트가 협업하여 수업 영상을 7차원 평가하는 플랫폼
 
-[![Version](https://img.shields.io/badge/version-7.0.0-7c3aed)](https://github.com/edu-data/mas/releases/tag/v7.0)
+[![Version](https://img.shields.io/badge/version-7.1.0-7c3aed)](https://github.com/edu-data/mas/releases/tag/v7.1)
 [![Python](https://img.shields.io/badge/python-3.9+-3776AB)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React_18-61DAFB)](https://react.dev)
 [![Gemini](https://img.shields.io/badge/Gemini_AI-4285F4)](https://ai.google.dev)
 [![pyannote](https://img.shields.io/badge/pyannote.audio-FF6F00)](https://github.com/pyannote/pyannote-audio)
+[![PWA](https://img.shields.io/badge/PWA-ready-5A0FC8)](https://web.dev/progressive-web-apps/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <p align="center">
   <a href="https://edu-data.github.io/mas/docs/mas-index.html"><strong>🌐 홈페이지</strong></a> ·
   <a href="https://edu-data.github.io/mas/docs/mas-dashboard.html"><strong>📊 대시보드</strong></a> ·
-  <a href="https://github.com/edu-data/mas/releases/tag/v7.0"><strong>📦 릴리스</strong></a>
+  <a href="https://github.com/edu-data/mas/releases/tag/v7.1"><strong>📦 릴리스</strong></a>
 </p>
 
 ---
@@ -34,8 +35,13 @@ MAS(Multi-Agent System)는 **예비교원의 수업 영상**을 8개 전문화�
 | 📐 평가 차원 | **7개** |
 | 🗣️ 화자 분리 | **pyannote 3.3 (v5.0+)** |
 | 🔬 신뢰도 분석 | **Test-Retest r=0.68, ±5pt 일치 82.6%** |
-| 🗄️ 데이터 영속성 | **SQLite DB auto-save (v7.0 NEW)** |
-| 📈 성장 분석 | **차원별 추세 + 자동 피드백 (v7.0 NEW)** |
+| 🗄️ 데이터 영속성 | **SQLite DB auto-save (v7.0)** |
+| 📈 성장 분석 | **차원별 추세 + 자동 피드백 (v7.0)** |
+| 🎯 성장 경로 | **3/6/12주 맞춤 개선 로드맵 (v7.1 NEW)** |
+| 🔴 실시간 코칭 | **WebSocket 라이브 피드백 (v7.1 NEW)** |
+| 📊 코호트 비교 | **t-test, Cohen's d 집단 비교 (v7.1 NEW)** |
+| 🧪 A/B 실험 | **루브릭 비교 실험 (v7.1 NEW)** |
+| 📱 PWA | **오프라인 접근, 설치 가능 (v7.1 NEW)** |
 
 ---
 
@@ -115,28 +121,30 @@ MAS/
 │   │   ├── pedagogy_agent.py    # 교육학 평가 v7 (구간화 채점)
 │   │   ├── feedback_agent.py    # 피드백 생성
 │   │   └── master_agent.py      # 종합 보고서
-│   ├── database.py              # 🗄️ SQLite CRUD (v7.0 NEW)
-│   ├── growth_analyzer.py       # 📈 성장 경로 분석 (v7.0 NEW)
+│   ├── database.py              # 🗄️ SQLite CRUD (v7.0)
+│   ├── growth_analyzer.py       # 📈 성장 경로 + 로드맵 (v7.1)
 │   └── analyzers/               # 기반 분석 모듈
 │       ├── timelapse_analyzer.py # FFmpeg 프레임 추출
 │       └── audio_analyzer.py    # 오디오 처리
 ├── backend/                     # ⚡ FastAPI 백엔드
 │   └── app/
-│       ├── api/                 # REST API + History API (v7.0)
+│       ├── api/                 # REST API
+│       │   ├── auth.py          # 👤 Google OAuth + JWT (v7.1 NEW)
+│       │   ├── cohort.py        # 📊 코호트 비교 분석 (v7.1 NEW)
+│       │   ├── live_coaching.py # 🔴 WebSocket 실시간 코칭 (v7.1 NEW)
+│       │   └── rubric_experiment.py # 🧪 A/B 루브릭 실험 (v7.1 NEW)
 │       ├── core/                # RAG, Gemini 평가기
 │       └── services/            # 리포트 생성
-├── frontend/                    # 💻 React 18 + Vite
+├── frontend/                    # 💻 React 18 + Vite + PWA
+│   ├── public/                  # 📱 manifest.json, SW (v7.1 NEW)
 │   └── src/
-│       ├── components/          # UI 컴포넌트
-│       └── pages/               # Dashboard (DB 이력 연동)
-├── data/                        # 🗄️ SQLite DB (v7.0 NEW)
-├── config/                      # ⚙️ rubric_config.yaml (v7.0)
-├── tests/                       # 🧪 v7 검증 테스트
+│       ├── components/          # VideoHighlights 등 (v7.1 NEW)
+│       └── pages/               # 10개 페이지 (5개 신규 v7.1)
+├── data/                        # 🗄️ SQLite DB
+├── config/                      # ⚙️ rubric_config.yaml
+├── scripts/                     # 📜 분석/배치/리포트 스크립트
+├── tests/                       # 🧪 검증 테스트
 ├── docs/                        # 📄 GitHub Pages
-├── run_batch_agents.py          # 🔄 배치 분석 (v7.0 파이프라인)
-├── run_sample_analysis.py       # 🔬 단일 영상 분석
-├── reliability_analysis.py      # 📊 신뢰도 분석 (ICC/α/Test-Retest)
-├── criterion_validity.py        # 🎯 기준타당도 분석 (전문가 vs AI)
 └── pyproject.toml               # 📦 패키지 설정
 ```
 
@@ -205,7 +213,7 @@ python batch_analysis.py --limit 5
 | GET | `/api/v1/agents/status/{id}` | 에이전트 상태 조회 |
 | GET | `/api/v1/agents/events/{id}` | 이벤트 히스토리 조회 |
 
-### 이력·성장·포트폴리오 (v7.0 NEW)
+### 이력·성장·포트폴리오 (v7.0)
 
 | Method | 엔드포인트 | 설명 |
 | ------ | --------- | ---- |
@@ -214,6 +222,18 @@ python batch_analysis.py --limit 5
 | DELETE | `/api/v1/history/{id}` | 분석 결과 삭제 |
 | POST | `/api/v1/analysis/batch/start` | 배치 분석 시작 |
 | GET | `/api/v1/portfolio` | 포트폴리오 조회 |
+
+### 신규 기능 API (v7.1 NEW)
+
+| Method | 엔드포인트 | 설명 |
+| ------ | --------- | ---- |
+| WS | `/api/v1/ws/live-coaching` | 실시간 코칭 WebSocket |
+| POST | `/api/v1/cohort/compare` | 코호트 비교 (t-test, Cohen's d) |
+| GET | `/api/v1/experiment/rubrics` | A/B 루브릭 목록 조회 |
+| POST | `/api/v1/experiment/ab` | A/B 루브릭 비교 실험 |
+| GET | `/api/v1/auth/google/login` | Google OAuth 로그인 |
+| POST | `/api/v1/auth/login` | JWT 로그인 |
+| POST | `/api/v1/growth/roadmap` | 성장 경로 로드맵 생성 |
 
 ---
 
@@ -272,6 +292,18 @@ python batch_analysis.py --limit 5
 ---
 
 ## 📜 버전 히스토리 (Changelog)
+
+### v7.1 — 신규 기능 7종 · PWA · 실시간 코칭 `2026-02-20`
+
+- **🎯 성장 경로 (P0)**: 3/6/12주 맞춤 개선 로드맵 생성 (`growth_analyzer.py` + `GrowthPath.jsx`)
+- **🔴 실시간 코칭 라이트 (P1)**: WebSocket 기반 실시간 피드백 (`live_coaching.py` + `LiveCoaching.jsx`)
+  - 필러워드 감지, WPM 모니터링, 침묵 탐지
+- **📊 코호트 비교 분석 (P1)**: 집단 간 t-test, Cohen's d 통계 비교 (`cohort.py` + `CohortCompare.jsx`)
+- **👤 Google OAuth (P1)**: JWT + Google 소셜 로그인 (`auth.py` + `LoginPage.jsx`)
+- **📱 PWA 지원 (P2)**: Service Worker + Web App Manifest (`manifest.json`, `service-worker.js`)
+- **🧪 A/B 루브릭 실험 (P2)**: 2개 루브릭 동시 적용 채점 비교 (`rubric_experiment.py` + `ABExperiment.jsx`)
+- **🎬 영상 하이라이트 (P2)**: 비디오 타임라인 마커 컴포넌트 (`VideoHighlights.jsx` → `AnalysisResult.jsx` 통합)
+- **프로젝트 구조 정리**: 스크립트 `scripts/` 디렉토리 이동, `data/` 분리
 
 ### v7.0 — Pydantic 계약 · SQLite 영속성 · 성장 분석 `2026-02-20`
 
@@ -383,12 +415,13 @@ python batch_analysis.py --limit 5
 | ---- | ---- |
 | **AI/ML** | Google Gemini AI, OpenAI Whisper, pyannote.audio, OpenCV, Librosa |
 | **분석 도구** | ICC, Cronbach's α, Bland-Altman, Test-Retest, SEM |
-| **Backend** | FastAPI, Python 3.9+, RAG Pipeline, Pydantic |
-| **Frontend** | React 18, Vite, Chart.js, Recharts |
+| **Backend** | FastAPI, WebSocket, Python 3.9+, RAG Pipeline, Pydantic |
+| **Frontend** | React 18, Vite, Chart.js, Recharts, PWA |
+| **인증** | Google OAuth 2.0, JWT |
 | **데이터** | SQLite (WAL mode), Growth Analyzer |
 | **영상 처리** | FFmpeg (CUDA GPU 가속) |
 | **아키텍처** | Pydantic Contract AgentOrchestrator, Pub/Sub MessageBus |
-| **배포** | GitHub Pages, GitHub Actions |
+| **배포** | GitHub Pages, GitHub Actions, PWA Service Worker |
 
 ---
 

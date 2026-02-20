@@ -67,3 +67,68 @@ async def websocket_notifications(websocket: WebSocket):
         manager.active_connections[notification_id].discard(websocket)
     except Exception:
         manager.active_connections[notification_id].discard(websocket)
+
+
+# ─── v7.1: SSE (Server-Sent Events) endpoint ───
+# Easier to use from frontend than WebSocket (works with EventSource API)
+
+from fastapi import Request
+from fastapi.responses import StreamingResponse
+import asyncio
+import json
+
+
+@router.get("/sse/analysis/{analysis_id}")
+async def sse_analysis_progress(analysis_id: str, request: Request):
+    """
+    v7.1: SSE 기반 분석 진행 상황 스트리밍
+
+    클라이언트 사용법:
+        const es = new EventSource('/api/v1/ws/sse/analysis/abc123')
+        es.onmessage = (e) => console.log(JSON.parse(e.data))
+    """
+    async def event_stream():
+        tracker = get_tracker(analysis_id)
+        last_progress = -1
+
+        while True:
+            if await request.is_disconnected():
+                break
+
+            current = tracker.get_status()
+            progress = current.get("overall_progress", 0)
+
+            if progress != last_progress:
+                data = json.dumps(current, ensure_ascii=False, default=str)
+                yield f"data: {data}\n\n"
+                last_progress = progress
+
+                if current.get("type") in ("complete", "error"):
+                    break
+
+            await asyncio.sleep(0.5)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
+
+
+@router.get("/status")
+async def get_realtime_status():
+    """v7.1: 현재 활성 분석 세션 상태 조회"""
+    active = {
+        aid: len(sockets)
+        for aid, sockets in manager.active_connections.items()
+        if aid != "__notifications__" and sockets
+    }
+    return {
+        "active_sessions": len(active),
+        "connections": active,
+    }
+

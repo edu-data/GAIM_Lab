@@ -30,7 +30,9 @@ import numpy as np
 
 # ── 설정 ──────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent
-OUTPUT_BASE = BASE_DIR / "output"
+PROJECT_ROOT = BASE_DIR.parent.parent  # scripts/analysis → GAIM_Lab
+OUTPUT_BASE = PROJECT_ROOT / "output"
+TEMPLATES_DIR = BASE_DIR / "templates"
 
 # 차원 매핑 (CSV 컬럼명 → 한글 표기)
 DIM_COLS = [
@@ -449,252 +451,94 @@ def run_analysis():
 
 # ── HTML 리포트 ───────────────────────────────────────────────────────
 def generate_html_report(results: dict, path: Path):
-    """신뢰도 분석 결과 HTML 리포트 생성"""
+    """신뢰도 분석 결과 HTML 리포트 생성 (Jinja2 템플릿 기반, v7.1)"""
+    try:
+        from jinja2 import Environment, FileSystemLoader
+    except ImportError:
+        # jinja2 미설치 시 간단한 string.Template 폴백
+        print("⚠️ jinja2 미설치 — pip install jinja2 권장")
+        _generate_html_fallback(results, path)
+        return
+
     ca = results["cronbachs_alpha"]
     icc = results["icc"]
     stats = results["dimension_stats"]
-    meta = results["meta"]
-
-    ca_mean = ca["mean"]
     retest = results["test_retest"]
-    ca_badge = "excellent" if ca_mean >= 0.8 else "good" if ca_mean >= 0.7 else "poor"
-    ca_text = "우수 (≥0.80)" if ca_mean >= 0.8 else "양호 (≥0.70)" if ca_mean >= 0.7 else "미흡 (<0.70)"
 
-    # ICC 테이블 행
-    icc_rows = ""
+    # ICC 테이블 데이터 준비
+    icc_table = []
     for key in ["total_score"] + DIM_KEYS:
         d = icc[key]
-        badge = "excellent" if d["icc21"] >= 0.75 else "good" if d["icc21"] >= 0.50 else "poor"
-        verdict = "우수" if d["icc21"] >= 0.75 else "양호" if d["icc21"] >= 0.50 else "미흡"
-        cv = f'{d["cv_mean_pct"]:.1f}%' if "cv_mean_pct" in d else "—"
         s = stats[key]
-        icc_rows += f"""
-        <tr>
-          <td><strong>{d['label']}</strong></td>
-          <td>{d['max']}</td>
-          <td><strong>{d['icc21']:.4f}</strong></td>
-          <td>{d['icc2k']:.4f}</td>
-          <td>{d['sem']:.2f}</td>
-          <td>{cv}</td>
-          <td>{s['mean']:.1f} ± {s['std']:.1f}</td>
-          <td><span class="badge {badge}">{verdict}</span></td>
-        </tr>"""
+        icc_table.append({
+            "label": d["label"], "max": d["max"],
+            "icc21": d["icc21"], "icc2k": d["icc2k"], "sem": d["sem"],
+            "cv": f'{d["cv_mean_pct"]:.1f}%' if "cv_mean_pct" in d else "—",
+            "mean": s["mean"], "std": s["std"],
+            "badge": "excellent" if d["icc21"] >= 0.75 else "good" if d["icc21"] >= 0.50 else "poor",
+            "verdict": "우수" if d["icc21"] >= 0.75 else "양호" if d["icc21"] >= 0.50 else "미흡",
+        })
 
-    # Cronbach's α per-run 행
-    alpha_rows = ""
+    # Cronbach's α per-run 테이블
+    alpha_table = []
     for rid, val in ca["per_run"].items():
-        ts = rid.replace("batch_agents_", "")
-        badge = "excellent" if val >= 0.8 else "good" if val >= 0.7 else "poor"
-        alpha_rows += f'<tr><td>{ts}</td><td><strong>{val:.4f}</strong></td><td><span class="badge {badge}">{"우수" if val >= 0.8 else "양호" if val >= 0.7 else "미흡"}</span></td></tr>'
+        alpha_table.append({
+            "run_id": rid.replace("batch_agents_", ""),
+            "alpha": val,
+            "badge": "excellent" if val >= 0.8 else "good" if val >= 0.7 else "poor",
+            "verdict": "우수" if val >= 0.8 else "양호" if val >= 0.7 else "미흡",
+        })
 
-    # ICC bar chart data
+    # 재검사 테이블
+    retest_table = []
+    for k in DIM_KEYS:
+        d = retest["dimensions"][k]
+        retest_table.append({
+            "label": d["label"], "mean_r": d["mean_r"],
+            "min_r": d["min_r"], "max_r": d["max_r"], "mean_mad": d["mean_mad"],
+            "badge": "excellent" if d["mean_r"] >= 0.7 else "good" if d["mean_r"] >= 0.5 else "poor",
+            "verdict": "우수" if d["mean_r"] >= 0.7 else "양호" if d["mean_r"] >= 0.5 else "미흡",
+        })
+
+    # 차트 데이터
     icc_chart_labels = [icc[k]["label"] for k in ["total_score"] + DIM_KEYS]
     icc_chart_values = [icc[k]["icc21"] for k in ["total_score"] + DIM_KEYS]
 
+    # Jinja2 렌더링
+    env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
+    template = env.get_template("reliability_report.html")
+
+    # retest dict를 dot-access 가능한 객체로 변환
+    class DotDict(dict):
+        __getattr__ = dict.__getitem__
+
+    html = template.render(
+        meta=DotDict(results["meta"]),
+        ca=DotDict(ca),
+        ca_mean=ca["mean"],
+        retest=DotDict(retest),
+        icc_table=icc_table,
+        alpha_table=alpha_table,
+        retest_table=retest_table,
+        icc_chart_labels=icc_chart_labels,
+        icc_chart_values=icc_chart_values,
+        generated_at=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+    )
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(html)
+
+
+def _generate_html_fallback(results: dict, path: Path):
+    """jinja2 미설치 시 최소한의 HTML 리포트 생성"""
+    ca = results["cronbachs_alpha"]
     html = f"""<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GAIM Lab — 신뢰도 분석 리포트</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<style>
-  :root {{
-    --bg: #0f0f1a; --surface: #1a1a2e; --card: #16213e;
-    --accent: #6c63ff; --accent2: #00d2ff; --text: #e0e0ec;
-    --text-dim: #888; --success: #00e676; --warning: #ffc107; --danger: #ff5252;
-  }}
-  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-  body {{ font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }}
-  .container {{ max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }}
-  h1 {{ font-size: 2rem; text-align: center; margin-bottom: 0.5rem;
-       background: linear-gradient(135deg, var(--accent), var(--accent2));
-       -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
-  .subtitle {{ text-align: center; color: var(--text-dim); margin-bottom: 2rem; }}
-  .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }}
-  .card {{ background: var(--card); border-radius: 12px; padding: 1.5rem; text-align: center;
-           border: 1px solid rgba(108,99,255,0.2); }}
-  .card .value {{ font-size: 2rem; font-weight: 700;
-                  background: linear-gradient(135deg, var(--accent), var(--accent2));
-                  -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
-  .card .label {{ color: var(--text-dim); font-size: 0.85rem; margin-top: 0.3rem; }}
-  .section {{ background: var(--surface); border-radius: 14px; padding: 1.8rem;
-              margin-bottom: 1.5rem; border: 1px solid rgba(108,99,255,0.15); }}
-  .section h2 {{ font-size: 1.25rem; margin-bottom: 1rem; color: var(--accent2); }}
-  table {{ width: 100%; border-collapse: collapse; font-size: 0.9rem; }}
-  th {{ background: rgba(108,99,255,0.15); padding: 0.7rem 0.5rem; text-align: center;
-       font-weight: 600; color: var(--accent2); border-bottom: 2px solid rgba(108,99,255,0.3); }}
-  td {{ padding: 0.6rem 0.5rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }}
-  tr:hover {{ background: rgba(108,99,255,0.08); }}
-  .badge {{ display: inline-block; padding: 0.2rem 0.7rem; border-radius: 12px; font-size: 0.78rem; font-weight: 600; }}
-  .badge.excellent {{ background: rgba(0,230,118,0.15); color: var(--success); }}
-  .badge.good {{ background: rgba(255,193,7,0.15); color: var(--warning); }}
-  .badge.poor {{ background: rgba(255,82,82,0.15); color: var(--danger); }}
-  .chart-container {{ max-width: 700px; margin: 0 auto; }}
-  .interpretation {{ background: var(--card); border-radius: 10px; padding: 1.2rem; margin-top: 1rem;
-                     border-left: 4px solid var(--accent); font-size: 0.88rem; line-height: 1.6; }}
-  .interpretation h3 {{ color: var(--accent2); margin-bottom: 0.5rem; }}
-  .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }}
-  @media (max-width: 768px) {{ .grid-2 {{ grid-template-columns: 1fr; }} }}
-  .footer {{ text-align: center; color: var(--text-dim); font-size: 0.8rem; margin-top: 2rem; }}
-</style>
-</head>
-<body>
-<div class="container">
-  <h1>📊 GAIM Lab 신뢰도 분석 리포트</h1>
-  <p class="subtitle">{meta['runs']}회 반복 × {meta['videos']}개 영상 × {meta['dimensions']}차원 평가 도구</p>
-
-  <div class="cards">
-    <div class="card">
-      <div class="value">{ca_mean:.4f}</div>
-      <div class="label">Cronbach's α (평균)</div>
-    </div>
-    <div class="card">
-      <div class="value">{retest['mean_r']:.4f}</div>
-      <div class="label">재검사 상관 (Test-Retest r)</div>
-    </div>
-    <div class="card">
-      <div class="value">{retest['mean_mad']:.2f}</div>
-      <div class="label">평균 절대차 (MAD, 점)</div>
-    </div>
-    <div class="card">
-      <div class="value">{retest['mean_agree_5pt']:.0f}%</div>
-      <div class="label">±5점 이내 일치율</div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>📈 ICC(2,1) 차원별 급내 상관계수</h2>
-    <div class="chart-container">
-      <canvas id="iccChart"></canvas>
-    </div>
-    <table style="margin-top: 1.2rem;">
-      <thead>
-        <tr>
-          <th>차원</th><th>만점</th><th>ICC(2,1)</th><th>ICC(2,k)</th>
-          <th>SEM</th><th>CV(%)</th><th>M ± SD</th><th>판정</th>
-        </tr>
-      </thead>
-      <tbody>{icc_rows}</tbody>
-    </table>
-    <div class="interpretation">
-      <h3>📖 해석 기준 (Koo & Li, 2016)</h3>
-      ICC &lt; 0.50 = 미흡(poor) · 0.50–0.75 = 양호(moderate) · 0.75–0.90 = 우수(good) · &gt; 0.90 = 탁월(excellent)<br>
-      <em>⚠️ AI 시스템의 경우: 평상시 분석 결과가 좌우 대칭적이므로 (variance ratio가 작음),
-      ICC가 낮게 나올 수 있습니다. 재검사 상관(Test-Retest r)과 MAD를 병행 해석하세요.</em>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>🔄 재검사 신뚰도 (Test-Retest Reliability)</h2>
-    <div class="cards" style="margin-bottom:1rem">
-      <div class="card">
-        <div class="value">{retest['mean_r']:.4f}</div>
-        <div class="label">평균 Pearson r</div>
-      </div>
-      <div class="card">
-        <div class="value">{retest['mean_mad']:.2f}점</div>
-        <div class="label">평균 절대차 (MAD)</div>
-      </div>
-      <div class="card">
-        <div class="value">{retest['mean_agree_3pt']:.0f}%</div>
-        <div class="label">±3점 이내 일치</div>
-      </div>
-      <div class="card">
-        <div class="value">{retest['mean_agree_5pt']:.0f}%</div>
-        <div class="label">±5점 이내 일치</div>
-      </div>
-    </div>
-    <table>
-      <thead>
-        <tr><th>차원</th><th>평균 r</th><th>최소 r</th><th>최대 r</th><th>MAD</th><th>판정</th></tr>
-      </thead>
-      <tbody>""" + "".join([
-        f'<tr><td><strong>{retest["dimensions"][k]["label"]}</strong></td>'
-        f'<td>{retest["dimensions"][k]["mean_r"]:.4f}</td>'
-        f'<td>{retest["dimensions"][k]["min_r"]:.4f}</td>'
-        f'<td>{retest["dimensions"][k]["max_r"]:.4f}</td>'
-        f'<td>{retest["dimensions"][k]["mean_mad"]:.2f}</td>'
-        f'<td><span class="badge {"excellent" if retest["dimensions"][k]["mean_r"] >= 0.7 else "good" if retest["dimensions"][k]["mean_r"] >= 0.5 else "poor"}">{"우수" if retest["dimensions"][k]["mean_r"] >= 0.7 else "양호" if retest["dimensions"][k]["mean_r"] >= 0.5 else "미흡"}</span></td></tr>'
-        for k in DIM_KEYS
-    ]) + f"""</tbody>
-    </table>
-    <div class="interpretation">
-      <h3>📖 해석</h3>
-      재검사 상관 r ≥ 0.70 = 우수 · r ≥ 0.50 = 양호 · r &lt; 0.50 = 미흡<br>
-      MAD(평균 절대차)는 동일 영상의 반복 분석 시 점수 변동 폭을 나타냅니다.
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>🔬 Cronbach's α — 내적 합치도</h2>
-    <div class="grid-2">
-      <div>
-        <table>
-          <thead><tr><th>실행</th><th>α</th><th>판정</th></tr></thead>
-          <tbody>{alpha_rows}</tbody>
-        </table>
-      </div>
-      <div>
-        <div class="card" style="margin-bottom:1rem">
-          <div class="value">{ca_mean:.4f}</div>
-          <div class="label">평균 Cronbach's α</div>
-        </div>
-        <div class="card">
-          <div class="value">{ca['min']:.4f} ~ {ca['max']:.4f}</div>
-          <div class="label">범위 (min ~ max)</div>
-        </div>
-        <div class="interpretation" style="margin-top:1rem">
-          <h3>📖 해석 기준</h3>
-          α ≥ 0.90 = 탁월 · ≥ 0.80 = 우수 · ≥ 0.70 = 양호 · &lt; 0.70 = 미흡
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="footer">
-    GAIM Lab Reliability Analysis · Generated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-  </div>
-</div>
-
-<script>
-new Chart(document.getElementById('iccChart'), {{
-  type: 'bar',
-  data: {{
-    labels: {json.dumps(icc_chart_labels, ensure_ascii=False)},
-    datasets: [{{
-      label: 'ICC(2,1)',
-      data: {json.dumps(icc_chart_values)},
-      backgroundColor: {json.dumps(icc_chart_values)}.map(v =>
-        v >= 0.75 ? 'rgba(0,230,118,0.6)' : v >= 0.50 ? 'rgba(255,193,7,0.6)' : 'rgba(255,82,82,0.6)'
-      ),
-      borderColor: {json.dumps(icc_chart_values)}.map(v =>
-        v >= 0.75 ? '#00e676' : v >= 0.50 ? '#ffc107' : '#ff5252'
-      ),
-      borderWidth: 2,
-      borderRadius: 6,
-    }}]
-  }},
-  options: {{
-    responsive: true,
-    plugins: {{
-      legend: {{ display: false }},
-      title: {{ display: false }},
-    }},
-    scales: {{
-      y: {{
-        min: 0, max: 1,
-        ticks: {{ stepSize: 0.25, color: '#888' }},
-        grid: {{ color: 'rgba(255,255,255,0.05)' }},
-      }},
-      x: {{ ticks: {{ color: '#aaa' }}, grid: {{ display: false }} }},
-    }},
-  }},
-}});
-</script>
-</body>
-</html>"""
-
+<html lang="ko"><head><meta charset="UTF-8"><title>GAIM Lab 신뢰도</title></head>
+<body style="font-family:sans-serif;background:#1a1a2e;color:#e0e0ec;padding:2rem">
+<h1>GAIM Lab 신뢰도 분석</h1>
+<p>Cronbach's α 평균: <strong>{ca['mean']:.4f}</strong></p>
+<p>⚠️ 전체 리포트를 보려면 <code>pip install jinja2</code> 후 재실행하세요.</p>
+</body></html>"""
     with open(path, "w", encoding="utf-8") as f:
         f.write(html)
 

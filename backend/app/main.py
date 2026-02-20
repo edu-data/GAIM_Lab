@@ -8,13 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from app.api import analysis, portfolio, badges, mentoring, realtime, agents, history
+from app.api import analysis, portfolio, badges, mentoring, realtime, agents, history, auth
+from app.api import live_coaching, cohort, rubric_experiment
 
 # 앱 초기화
 app = FastAPI(
     title="GAIM Lab API",
     description="GINUE AI Microteaching Lab - 예비교원 수업역량 강화 시스템",
-    version="7.0.0",
+    version="7.1.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc"
 )
@@ -46,6 +47,10 @@ app.include_router(mentoring.router, prefix="/api/v1/mentoring", tags=["멘토�
 app.include_router(realtime.router, prefix="/api/v1", tags=["실시간"])
 app.include_router(agents.router, prefix="/api/v1/agents", tags=["에이전트"])
 app.include_router(history.router, prefix="/api/v1", tags=["이력/성장"])
+app.include_router(auth.router, prefix="/api/v1", tags=["인증"])
+app.include_router(live_coaching.router, prefix="/api/v1", tags=["실시간 코칭"])
+app.include_router(cohort.router, prefix="/api/v1/cohort", tags=["코호트 비교"])
+app.include_router(rubric_experiment.router, prefix="/api/v1/experiment", tags=["A/B 루브릭"])
 
 
 @app.get("/")

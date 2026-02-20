@@ -21,8 +21,8 @@ if hasattr(sys.stdout, 'buffer'):
     except:
         pass
 
-# 프로젝트 루트 경로
-GAIM_ROOT = Path(r"D:\AI\GAIM_Lab")
+# 프로젝트 루트 경로 (상대 경로 기반 — v7.1 수정)
+GAIM_ROOT = Path(__file__).resolve().parent.parent.parent  # scripts/batch/_legacy → GAIM_Lab
 
 # .env 로드
 from dotenv import load_dotenv
