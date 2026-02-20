@@ -1,150 +1,231 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import AgentCard from '../components/AgentCard'
 import AgentTimeline from '../components/AgentTimeline'
-import { API_BASE } from '../apiConfig'
 import './AgentMonitor.css'
 
-const AGENTS_API = `${API_BASE}/agents`
+// ── 에이전트 정의 ──
+const AGENT_DEFS = {
+    extractor: { name: 'extractor', role: '리소스 추출기 (FFmpeg)', icon: '📦', dependencies: [], baseDuration: 2500 },
+    vision: { name: 'vision', role: '비전 분석 에이전트', icon: '👁️', dependencies: ['extractor'], baseDuration: 5500 },
+    content: { name: 'content', role: '콘텐츠 분석 에이전트', icon: '🎨', dependencies: ['extractor'], baseDuration: 4200 },
+    stt: { name: 'stt', role: '음성→텍스트 에이전트', icon: '🗣️', dependencies: ['extractor'], baseDuration: 8800 },
+    vibe: { name: 'vibe', role: '음성 프로소디 에이전트', icon: '🔊', dependencies: ['extractor'], baseDuration: 3500 },
+    pedagogy: { name: 'pedagogy', role: '교육학 평가 에이전트', icon: '📚', dependencies: ['vision', 'content', 'stt', 'vibe'], baseDuration: 2000 },
+    feedback: { name: 'feedback', role: '피드백 생성 에이전트', icon: '💡', dependencies: ['pedagogy'], baseDuration: 1500 },
+    master: { name: 'master', role: '종합 분석 마스터', icon: '🧠', dependencies: ['vision', 'content', 'vibe', 'pedagogy', 'feedback'], baseDuration: 2800 },
+}
+
+function makeAgents(status = 'idle') {
+    const out = {}
+    for (const [k, v] of Object.entries(AGENT_DEFS)) {
+        out[k] = { ...v, status, progress: 0, elapsed_seconds: 0, has_result: false }
+    }
+    return out
+}
+
+// ── 시뮬레이션 결과 데이터 ──
+const AGENT_RESULTS = {
+    extractor: { desc: '프레임 682장 + 오디오 1개 추출', detail: '640×360 @ 1fps, 16kHz WAV' },
+    vision: { desc: '제스처 활성 37.2%, 시선 접촉 74.5%', detail: 'MediaPipe Pose Lite' },
+    content: { desc: '슬라이드 28장 감지, 텍스트 밀도 85', detail: 'Canny Edge + MSER' },
+    stt: { desc: '음성 인식 완료 (2,847 어절)', detail: 'Whisper Large v3' },
+    vibe: { desc: '피치 변동 22.5Hz, 침묵 비율 18%', detail: 'Librosa + YIN' },
+    pedagogy: { desc: '7차원 평가 완료: 72.3/100 (B)', detail: 'GAIM 평가 프레임워크' },
+    feedback: { desc: '맞춤형 피드백 6건 생성', detail: '강점 3건, 개선점 3건' },
+    master: { desc: '종합 리포트 생성 완료', detail: '8개 에이전트 결과 통합' },
+}
 
 export default function AgentMonitor() {
-    const [registry, setRegistry] = useState(null)
-    const [activePipeline, setActivePipeline] = useState(null)
-    const [pipelines, setPipelines] = useState([])
-    const [isAnalyzing, setIsAnalyzing] = useState(false)
-    const [error, setError] = useState(null)
+    const [agents, setAgents] = useState(() => makeAgents())
+    const [pipelineStatus, setPipelineStatus] = useState('idle')   // idle | running | completed
+    const [pipelineProgress, setPipelineProgress] = useState(0)
+    const [isRunning, setIsRunning] = useState(false)
+    const [log, setLog] = useState([])
+    const [elapsedTotal, setElapsedTotal] = useState(0)
+    const [history, setHistory] = useState([])
+    const intervalRefs = useRef({})
+    const timerRef = useRef(null)
+    const startTimeRef = useRef(null)
 
-    // 에이전트 레지스트리 로드
-    useEffect(() => {
-        fetch(`${AGENTS_API}/status`)
-            .then(res => res.json())
-            .then(data => setRegistry(data))
-            .catch(() => setRegistry(getDemoRegistry()))
+    // ── 로그 추가 ──
+    const addLog = useCallback((msg) => {
+        setLog(prev => [...prev, { time: new Date().toLocaleTimeString('ko-KR'), msg }])
     }, [])
 
-    // 파이프라인 목록 로드
-    useEffect(() => {
-        fetch(`${AGENTS_API}/pipelines`)
-            .then(res => res.json())
-            .then(data => setPipelines(data.pipelines || []))
-            .catch(() => { })
-    }, [])
-
-    // 활성 파이프라인 폴링
-    useEffect(() => {
-        if (!activePipeline || activePipeline.status === 'completed' || activePipeline.status === 'failed') return
-        const interval = setInterval(() => {
-            fetch(`${AGENTS_API}/pipeline/${activePipeline.pipeline_id}`)
-                .then(res => res.json())
-                .then(data => setActivePipeline(data))
-                .catch(() => { })
-        }, 1000)
-        return () => clearInterval(interval)
-    }, [activePipeline])
-
-    // 분석 시작
-    const startAnalysis = useCallback(async () => {
-        setIsAnalyzing(true)
-        setError(null)
-        try {
-            const res = await fetch(`${AGENTS_API}/analyze`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}),
-            })
-            const data = await res.json()
-            if (data.pipeline_id) {
-                setActivePipeline({
-                    pipeline_id: data.pipeline_id,
-                    status: 'queued',
-                    progress: 0,
-                    agents: {},
-                })
-            }
-        } catch (e) {
-            setError('분석 시작에 실패했습니다. 백엔드 서버를 확인하세요.')
-            setActivePipeline(getDemoPipeline())
-        }
-        setIsAnalyzing(false)
-    }, [])
-
-    // 데모 실행
-    const runDemo = () => {
-        setActivePipeline(getDemoPipeline())
-        simulateDemo()
-    }
-
-    const [demoStep, setDemoStep] = useState(-1)
-
-    const simulateDemo = () => {
-        setDemoStep(0)
-    }
-
-    useEffect(() => {
-        if (demoStep < 0) return
-        const steps = getDemoSteps()
-        if (demoStep >= steps.length) {
-            setDemoStep(-1)
-            return
-        }
-        const timer = setTimeout(() => {
-            setActivePipeline(prev => ({
+    // ── 에이전트 프로그레스 부드럽게 올리기 ──
+    const animateAgent = useCallback((name, duration, onComplete) => {
+        const startTime = Date.now()
+        const tick = () => {
+            const elapsed = Date.now() - startTime
+            const progress = Math.min(100, Math.round((elapsed / duration) * 100))
+            setAgents(prev => ({
                 ...prev,
-                ...steps[demoStep],
+                [name]: { ...prev[name], status: 'running', progress, elapsed_seconds: +(elapsed / 1000).toFixed(1) }
             }))
-            setDemoStep(d => d + 1)
-        }, 800)
-        return () => clearTimeout(timer)
-    }, [demoStep])
+            if (progress < 100) {
+                intervalRefs.current[name] = requestAnimationFrame(tick)
+            } else {
+                // 완료
+                const finalElapsed = +(Date.now() - startTime) / 1000
+                setAgents(prev => ({
+                    ...prev,
+                    [name]: { ...prev[name], status: 'done', progress: 100, elapsed_seconds: +finalElapsed.toFixed(1), has_result: true, result_desc: AGENT_RESULTS[name]?.desc }
+                }))
+                addLog(`✅ ${AGENT_DEFS[name].icon} ${name} 완료 (${finalElapsed.toFixed(1)}s) — ${AGENT_RESULTS[name]?.desc}`)
+                if (onComplete) onComplete()
+            }
+        }
+        setAgents(prev => ({
+            ...prev,
+            [name]: { ...prev[name], status: 'running', progress: 0 }
+        }))
+        addLog(`▶️ ${AGENT_DEFS[name].icon} ${name} 시작`)
+        intervalRefs.current[name] = requestAnimationFrame(tick)
+    }, [addLog])
 
-    const agents = activePipeline?.agents || registry?.agents || {}
+    // ── 의존성 기반 파이프라인 실행 ──
+    const runPipeline = useCallback(() => {
+        // 초기화
+        setAgents(makeAgents())
+        setPipelineStatus('running')
+        setPipelineProgress(0)
+        setIsRunning(true)
+        setLog([])
+        setElapsedTotal(0)
+        startTimeRef.current = Date.now()
+
+        addLog('🚀 멀티 에이전트 파이프라인 시작')
+
+        // 전체 시간 타이머
+        timerRef.current = setInterval(() => {
+            setElapsedTotal(+((Date.now() - startTimeRef.current) / 1000).toFixed(1))
+        }, 100)
+
+        const completed = new Set()
+        const agentNames = Object.keys(AGENT_DEFS)
+        const totalAgents = agentNames.length
+        let launched = new Set()
+
+        const tryLaunch = () => {
+            for (const name of agentNames) {
+                if (completed.has(name) || launched.has(name)) continue
+                const deps = AGENT_DEFS[name].dependencies
+                if (deps.every(d => completed.has(d))) {
+                    launched.add(name)
+                    // 약간의 랜덤 지연 (50-200ms)
+                    const jitter = Math.random() * 150 + 50
+                    // ±20% 랜덤 duration
+                    const duration = AGENT_DEFS[name].baseDuration * (0.8 + Math.random() * 0.4)
+                    setTimeout(() => {
+                        animateAgent(name, duration, () => {
+                            completed.add(name)
+                            setPipelineProgress(Math.round((completed.size / totalAgents) * 100))
+                            if (completed.size === totalAgents) {
+                                // 전체 완료
+                                clearInterval(timerRef.current)
+                                const total = +((Date.now() - startTimeRef.current) / 1000).toFixed(1)
+                                setElapsedTotal(total)
+                                setPipelineStatus('completed')
+                                setPipelineProgress(100)
+                                setIsRunning(false)
+                                addLog(`🎉 전체 파이프라인 완료! (${total}s)`)
+                                // 이력 추가
+                                setHistory(prev => [{
+                                    id: `run-${Date.now().toString(36)}`,
+                                    video: 'sample_lecture.mp4',
+                                    status: 'completed',
+                                    elapsed: total,
+                                    agents_count: totalAgents,
+                                    created_at: new Date().toISOString()
+                                }, ...prev])
+                            } else {
+                                tryLaunch()
+                            }
+                        })
+                    }, jitter)
+                }
+            }
+        }
+
+        tryLaunch()
+    }, [animateAgent, addLog])
+
+    // ── 리셋 ──
+    const resetPipeline = useCallback(() => {
+        for (const id of Object.values(intervalRefs.current)) cancelAnimationFrame(id)
+        if (timerRef.current) clearInterval(timerRef.current)
+        intervalRefs.current = {}
+        setAgents(makeAgents())
+        setPipelineStatus('idle')
+        setPipelineProgress(0)
+        setIsRunning(false)
+        setLog([])
+        setElapsedTotal(0)
+    }, [])
+
+    // 언마운트 시 클린업
+    useEffect(() => {
+        return () => {
+            for (const id of Object.values(intervalRefs.current)) cancelAnimationFrame(id)
+            if (timerRef.current) clearInterval(timerRef.current)
+        }
+    }, [])
+
+    // 로그 자동 스크롤
+    const logEndRef = useRef(null)
+    useEffect(() => {
+        logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [log])
 
     return (
         <div className="agent-monitor">
             <div className="monitor-header">
                 <div className="monitor-title">
                     <h2>🤖 멀티 에이전트 모니터</h2>
-                    <p className="monitor-subtitle">실시간 에이전트 파이프라인 모니터링</p>
+                    <p className="monitor-subtitle">실시간 에이전트 파이프라인 모니터링 — 8개 AI 에이전트 병렬 분석</p>
                 </div>
                 <div className="monitor-actions">
-                    <button
-                        className="btn-primary"
-                        onClick={startAnalysis}
-                        disabled={isAnalyzing}
-                    >
-                        {isAnalyzing ? '⏳ 시작 중...' : '🚀 분석 시작'}
-                    </button>
-                    <button className="btn-secondary" onClick={runDemo}>
-                        🎮 데모 실행
-                    </button>
+                    {!isRunning ? (
+                        <button className="btn-primary" onClick={runPipeline}>
+                            🚀 분석 시작
+                        </button>
+                    ) : (
+                        <button className="btn-secondary" onClick={resetPipeline}>
+                            ⏹ 중지
+                        </button>
+                    )}
+                    {pipelineStatus === 'completed' && (
+                        <button className="btn-secondary" onClick={resetPipeline}>
+                            🔄 초기화
+                        </button>
+                    )}
                 </div>
             </div>
-
-            {error && <div className="monitor-error">{error}</div>}
 
             {/* 파이프라인 타임라인 */}
             <div className="glass-card pipeline-section">
                 <h3>📊 파이프라인 흐름</h3>
                 <AgentTimeline agents={agents} />
 
-                {activePipeline && (
+                {pipelineStatus !== 'idle' && (
                     <div className="pipeline-status-bar">
                         <div className="status-info">
-                            <span className={`status-dot ${activePipeline.status}`} />
+                            <span className={`status-dot ${pipelineStatus}`} />
                             <span className="status-text">
-                                {activePipeline.status === 'completed' ? '✅ 분석 완료' :
-                                    activePipeline.status === 'running' ? '⏳ 분석 진행 중' :
-                                        activePipeline.status === 'failed' ? '❌ 분석 실패' : '⏸ 대기 중'}
+                                {pipelineStatus === 'completed' ? '✅ 분석 완료' :
+                                    pipelineStatus === 'running' ? '⏳ 분석 진행 중' : '⏸ 대기 중'}
                             </span>
                         </div>
                         <div className="progress-container">
                             <div className="progress-bar">
                                 <div
                                     className="progress-fill"
-                                    style={{ width: `${activePipeline.progress || 0}%` }}
+                                    style={{ width: `${pipelineProgress}%` }}
                                 />
                             </div>
-                            <span className="progress-text">{activePipeline.progress || 0}%</span>
+                            <span className="progress-text">{pipelineProgress}%</span>
                         </div>
+                        <span className="elapsed-label">⏱️ {elapsedTotal}s</span>
                     </div>
                 )}
             </div>
@@ -163,17 +244,35 @@ export default function AgentMonitor() {
                 </div>
             </div>
 
-            {/* 최근 파이프라인 이력 */}
-            {pipelines.length > 0 && (
+            {/* 실행 로그 */}
+            {log.length > 0 && (
+                <div className="glass-card log-section">
+                    <h3>📜 실행 로그</h3>
+                    <div className="log-container">
+                        {log.map((entry, i) => (
+                            <div key={i} className="log-entry">
+                                <span className="log-time">{entry.time}</span>
+                                <span className="log-msg">{entry.msg}</span>
+                            </div>
+                        ))}
+                        <div ref={logEndRef} />
+                    </div>
+                </div>
+            )}
+
+            {/* 실행 이력 */}
+            {history.length > 0 && (
                 <div className="glass-card history-section">
-                    <h3>📜 실행 이력</h3>
+                    <h3>📋 실행 이력</h3>
                     <div className="history-list">
-                        {pipelines.map(p => (
-                            <div key={p.id} className={`history-item ${p.status}`}>
-                                <span className="history-id">{p.id}</span>
-                                <span className="history-video">{p.video}</span>
-                                <span className={`history-status ${p.status}`}>{p.status}</span>
-                                <span className="history-time">{new Date(p.created_at).toLocaleString('ko-KR')}</span>
+                        {history.map(h => (
+                            <div key={h.id} className={`history-item ${h.status}`}>
+                                <span className="history-id">{h.id}</span>
+                                <span className="history-video">{h.video}</span>
+                                <span className="history-agents">🤖 {h.agents_count}개 에이전트</span>
+                                <span className="history-elapsed">⏱️ {h.elapsed}s</span>
+                                <span className={`history-status ${h.status}`}>{h.status === 'completed' ? '✅ 완료' : h.status}</span>
+                                <span className="history-time">{new Date(h.created_at).toLocaleString('ko-KR')}</span>
                             </div>
                         ))}
                     </div>
@@ -181,49 +280,4 @@ export default function AgentMonitor() {
             )}
         </div>
     )
-}
-
-// =================================================================
-// 데모 데이터
-// =================================================================
-
-function getDemoRegistry() {
-    return {
-        total_agents: 8,
-        agents: {
-            extractor: { name: 'extractor', role: '리소스 추출기', icon: '📦', status: 'idle', progress: 0, dependencies: [], elapsed_seconds: 0, has_result: false },
-            vision: { name: 'vision', role: '비전 분석 에이전트', icon: '👁️', status: 'idle', progress: 0, dependencies: ['extractor'], elapsed_seconds: 0, has_result: false },
-            content: { name: 'content', role: '콘텐츠 분석 에이전트', icon: '🎨', status: 'idle', progress: 0, dependencies: ['extractor'], elapsed_seconds: 0, has_result: false },
-            stt: { name: 'stt', role: '음성→텍스트 에이전트', icon: '🗣️', status: 'idle', progress: 0, dependencies: ['extractor'], elapsed_seconds: 0, has_result: false },
-            vibe: { name: 'vibe', role: '음성 프로소디 에이전트', icon: '🔊', status: 'idle', progress: 0, dependencies: ['extractor'], elapsed_seconds: 0, has_result: false },
-            pedagogy: { name: 'pedagogy', role: '교육학 평가 에이전트', icon: '📚', status: 'idle', progress: 0, dependencies: ['vision', 'content', 'stt', 'vibe'], elapsed_seconds: 0, has_result: false },
-            feedback: { name: 'feedback', role: '피드백 생성 에이전트', icon: '💡', status: 'idle', progress: 0, dependencies: ['pedagogy'], elapsed_seconds: 0, has_result: false },
-            master: { name: 'master', role: '종합 분석 마스터', icon: '🧠', status: 'idle', progress: 0, dependencies: ['vision', 'content', 'vibe', 'pedagogy', 'feedback'], elapsed_seconds: 0, has_result: false },
-        }
-    }
-}
-
-function getDemoPipeline() {
-    return { pipeline_id: 'demo-001', status: 'queued', progress: 0, agents: getDemoRegistry().agents }
-}
-
-function getDemoSteps() {
-    const base = getDemoRegistry().agents
-    const step = (updates, progress, status = 'running') => {
-        const agents = { ...base }
-        for (const [k, v] of Object.entries(updates)) {
-            agents[k] = { ...agents[k], ...v }
-        }
-        return { agents, progress, status }
-    }
-    return [
-        step({ extractor: { status: 'running', progress: 50 } }, 5),
-        step({ extractor: { status: 'done', progress: 100, elapsed_seconds: 2.1, has_result: true } }, 12),
-        step({ extractor: { status: 'done', progress: 100, elapsed_seconds: 2.1, has_result: true }, vision: { status: 'running', progress: 30 }, content: { status: 'running', progress: 20 }, stt: { status: 'running', progress: 40 }, vibe: { status: 'running', progress: 25 } }, 30),
-        step({ extractor: { status: 'done', progress: 100, elapsed_seconds: 2.1, has_result: true }, vision: { status: 'done', progress: 100, elapsed_seconds: 5.3, has_result: true }, content: { status: 'done', progress: 100, elapsed_seconds: 4.1, has_result: true }, stt: { status: 'done', progress: 100, elapsed_seconds: 8.7, has_result: true }, vibe: { status: 'done', progress: 100, elapsed_seconds: 3.2, has_result: true } }, 55),
-        step({ extractor: { status: 'done', progress: 100, elapsed_seconds: 2.1, has_result: true }, vision: { status: 'done', progress: 100, elapsed_seconds: 5.3, has_result: true }, content: { status: 'done', progress: 100, elapsed_seconds: 4.1, has_result: true }, stt: { status: 'done', progress: 100, elapsed_seconds: 8.7, has_result: true }, vibe: { status: 'done', progress: 100, elapsed_seconds: 3.2, has_result: true }, pedagogy: { status: 'running', progress: 60 } }, 70),
-        step({ extractor: { status: 'done', progress: 100, elapsed_seconds: 2.1, has_result: true }, vision: { status: 'done', progress: 100, elapsed_seconds: 5.3, has_result: true }, content: { status: 'done', progress: 100, elapsed_seconds: 4.1, has_result: true }, stt: { status: 'done', progress: 100, elapsed_seconds: 8.7, has_result: true }, vibe: { status: 'done', progress: 100, elapsed_seconds: 3.2, has_result: true }, pedagogy: { status: 'done', progress: 100, elapsed_seconds: 1.8, has_result: true }, feedback: { status: 'running', progress: 50 } }, 80),
-        step({ extractor: { status: 'done', progress: 100, elapsed_seconds: 2.1, has_result: true }, vision: { status: 'done', progress: 100, elapsed_seconds: 5.3, has_result: true }, content: { status: 'done', progress: 100, elapsed_seconds: 4.1, has_result: true }, stt: { status: 'done', progress: 100, elapsed_seconds: 8.7, has_result: true }, vibe: { status: 'done', progress: 100, elapsed_seconds: 3.2, has_result: true }, pedagogy: { status: 'done', progress: 100, elapsed_seconds: 1.8, has_result: true }, feedback: { status: 'done', progress: 100, elapsed_seconds: 1.2, has_result: true }, master: { status: 'running', progress: 70 } }, 90),
-        step({ extractor: { status: 'done', progress: 100, elapsed_seconds: 2.1, has_result: true }, vision: { status: 'done', progress: 100, elapsed_seconds: 5.3, has_result: true }, content: { status: 'done', progress: 100, elapsed_seconds: 4.1, has_result: true }, stt: { status: 'done', progress: 100, elapsed_seconds: 8.7, has_result: true }, vibe: { status: 'done', progress: 100, elapsed_seconds: 3.2, has_result: true }, pedagogy: { status: 'done', progress: 100, elapsed_seconds: 1.8, has_result: true }, feedback: { status: 'done', progress: 100, elapsed_seconds: 1.2, has_result: true }, master: { status: 'done', progress: 100, elapsed_seconds: 2.5, has_result: true } }, 100, 'completed'),
-    ]
 }
