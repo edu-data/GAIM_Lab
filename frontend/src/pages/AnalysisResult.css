@@ -4,6 +4,7 @@
     padding: 2rem;
 }
 
+/* ===== HEADER ===== */
 .result-header {
     text-align: center;
     margin-bottom: 2rem;
@@ -12,6 +13,10 @@
 .result-header h1 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .video-name {
@@ -19,6 +24,7 @@
     font-size: 1.1rem;
 }
 
+/* ===== GRID ===== */
 .result-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -26,29 +32,53 @@
     margin-bottom: 2rem;
 }
 
-/* 메인 스코어 카드 */
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeSlideIn 0.5s ease forwards;
+}
+
+/* ===== MAIN SCORE CARD ===== */
 .score-card.main-score {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    border-radius: 1rem;
-    padding: 2rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0.2) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 1.25rem;
+    padding: 2.5rem 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.grade-emoji {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
 }
 
 .grade-badge {
-    width: 80px;
-    height: 80px;
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #000;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
     margin-bottom: 1rem;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
 }
 
 .total-score {
@@ -58,20 +88,28 @@
 }
 
 .score-value {
-    font-size: 3rem;
-    font-weight: 700;
+    font-size: 3.5rem;
+    font-weight: 800;
     color: #fff;
+    line-height: 1;
 }
 
 .score-max {
     font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.6);
 }
 
-/* 차트 카드 */
+.score-subtitle {
+    margin-top: 0.5rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+}
+
+/* ===== RADAR CHART ===== */
 .chart-card {
     background: var(--surface);
-    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1.25rem;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
@@ -85,65 +123,94 @@
 
 .radar-chart {
     margin: 0 auto;
+    max-width: 280px;
 }
 
-/* 차원별 점수 */
+/* ===== DIMENSION BARS ===== */
 .dimensions-card {
     background: var(--surface);
-    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1.25rem;
     padding: 1.5rem;
-    grid-column: span 2;
+    grid-column: 1 / -1;
 }
 
 .dimensions-card h3 {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .dimension-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 1rem;
 }
 
 .dimension-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    animation: fadeSlideIn 0.4s ease forwards;
+    opacity: 0;
 }
 
 .dim-header {
     display: flex;
     justify-content: space-between;
-    font-size: 0.9rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
 }
 
 .dim-name {
     color: var(--text-primary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dim-icon {
+    font-size: 1.1rem;
 }
 
 .dim-score {
     color: var(--accent);
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 0.95rem;
 }
 
 .dim-bar {
-    height: 8px;
-    background: rgba(99, 102, 241, 0.2);
-    border-radius: 4px;
+    height: 10px;
+    background: rgba(99, 102, 241, 0.12);
+    border-radius: 5px;
     overflow: hidden;
 }
 
 .dim-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
-    border-radius: 4px;
-    transition: width 0.5s ease;
+    border-radius: 5px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
 }
 
-/* 피드백 카드 */
+.dim-feedback {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+}
+
+.feedback-chip {
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 1rem;
+    line-height: 1.4;
+}
+
+/* ===== FEEDBACK CARDS ===== */
 .feedback-card {
     background: var(--surface);
-    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1.25rem;
     padding: 1.5rem;
 }
 
@@ -158,20 +225,38 @@
 }
 
 .feedback-card li {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0.6rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     color: var(--text-secondary);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    line-height: 1.5;
 }
 
 .feedback-card li:last-child {
     border-bottom: none;
 }
 
-/* 종합 피드백 */
+.list-bullet {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+}
+
+.strengths {
+    border-left: 3px solid #10b981;
+}
+
+.improvements {
+    border-left: 3px solid #f59e0b;
+}
+
+/* ===== OVERALL FEEDBACK ===== */
 .overall-feedback {
-    background: var(--surface);
-    border-radius: 1rem;
-    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.05) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    border-radius: 1.25rem;
+    padding: 1.75rem;
     grid-column: 1 / -1;
 }
 
@@ -181,58 +266,227 @@
 
 .overall-feedback p {
     color: var(--text-secondary);
-    line-height: 1.6;
+    line-height: 1.7;
+    font-size: 1.05rem;
 }
 
-/* 액션 버튼 */
+/* ===== ACTION BUTTONS ===== */
 .result-actions {
     display: flex;
     gap: 1rem;
     justify-content: center;
+    margin-top: 1rem;
 }
 
-.btn-primary,
-.btn-secondary {
-    padding: 0.75rem 2rem;
+.result-container .btn-primary,
+.result-container .btn-secondary {
+    padding: 0.8rem 2rem;
     border: none;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
 }
 
-.btn-primary {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+.result-container .btn-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #a78bfa 100%);
     color: #fff;
 }
 
-.btn-primary:hover {
+.result-container .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
-.btn-secondary {
+.result-container .btn-secondary {
     background: var(--surface);
     color: var(--text-primary);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.btn-secondary:hover {
+.result-container .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.05);
 }
 
-/* 로딩 & 에러 */
+/* ===== PROGRESS VISUALIZATION ===== */
+.progress-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 500px;
+    text-align: center;
+}
+
+.progress-pulse-ring {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.progress-pulse-ring::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.1);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.12);
+        opacity: 0.2;
+    }
+}
+
+.progress-circle {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    z-index: 1;
+}
+
+.progress-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.progress-arc {
+    transition: stroke-dasharray 0.5s ease;
+}
+
+.progress-pct {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.progress-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.progress-message {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 2.5rem;
+}
+
+/* ===== STEP INDICATORS ===== */
+.progress-steps {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    width: 100%;
+    max-width: 600px;
+    position: relative;
+}
+
+.step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+    opacity: 0.35;
+    transition: all 0.4s ease;
+}
+
+.step-item.active {
+    opacity: 1;
+}
+
+.step-item.done {
+    opacity: 0.8;
+}
+
+.step-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s;
+}
+
+.step-item.active .step-icon {
+    border-color: #6366f1;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+    animation: stepPulse 1.5s ease-in-out infinite;
+}
+
+.step-item.done .step-icon {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.15);
+}
+
+@keyframes stepPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 25px rgba(99, 102, 241, 0.7);
+    }
+}
+
+.step-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.step-line {
+    position: absolute;
+    top: 21px;
+    left: calc(50% + 24px);
+    right: calc(-50% + 24px);
+    height: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    transition: background 0.3s;
+}
+
+.step-line.done {
+    background: #10b981;
+}
+
+/* ===== LOADING & ERROR ===== */
 .loading-spinner,
-.error-card,
-.progress-card {
+.error-card {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     min-height: 300px;
     background: var(--surface);
-    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1.25rem;
     padding: 2rem;
 }
 
@@ -240,7 +494,7 @@
     width: 50px;
     height: 50px;
     border: 4px solid rgba(99, 102, 241, 0.2);
-    border-top-color: var(--primary);
+    border-top-color: #6366f1;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -251,42 +505,54 @@
     }
 }
 
-.progress-bar {
-    width: 100%;
-    max-width: 400px;
-    height: 12px;
-    background: rgba(99, 102, 241, 0.2);
-    border-radius: 6px;
-    overflow: hidden;
-    margin: 1rem 0;
+.error-card h2 {
+    margin-bottom: 0.5rem;
 }
 
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
-    transition: width 0.3s ease;
-}
-
-.progress-text {
+.error-card p {
     color: var(--text-secondary);
 }
 
 .error-card button {
     margin-top: 1rem;
-    background: var(--primary);
+    background: linear-gradient(135deg, #6366f1 0%, #a78bfa 100%);
     color: #fff;
     border: none;
     padding: 0.75rem 1.5rem;
     border-radius: 0.5rem;
     cursor: pointer;
+    font-weight: 600;
 }
 
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
+    .result-container {
+        padding: 1rem;
+    }
+
     .dimensions-card {
         grid-column: span 1;
     }
 
     .result-grid {
         grid-template-columns: 1fr;
+    }
+
+    .overall-feedback {
+        grid-column: span 1;
+    }
+
+    .progress-steps {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .step-line {
+        display: none;
+    }
+
+    .score-value {
+        font-size: 2.5rem;
     }
 }

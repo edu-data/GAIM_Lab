@@ -1,6 +1,5 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import RealtimeFeedback from '../components/RealtimeFeedback'
 import { API_BASE } from '../apiConfig'
 import './Upload.css'
 
@@ -11,8 +10,35 @@ function Upload() {
     const [analysisId, setAnalysisId] = useState(null)
     const [status, setStatus] = useState(null)
     const [result, setResult] = useState(null)
-    const [showRealtime, setShowRealtime] = useState(false)
+    const [simProgress, setSimProgress] = useState(0)
+    const [simMessage, setSimMessage] = useState('')
     const fileInputRef = useRef(null)
+
+    // Simulated progress animation during upload
+    useEffect(() => {
+        if (!uploading) {
+            setSimProgress(0)
+            return
+        }
+        const messages = [
+            [0, '📤 동영상 업로드 중...'],
+            [15, '🚀 Gemini API에 전송 중...'],
+            [30, '🎞️ 동영상 처리 중...'],
+            [50, '🤖 AI가 수업을 분석하고 있어요...'],
+            [65, '📊 7차원 평가 진행 중...'],
+            [80, '✍️ 피드백 생성 중...'],
+            [90, '⏳ 거의 완료...']
+        ]
+        let current = 0
+        const timer = setInterval(() => {
+            current += Math.random() * 3 + 0.5
+            if (current > 92) current = 92
+            setSimProgress(Math.round(current))
+            const msg = [...messages].reverse().find(([t]) => current >= t)
+            if (msg) setSimMessage(msg[1])
+        }, 800)
+        return () => clearInterval(timer)
+    }, [uploading])
 
     const handleFileSelect = (e) => {
         const selectedFile = e.target.files[0]
@@ -20,7 +46,6 @@ function Upload() {
             setFile(selectedFile)
             setStatus(null)
             setResult(null)
-            setShowRealtime(false)
         }
     }
 
@@ -31,7 +56,6 @@ function Upload() {
             setFile(droppedFile)
             setStatus(null)
             setResult(null)
-            setShowRealtime(false)
         }
     }
 
@@ -44,7 +68,6 @@ function Upload() {
         formData.append('file', file)
 
         try {
-            // 업로드 + 동기 분석 (Gemini 분석 완료까지 대기)
             const response = await fetch(`${API_BASE}/analysis/upload?use_turbo=true&use_text=true`, {
                 method: 'POST',
                 body: formData
@@ -58,55 +81,16 @@ function Upload() {
             setAnalysisId(data.id)
 
             if (data.status === 'completed' && data.dimensions) {
-                // 동기 응답: 결과가 바로 포함됨
                 setStatus({ status: 'completed', progress: 100, message: '분석 완료' })
                 setResult(data)
             } else {
-                // 비동기 응답: 폴링 시작
                 setStatus(data)
-                setShowRealtime(true)
-                pollStatus(data.id)
             }
         } catch (error) {
             console.error('Upload failed:', error)
             setStatus({ status: 'failed', message: error.message || '업로드 실패' })
         }
         setUploading(false)
-    }
-
-    const pollStatus = async (id) => {
-        const interval = setInterval(async () => {
-            try {
-                const response = await fetch(`${API_BASE}/analysis/${id}`)
-                const data = await response.json()
-                setStatus(data)
-
-                if (data.status === 'completed') {
-                    clearInterval(interval)
-                    // 결과 가져오기
-                    const resultResponse = await fetch(`${API_BASE}/analysis/${id}/result`)
-                    const resultData = await resultResponse.json()
-                    setResult(resultData)
-                    setShowRealtime(false)
-                } else if (data.status === 'failed') {
-                    clearInterval(interval)
-                    setShowRealtime(false)
-                }
-            } catch (error) {
-                console.error('Poll failed:', error)
-                clearInterval(interval)
-            }
-        }, 2000)
-    }
-
-    const handleAnalysisComplete = (analysisResult) => {
-        setResult(analysisResult)
-        setShowRealtime(false)
-    }
-
-    const handleAnalysisError = (errorMessage) => {
-        setStatus({ status: 'failed', message: errorMessage })
-        setShowRealtime(false)
     }
 
     const formatFileSize = (bytes) => {
@@ -121,55 +105,92 @@ function Upload() {
                 <span>📹</span> 수업 분석
             </h1>
 
-            {/* 업로드 영역 */}
-            <div
-                className={`upload-zone card ${file ? 'has-file' : ''}`}
-                onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
-                onClick={() => fileInputRef.current?.click()}
-            >
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="video/*"
-                    onChange={handleFileSelect}
-                    style={{ display: 'none' }}
-                />
+            {/* 업로드 영역 — 분석 중이거나 결과 표시 중에는 숨김 */}
+            {!uploading && !result && (
+                <div
+                    className={`upload-zone card ${file ? 'has-file' : ''}`}
+                    onDrop={handleDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="video/*"
+                        onChange={handleFileSelect}
+                        style={{ display: 'none' }}
+                    />
 
-                {file ? (
-                    <div className="file-preview">
-                        <div className="file-icon">🎬</div>
-                        <div className="file-info">
-                            <div className="file-name">{file.name}</div>
-                            <div className="file-size">{formatFileSize(file.size)}</div>
+                    {file ? (
+                        <div className="file-preview">
+                            <div className="file-icon">🎬</div>
+                            <div className="file-info">
+                                <div className="file-name">{file.name}</div>
+                                <div className="file-size">{formatFileSize(file.size)}</div>
+                            </div>
                         </div>
-                    </div>
-                ) : (
-                    <div className="upload-prompt">
-                        <div className="upload-icon">📁</div>
-                        <p>클릭하거나 영상 파일을 드래그하세요</p>
-                        <span className="upload-hint">MP4, AVI, MOV 지원</span>
-                    </div>
-                )}
-            </div>
+                    ) : (
+                        <div className="upload-prompt">
+                            <div className="upload-icon">📁</div>
+                            <p>클릭하거나 영상 파일을 드래그하세요</p>
+                            <span className="upload-hint">MP4, AVI, MOV 지원</span>
+                        </div>
+                    )}
+                </div>
+            )}
 
-            {file && !status && (
+            {file && !status && !uploading && (
                 <button
                     className="btn btn-primary upload-btn"
                     onClick={handleUpload}
-                    disabled={uploading}
                 >
-                    {uploading ? '업로드 중...' : '🚀 분석 시작'}
+                    🚀 분석 시작
                 </button>
             )}
 
-            {/* 실시간 피드백 컴포넌트 */}
-            {showRealtime && analysisId && (
-                <RealtimeFeedback
-                    analysisId={analysisId}
-                    onComplete={handleAnalysisComplete}
-                    onError={handleAnalysisError}
-                />
+            {/* 분석 진행 시각화 */}
+            {uploading && (
+                <div className="analysis-progress-card card fade-in">
+                    <div className="progress-circle-wrap">
+                        <svg viewBox="0 0 120 120" className="progress-circle-svg">
+                            <circle cx="60" cy="60" r="52" fill="none"
+                                stroke="rgba(99,102,241,0.15)" strokeWidth="8" />
+                            <circle cx="60" cy="60" r="52" fill="none"
+                                stroke="url(#uploadGrad)" strokeWidth="8"
+                                strokeDasharray={`${simProgress * 3.27} 327`}
+                                strokeLinecap="round"
+                                transform="rotate(-90 60 60)"
+                                style={{ transition: 'stroke-dasharray 0.8s ease' }} />
+                            <defs>
+                                <linearGradient id="uploadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#6366f1" />
+                                    <stop offset="100%" stopColor="#a78bfa" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div className="progress-circle-text">{simProgress}%</div>
+                    </div>
+                    <h3 className="progress-title-text">🤖 Gemini AI 분석 중</h3>
+                    <p className="progress-msg">{simMessage}</p>
+                    <div className="progress-steps-mini">
+                        {['📤 업로드', '🚀 전송', '🎞️ 처리', '🤖 분석', '📊 평가', '✅ 완료'].map((step, i) => (
+                            <div key={i} className={`mini-step ${simProgress >= (i + 1) * 15 ? 'done' : simProgress >= i * 15 ? 'active' : ''}`}>
+                                {step}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* 에러 메시지 */}
+            {status?.status === 'failed' && !uploading && (
+                <div className="error-msg card fade-in">
+                    <h3>❌ 분석 실패</h3>
+                    <p>{status.message}</p>
+                    <button className="btn btn-primary" onClick={() => { setStatus(null); setFile(null) }}>
+                        다시 시도
+                    </button>
+                </div>
             )}
 
             {/* 분석 결과 */}
@@ -210,7 +231,9 @@ function Upload() {
                         >
                             📊 상세 결과 보기
                         </button>
-                        <button className="btn btn-secondary">📄 리포트 다운로드</button>
+                        <button className="btn btn-secondary" onClick={() => { setFile(null); setStatus(null); setResult(null) }}>
+                            🎬 새 분석
+                        </button>
                     </div>
                 </div>
             )}

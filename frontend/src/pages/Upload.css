@@ -196,3 +196,110 @@
         width: 100%;
     }
 }
+
+/* ===== ANALYSIS PROGRESS CARD ===== */
+.analysis-progress-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 2rem;
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.progress-circle-wrap {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin-bottom: 1.5rem;
+}
+
+.progress-circle-svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.3));
+}
+
+.progress-circle-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.progress-title-text {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.progress-msg {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    min-height: 1.5em;
+    transition: opacity 0.3s;
+}
+
+.progress-steps-mini {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.mini-step {
+    padding: 0.4rem 0.8rem;
+    border-radius: 2rem;
+    font-size: 0.78rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+    transition: all 0.3s;
+}
+
+.mini-step.active {
+    border-color: #6366f1;
+    color: #a78bfa;
+    background: rgba(99, 102, 241, 0.15);
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+    animation: stepGlow 1.5s ease-in-out infinite;
+}
+
+.mini-step.done {
+    border-color: #10b981;
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+@keyframes stepGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 18px rgba(99, 102, 241, 0.6);
+    }
+}
+
+/* Error Message */
+.error-msg {
+    text-align: center;
+    padding: 2rem;
+    margin-top: 1.5rem;
+}
+
+.error-msg h3 {
+    margin-bottom: 0.75rem;
+    color: #ef4444;
+}
+
+.error-msg p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
