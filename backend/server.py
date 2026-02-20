@@ -545,11 +545,16 @@ async def upload_video(
     use_turbo: bool = True,
     use_text: bool = True
 ):
-    """동영상 업로드 및 Gemini 분석 시작"""
+    """동영상 업로드 및 Gemini 분석 (동기 실행 — Cloud Run 호환)"""
+    import google.generativeai as genai
+
     allowed = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
     ext = "." + file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
     if ext not in allowed:
         raise HTTPException(status_code=400, detail=f"지원하지 않는 파일 형식입니다. 허용: {allowed}")
+
+    if not GOOGLE_API_KEY:
+        raise HTTPException(status_code=500, detail="GOOGLE_API_KEY가 설정되지 않았습니다")
 
     analysis_id = str(uuid.uuid4())
     video_bytes = await file.read()
@@ -560,28 +565,91 @@ async def upload_video(
     cur = conn.cursor()
     cur.execute(
         "INSERT INTO analyses (id, video_name, status, progress, message) VALUES (%s, %s, %s, %s, %s)",
-        (analysis_id, video_name, "pending", 0, "분석 대기 중")
+        (analysis_id, video_name, "processing", 10, "Gemini 분석 시작")
     )
     conn.commit()
     cur.close()
     conn.close()
 
-    _analysis_cache[analysis_id] = {
-        "status": "pending", "progress": 0, "message": "분석 대기 중"
-    }
+    try:
+        genai.configure(api_key=GOOGLE_API_KEY)
 
-    # Start background analysis
-    t = threading.Thread(target=_run_gemini_analysis, args=(analysis_id, video_bytes, video_name))
-    t.daemon = True
-    t.start()
+        # Save video to temp file
+        suffix = ext or ".mp4"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(video_bytes)
+            tmp_path = tmp.name
 
-    return {
-        "id": analysis_id,
-        "status": "pending",
-        "progress": 0,
-        "message": "분석이 시작되었습니다",
-        "created_at": datetime.now().isoformat()
-    }
+        # Upload to Gemini File API
+        _update_analysis(analysis_id, progress=30, message="Gemini에 동영상 전송 중...")
+        video_file = genai.upload_file(path=tmp_path, mime_type=f"video/{suffix[1:]}")
+
+        # Wait for processing
+        _update_analysis(analysis_id, progress=40, message="동영상 처리 대기 중...")
+        import time as _time
+        while video_file.state.name == "PROCESSING":
+            _time.sleep(5)
+            video_file = genai.get_file(video_file.name)
+
+        if video_file.state.name == "FAILED":
+            raise RuntimeError(f"Gemini 동영상 처리 실패: {video_file.state.name}")
+
+        # Run 7-dimension analysis
+        _update_analysis(analysis_id, progress=60, message="AI 수업 분석 중...")
+        model = genai.GenerativeModel(model_name="gemini-2.0-flash")
+        response = model.generate_content(
+            [video_file, EVALUATION_PROMPT],
+            generation_config=genai.GenerationConfig(response_mime_type="application/json")
+        )
+
+        # Parse result
+        result_text = response.text.strip()
+        if "```json" in result_text:
+            result_text = result_text.split("```json")[1].split("```")[0]
+        elif "```" in result_text:
+            result_text = result_text.split("```")[1].split("```")[0]
+
+        result = json.loads(result_text)
+
+        # Save to DB
+        conn = _get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """UPDATE analyses SET status=%s, progress=%s, message=%s,
+               total_score=%s, grade=%s, result_json=%s, completed_at=CURRENT_TIMESTAMP
+               WHERE id=%s""",
+            ("completed", 100, "분석 완료",
+             result.get("total_score", 0), result.get("grade", ""),
+             json.dumps(result, ensure_ascii=False), analysis_id)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        _analysis_cache[analysis_id] = {
+            "status": "completed", "progress": 100, "message": "분석 완료",
+            "result": result
+        }
+
+        # Cleanup
+        try:
+            os.unlink(tmp_path)
+            genai.delete_file(video_file.name)
+        except Exception:
+            pass
+
+        return {
+            "id": analysis_id,
+            "status": "completed",
+            "progress": 100,
+            "message": "분석 완료",
+            "created_at": datetime.now().isoformat(),
+            **result
+        }
+
+    except Exception as e:
+        _update_analysis(analysis_id, status="failed", progress=0, message=f"분석 실패: {str(e)[:200]}")
+        raise HTTPException(status_code=500, detail=f"분석 실패: {str(e)[:300]}")
 
 
 @analysis_router.get("/{analysis_id}")

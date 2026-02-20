@@ -39,25 +39,37 @@ function Upload() {
         if (!file) return
 
         setUploading(true)
+        setStatus({ status: 'processing', progress: 10, message: '업로드 중...' })
         const formData = new FormData()
         formData.append('file', file)
 
         try {
-            // 업로드 및 분석 시작
+            // 업로드 + 동기 분석 (Gemini 분석 완료까지 대기)
             const response = await fetch(`${API_BASE}/analysis/upload?use_turbo=true&use_text=true`, {
                 method: 'POST',
                 body: formData
             })
             const data = await response.json()
-            setAnalysisId(data.id)
-            setStatus(data)
-            setShowRealtime(true)
 
-            // 상태 폴링 (백업 - WebSocket 연결 실패 시)
-            pollStatus(data.id)
+            if (!response.ok) {
+                throw new Error(data.detail || '분석 실패')
+            }
+
+            setAnalysisId(data.id)
+
+            if (data.status === 'completed' && data.dimensions) {
+                // 동기 응답: 결과가 바로 포함됨
+                setStatus({ status: 'completed', progress: 100, message: '분석 완료' })
+                setResult(data)
+            } else {
+                // 비동기 응답: 폴링 시작
+                setStatus(data)
+                setShowRealtime(true)
+                pollStatus(data.id)
+            }
         } catch (error) {
             console.error('Upload failed:', error)
-            setStatus({ status: 'failed', message: '업로드 실패' })
+            setStatus({ status: 'failed', message: error.message || '업로드 실패' })
         }
         setUploading(false)
     }
