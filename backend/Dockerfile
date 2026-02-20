@@ -2,24 +2,19 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc && \
-    rm -rf /var/lib/apt/lists/*
-
-# Python deps (lightweight, auth-only)
+# Python deps (lightweight)
 COPY requirements-cloud.txt .
 RUN pip install --no-cache-dir -r requirements-cloud.txt
 
-# Copy app source
-COPY . .
+# Copy only the standalone server
+COPY server.py .
 
 # Create data directory for SQLite
-RUN mkdir -p /app/data
+RUN mkdir -p /tmp/data
 
 # Cloud Run sets PORT env var
 ENV PORT=8080
-ENV GAIM_DATA_DIR=/app/data
+ENV GAIM_DATA_DIR=/tmp/data
 EXPOSE 8080
 
-CMD ["sh", "-c", "uvicorn app.main_cloud:app --host 0.0.0.0 --port $PORT"]
+CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port $PORT"]
