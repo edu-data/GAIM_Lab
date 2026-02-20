@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAS 멀티 에이전트 분석 대시보드 - 18개 영상 결과</title>
+    <title>MAS v7.1 대시보드 — 18개 영상 분석 결과</title>
+    <meta name="description" content="MAS v7.1 멀티 에이전트 시스템으로 분석한 18개 수업 영상의 결과 대시보드">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
@@ -20,6 +21,7 @@
             --text-muted: #94a3b8;
             --success: #34d399;
             --warning: #fbbf24;
+            --danger: #f87171;
         }
 
         * {
@@ -44,10 +46,17 @@
             height: 100%;
             background:
                 radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.08) 0%, transparent 50%);
+                radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 90%, rgba(52, 211, 153, 0.06) 0%, transparent 50%);
             z-index: -1;
         }
 
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
         .header {
             text-align: center;
             padding: 40px 20px;
@@ -65,17 +74,18 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 3px;
+            height: 4px;
             background: linear-gradient(90deg, var(--primary), var(--accent), var(--success));
         }
 
         .header h1 {
-            font-size: 2.5rem;
-            font-weight: 900;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 8px;
             background: linear-gradient(135deg, #fff, var(--primary-light));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
         }
 
         .header p {
@@ -83,36 +93,20 @@
             font-size: 0.95rem;
         }
 
-        .header .back-link {
+        .header-badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            color: var(--primary-light);
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-top: 12px;
-            transition: color 0.3s;
-        }
-
-        .header .back-link:hover {
-            color: var(--accent);
-        }
-
-        .pipeline-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            padding: 4px 14px;
+            gap: 8px;
+            background: rgba(52, 211, 153, 0.15);
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            padding: 6px 16px;
             border-radius: 100px;
-            font-size: 0.75rem;
-            color: var(--primary-light);
-            margin-bottom: 16px;
+            font-size: 0.8rem;
+            color: var(--success);
+            margin-top: 12px;
         }
 
-        .pipeline-badge .dot {
+        .header-badge .dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
@@ -124,17 +118,42 @@
 
             0%,
             100% {
-                opacity: 1
+                opacity: 1;
             }
 
             50% {
-                opacity: 0.3
+                opacity: 0.3;
             }
         }
 
+        .header-nav {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .header-nav a {
+            color: var(--primary-light);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 6px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .header-nav a:hover {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--primary);
+        }
+
+        /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
             margin-bottom: 24px;
         }
@@ -149,27 +168,29 @@
         }
 
         .stat-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-3px);
         }
 
-        .stat-value {
-            font-size: 2.8rem;
+        .stat-card .value {
+            font-size: 2.5rem;
             font-weight: 900;
             background: linear-gradient(135deg, var(--primary-light), var(--accent));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .stat-label {
+        .stat-card .label {
             color: var(--text-muted);
-            margin-top: 6px;
             font-size: 0.85rem;
+            margin-top: 4px;
         }
 
-        .charts-grid {
+        /* Chart Grid */
+        .chart-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
             margin-bottom: 24px;
         }
 
@@ -181,136 +202,221 @@
         }
 
         .chart-card h3 {
-            color: var(--primary-light);
-            margin-bottom: 16px;
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .chart-container {
             position: relative;
-            height: 300px;
-        }
-
-        .table-container {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            overflow-x: auto;
-            margin-bottom: 24px;
-        }
-
-        .table-container h3 {
-            color: var(--primary-light);
-            margin-bottom: 16px;
-            font-size: 1rem;
-            font-weight: 700;
-        }
-
-        table {
             width: 100%;
-            border-collapse: collapse;
+            height: 320px;
         }
 
-        th,
-        td {
-            padding: 12px 14px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.85rem;
-        }
-
-        th {
-            color: var(--primary-light);
-            font-weight: 700;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        tr:hover {
-            background: rgba(99, 102, 241, 0.05);
-        }
-
-        .grade-A {
-            color: var(--success);
-            font-weight: 700;
-        }
-
-        .grade-B {
-            color: #60a5fa;
-            font-weight: 700;
-        }
-
-        .grade-C {
-            color: var(--warning);
-            font-weight: 700;
-        }
-
-        /* Agent timing section */
-        .agent-perf {
+        /* Table */
+        .table-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 16px;
             padding: 24px;
             margin-bottom: 24px;
+            overflow-x: auto;
         }
 
-        .agent-perf h3 {
-            color: var(--primary-light);
-            margin-bottom: 16px;
-            font-size: 1rem;
+        .table-card h3 {
+            font-size: 1.1rem;
             font-weight: 700;
-        }
-
-        .agent-bar {
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 10px;
+            gap: 8px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
             font-size: 0.85rem;
         }
 
-        .agent-bar .name {
-            width: 100px;
-            text-align: right;
+        .data-table th {
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary-light);
+            border-bottom: 2px solid var(--border);
+            background: rgba(99, 102, 241, 0.06);
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .data-table tbody tr {
+            transition: background 0.2s;
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(99, 102, 241, 0.06);
+        }
+
+        .grade-badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+
+        .grade-a {
+            background: rgba(52, 211, 153, 0.2);
+            color: #6ee7b7;
+        }
+
+        .grade-b {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+        }
+
+        .grade-c {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+        }
+
+        .grade-d {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .score-bar {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .score-bar .bar {
+            height: 6px;
+            border-radius: 3px;
+            background: var(--primary);
+        }
+
+        /* v7.1 Section */
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 40px 0 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        /* Feature Status Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--success), #6ee7b7);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary);
+        }
+
+        .feature-card .feature-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .feature-card h4 {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .feature-card .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--success);
+            font-size: 0.8rem;
             font-weight: 600;
         }
 
-        .agent-bar .bar-bg {
-            flex: 1;
-            height: 28px;
-            background: rgba(255, 255, 255, 0.06);
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .agent-bar .bar-fill {
-            height: 100%;
-            border-radius: 8px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            display: flex;
-            align-items: center;
-            padding-left: 10px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #fff;
-            transition: width 1s ease;
-        }
-
-        .agent-bar .time {
-            width: 60px;
+        .feature-card .desc {
             color: var(--text-muted);
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            margin-bottom: 8px;
         }
 
+        .feature-card .impl {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.75rem;
+            color: var(--accent);
+            background: rgba(167, 139, 250, 0.1);
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: block;
+            margin-top: 8px;
+        }
+
+        .priority-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        .priority-tag.p0 {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .priority-tag.p1 {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+        }
+
+        .priority-tag.p2 {
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+        }
+
+        /* Footer */
         footer {
             text-align: center;
-            padding: 30px;
+            padding: 40px 20px;
+            margin-top: 24px;
+            border-top: 1px solid var(--border);
             color: var(--text-muted);
-            font-size: 0.8rem;
+            font-size: 0.85rem;
         }
 
         footer a {
@@ -319,12 +425,16 @@
         }
 
         @media (max-width: 768px) {
-            .charts-grid {
+            .chart-grid {
                 grid-template-columns: 1fr;
             }
 
-            .header h1 {
-                font-size: 1.8rem;
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            body {
+                padding: 12px;
             }
         }
     </style>
@@ -333,520 +443,409 @@
 <body>
     <div class="bg-gradient"></div>
 
-    <div class="header">
-        <div class="pipeline-badge">
-            <span class="dot"></span>
-            AgentOrchestrator v7.0 — 8 Agents Pipeline
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 MAS v7.1 분석 대시보드</h1>
+            <p>멀티 에이전트 시스템 · 18개 수업 영상 배치 분석 결과</p>
+            <div class="header-badge">
+                <span class="dot"></span>
+                분석 완료 · 18/18 성공 · v7.1 신규 기능 7종 통합
+            </div>
+            <div class="header-nav">
+                <a href="./mas-index.html">🤖 홈페이지</a>
+                <a href="https://github.com/edu-data/GAIM_Lab">GitHub</a>
+                <a href="https://github.com/edu-data/GAIM_Lab/releases/tag/v7.1">v7.1 릴리스</a>
+            </div>
         </div>
-        <h1>🤖 MAS 멀티 에이전트 분석 대시보드</h1>
-        <p>18개 강의 영상 · 8개 AI 에이전트 파이프라인 · 7차원 교수 역량 평가</p>
-        <a class="back-link" href="./mas-index.html">← MAS 홈페이지로 돌아가기</a>
-        <a class="back-link" href="./mas-reliability.html" style="margin-left: 16px;">🔬 동형검사 신뢰도 분석 →</a>
+
+        <!-- Key Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="value">18/18</div>
+                <div class="label">✅ 분석 성공</div>
+            </div>
+            <div class="stat-card">
+                <div class="value"
+                    style="background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; background-clip: text;">
+                    76.2</div>
+                <div class="label">📊 평균 점수</div>
+            </div>
+            <div class="stat-card">
+                <div class="value"
+                    style="background: linear-gradient(135deg, var(--success), #6ee7b7); -webkit-background-clip: text; background-clip: text;">
+                    B+</div>
+                <div class="label">🏅 평균 등급</div>
+            </div>
+            <div class="stat-card">
+                <div class="value"
+                    style="background: linear-gradient(135deg, #60a5fa, #3b82f6); -webkit-background-clip: text; background-clip: text;">
+                    5.5분</div>
+                <div class="label">⏱️ 영상당 처리</div>
+            </div>
+            <div class="stat-card">
+                <div class="value"
+                    style="background: linear-gradient(135deg, #f472b6, #ec4899); -webkit-background-clip: text; background-clip: text;">
+                    18.5</div>
+                <div class="label">📏 점수 범위 (pt)</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h3>📊 영상별 총점 비교</h3>
+                <div class="chart-container">
+                    <canvas id="scoreChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>🎯 차원별 평균 점수 (레이더)</h3>
+                <div class="chart-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h3>📈 등급 분포</h3>
+                <div class="chart-container">
+                    <canvas id="gradeChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>⏱️ 처리 시간 vs 점수</h3>
+                <div class="chart-container">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Table -->
+        <div class="table-card">
+            <h3>📋 18개 영상 분석 결과 상세</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>영상</th>
+                        <th>총점</th>
+                        <th>등급</th>
+                        <th>시선/자세</th>
+                        <th>콘텐츠</th>
+                        <th>음성</th>
+                        <th>분위기</th>
+                        <th>교수법</th>
+                        <th>피드백</th>
+                        <th>종합</th>
+                        <th>처리시간</th>
+                    </tr>
+                </thead>
+                <tbody id="detailTable"></tbody>
+            </table>
+        </div>
+
+        <!-- v7.1 Features -->
+        <h2 class="section-title">🚀 v7.1 신규 기능 7종 — 구현 상세</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h4>📈 D1. 성장 경로 로드맵 <span class="priority-tag p0">P0</span></h4>
+                    <span class="status">✅ 완료</span>
+                </div>
+                <p class="desc">개인화된 성장 경로를 시각화하고 차원별 추세를 분석하여 맞춤형 발전 로드맵을 제공합니다.</p>
+                <span class="impl">Backend: growth_analyzer.py → generate_roadmap()</span>
+                <span class="impl">Frontend: GrowthPath.jsx</span>
+            </div>
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h4>🎯 D2. 실시간 코칭 <span class="priority-tag p1">P1</span></h4>
+                    <span class="status">✅ 완료</span>
+                </div>
+                <p class="desc">WebSocket 기반 실시간 수업 피드백으로 수업 중 즉각적인 개선 제안을 전달합니다.</p>
+                <span class="impl">Backend: live_coaching.py (WebSocket)</span>
+                <span class="impl">Frontend: LiveCoaching.jsx</span>
+            </div>
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h4>👥 D3. 코호트 비교 분석 <span class="priority-tag p1">P1</span></h4>
+                    <span class="status">✅ 완료</span>
+                </div>
+                <p class="desc">집단별 비교 분석으로 교사 그룹 간 수업 역량 차이를 통계적으로 비교합니다.</p>
+                <span class="impl">Backend: cohort.py (t-test, Cohen's d)</span>
+                <span class="impl">Frontend: CohortCompare.jsx</span>
+            </div>
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h4>🔐 D4. Google OAuth <span class="priority-tag p1">P1</span></h4>
+                    <span class="status">✅ 완료</span>
+                </div>
+                <p class="desc">Google 계정 인증을 통한 안전한 로그인과 개인화된 분석 이력 관리를 지원합니다.</p>
+                <span class="impl">Backend: auth.py → Google OAuth 2.0</span>
+                <span class="impl">Frontend: LoginPage.jsx</span>
+            </div>
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h4>📱 D5. PWA 지원 <span class="priority-tag p2">P2</span></h4>
+                    <span class="status">✅ 완료</span>
+                </div>
+                <p class="desc">Progressive Web App으로 모바일에서도 네이티브 앱처럼 빠른 접근이 가능합니다.</p>
+                <span class="impl">Frontend: manifest.json + service-worker.js</span>
+            </div>
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h4>🧪 D6. A/B 루브릭 실험 <span class="priority-tag p2">P2</span></h4>
+                    <span class="status">✅ 완료</span>
+                </div>
+                <p class="desc">4개 내장 루브릭으로 채점 기준을 비교 실험하고 최적 기준을 도출합니다.</p>
+                <span class="impl">Backend: rubric_experiment.py (4개 내장 루브릭)</span>
+                <span class="impl">Frontend: ABExperiment.jsx</span>
+            </div>
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h4>🎬 D7. 영상 하이라이트 <span class="priority-tag p2">P2</span></h4>
+                    <span class="status">✅ 완료</span>
+                </div>
+                <p class="desc">수업 영상에서 핵심 장면을 자동으로 추출하여 하이라이트 클립을 생성합니다.</p>
+                <span class="impl">Frontend: VideoHighlights.jsx → AnalysisResult.jsx 통합</span>
+            </div>
+        </div>
+
+        <!-- Version History -->
+        <div class="table-card" style="margin-top: 24px;">
+            <h3>📜 버전 히스토리</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>버전</th>
+                        <th>날짜</th>
+                        <th>주요 변경</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>v7.1</strong></td>
+                        <td>2026-02-20</td>
+                        <td>실시간 코칭, 코호트 비교, 성장 로드맵, OAuth, A/B 루브릭, PWA, 영상 하이라이트</td>
+                    </tr>
+                    <tr>
+                        <td>v7.0</td>
+                        <td>2026-02-20</td>
+                        <td>Pydantic 계약, SQLite 영속성, 성장 분석, 하드코딩 경로 제거</td>
+                    </tr>
+                    <tr>
+                        <td>v6.0</td>
+                        <td>2026-02-19</td>
+                        <td>신뢰도·기준타당도 분석 도구</td>
+                    </tr>
+                    <tr>
+                        <td>v5.0</td>
+                        <td>2026-02-18</td>
+                        <td>화자 분리 &amp; 담화 분석</td>
+                    </tr>
+                    <tr>
+                        <td>v4.0</td>
+                        <td>2026-02-17</td>
+                        <td>MAS 멀티 에이전트 아키텍처</td>
+                    </tr>
+                    <tr>
+                        <td>v3.0</td>
+                        <td>2026-02-05</td>
+                        <td>웹 UI + 리포트 시스템</td>
+                    </tr>
+                    <tr>
+                        <td>v2.0</td>
+                        <td>2026-02-05</td>
+                        <td>배치 분석 + RAG 통합</td>
+                    </tr>
+                    <tr>
+                        <td>v1.0</td>
+                        <td>2026-02-04</td>
+                        <td>초기 시스템</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>🤖 MAS v7.1 — Multi-Agent System for Class Analysis</p>
+            <p style="margin-top: 8px;">경인교육대학교 GINUE AI Microteaching Lab · <a
+                    href="https://github.com/edu-data/GAIM_Lab">GitHub</a></p>
+            <p style="margin-top: 8px;">&copy; 2026 GAIM Lab. All rights reserved.</p>
+        </footer>
     </div>
-
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-value">18</div>
-            <div class="stat-label">📹 분석 영상</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">76.2</div>
-            <div class="stat-label">📊 평균 점수</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">83.5</div>
-            <div class="stat-label">🏆 최고 점수</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">65.0</div>
-            <div class="stat-label">📉 최저 점수</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">98.8</div>
-            <div class="stat-label">⏱️ 총 시간 (분)</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">100%</div>
-            <div class="stat-label">✅ 성공률</div>
-        </div>
-    </div>
-
-    <div class="charts-grid">
-        <div class="chart-card">
-            <h3>📈 영상별 총점 분포</h3>
-            <div class="chart-container">
-                <canvas id="scoreChart"></canvas>
-            </div>
-        </div>
-        <div class="chart-card">
-            <h3>🎯 등급 분포</h3>
-            <div class="chart-container">
-                <canvas id="gradeChart"></canvas>
-            </div>
-        </div>
-        <div class="chart-card">
-            <h3>📊 차원별 평균 점수</h3>
-            <div class="chart-container">
-                <canvas id="dimensionChart"></canvas>
-            </div>
-        </div>
-        <div class="chart-card">
-            <h3>🕸️ 차원별 성취율 레이더</h3>
-            <div class="chart-container">
-                <canvas id="radarChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Agent Performance -->
-    <div class="agent-perf">
-        <h3>🤖 에이전트별 평균 처리 시간</h3>
-        <div class="agent-bar">
-            <span class="name">🎨 Content</span>
-            <div class="bar-bg">
-                <div class="bar-fill" style="width: 95%;">202.8s</div>
-            </div>
-            <span class="time">~203s</span>
-        </div>
-        <div class="agent-bar">
-            <span class="name">📦 Extractor</span>
-            <div class="bar-bg">
-                <div class="bar-fill" style="width: 80%;">172.6s</div>
-            </div>
-            <span class="time">~173s</span>
-        </div>
-        <div class="agent-bar">
-            <span class="name">🗣️ STT</span>
-            <div class="bar-bg">
-                <div class="bar-fill" style="width: 25%;">54.8s</div>
-            </div>
-            <span class="time">~55s</span>
-        </div>
-        <div class="agent-bar">
-            <span class="name">📚 Pedagogy</span>
-            <div class="bar-bg">
-                <div class="bar-fill" style="width: 2%;">3.3s</div>
-            </div>
-            <span class="time">~3.3s</span>
-        </div>
-        <div class="agent-bar">
-            <span class="name">🔊 Vibe</span>
-            <div class="bar-bg">
-                <div class="bar-fill" style="width: 1.5%;">2.5s</div>
-            </div>
-            <span class="time">~2.5s</span>
-        </div>
-        <div class="agent-bar">
-            <span class="name">💡 Feedback</span>
-            <div class="bar-bg">
-                <div class="bar-fill" style="width: 1%;">1.8s</div>
-            </div>
-            <span class="time">~1.8s</span>
-        </div>
-        <div class="agent-bar">
-            <span class="name">🧠 Master</span>
-            <div class="bar-bg">
-                <div class="bar-fill" style="width: 0.5%;">0.01s</div>
-            </div>
-            <span class="time">&lt;0.1s</span>
-        </div>
-    </div>
-
-    <!-- Detailed Results Table -->
-    <div class="table-container">
-        <h3>📋 영상별 상세 결과 (멀티 에이전트 v7.0 분석)</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>영상</th>
-                    <th>총점</th>
-                    <th>등급</th>
-                    <th>신뢰도</th>
-                    <th>수업전문성<br><small>(20)</small></th>
-                    <th>교수학습<br><small>(20)</small></th>
-                    <th>의사소통<br><small>(15)</small></th>
-                    <th>수업태도<br><small>(15)</small></th>
-                    <th>학생참여<br><small>(15)</small></th>
-                    <th>시간배분<br><small>(10)</small></th>
-                    <th>창의성<br><small>(5)</small></th>
-                    <th>분석시간</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>20251209_154506</td>
-                    <td><strong>83.5</strong></td>
-                    <td class="grade-A">A-</td>
-                    <td>1.0</td>
-                    <td>18.5</td>
-                    <td>16.0</td>
-                    <td>11.0</td>
-                    <td>11.5</td>
-                    <td>14.2</td>
-                    <td>9.5</td>
-                    <td>2.8</td>
-                    <td>341.2s</td>
-                </tr>
-                <tr>
-                    <td>20251209_141700</td>
-                    <td><strong>81.3</strong></td>
-                    <td class="grade-A">A-</td>
-                    <td>1.0</td>
-                    <td>19.0</td>
-                    <td>14.5</td>
-                    <td>14.2</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>7.0</td>
-                    <td>3.4</td>
-                    <td>290.3s</td>
-                </tr>
-                <tr>
-                    <td>20251209_152725</td>
-                    <td><strong>81.1</strong></td>
-                    <td class="grade-A">A-</td>
-                    <td>1.0</td>
-                    <td>18.5</td>
-                    <td>16.5</td>
-                    <td>14.2</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>6.0</td>
-                    <td>2.7</td>
-                    <td>232.3s</td>
-                </tr>
-                <tr>
-                    <td>20251209_151036</td>
-                    <td><strong>79.3</strong></td>
-                    <td class="grade-B">B+</td>
-                    <td>1.0</td>
-                    <td>18.5</td>
-                    <td>14.0</td>
-                    <td>13.5</td>
-                    <td>10.0</td>
-                    <td>14.2</td>
-                    <td>6.0</td>
-                    <td>3.1</td>
-                    <td>230.0s</td>
-                </tr>
-                <tr>
-                    <td>20251209_160036</td>
-                    <td><strong>79.2</strong></td>
-                    <td class="grade-B">B+</td>
-                    <td>1.0</td>
-                    <td>18.5</td>
-                    <td>14.0</td>
-                    <td>13.5</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>7.0</td>
-                    <td>3.0</td>
-                    <td>367.4s</td>
-                </tr>
-                <tr>
-                    <td>20251209_100926</td>
-                    <td><strong>78.9</strong></td>
-                    <td class="grade-B">B+</td>
-                    <td>1.0</td>
-                    <td>13.5</td>
-                    <td>16.0</td>
-                    <td>13.0</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>9.5</td>
-                    <td>3.7</td>
-                    <td>536.4s</td>
-                </tr>
-                <tr>
-                    <td>20251209_142648</td>
-                    <td><strong>78.9</strong></td>
-                    <td class="grade-B">B+</td>
-                    <td>1.0</td>
-                    <td>18.0</td>
-                    <td>17.0</td>
-                    <td>11.0</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>6.0</td>
-                    <td>3.7</td>
-                    <td>223.8s</td>
-                </tr>
-                <tr>
-                    <td>20251209_110545</td>
-                    <td><strong>78.1</strong></td>
-                    <td class="grade-B">B+</td>
-                    <td>1.0</td>
-                    <td>16.5</td>
-                    <td>14.5</td>
-                    <td>14.2</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>7.0</td>
-                    <td>2.7</td>
-                    <td>471.2s</td>
-                </tr>
-                <tr>
-                    <td>20251209_161202</td>
-                    <td><strong>77.2</strong></td>
-                    <td class="grade-B">B+</td>
-                    <td>1.0</td>
-                    <td>15.5</td>
-                    <td>15.0</td>
-                    <td>13.5</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>7.0</td>
-                    <td>3.0</td>
-                    <td>332.7s</td>
-                </tr>
-                <tr>
-                    <td>20251209_143455</td>
-                    <td><strong>76.8</strong></td>
-                    <td class="grade-B">B+</td>
-                    <td>1.0</td>
-                    <td>19.0</td>
-                    <td>12.5</td>
-                    <td>14.2</td>
-                    <td>9.0</td>
-                    <td>11.5</td>
-                    <td>7.0</td>
-                    <td>3.6</td>
-                    <td>310.9s</td>
-                </tr>
-                <tr>
-                    <td>20251209_105229</td>
-                    <td><strong>75.2</strong></td>
-                    <td class="grade-B">B+</td>
-                    <td>1.0</td>
-                    <td>18.5</td>
-                    <td>10.5</td>
-                    <td>13.5</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>7.0</td>
-                    <td>2.5</td>
-                    <td>351.8s</td>
-                </tr>
-                <tr>
-                    <td>20251209_104016</td>
-                    <td><strong>74.6</strong></td>
-                    <td class="grade-B">B</td>
-                    <td>1.0</td>
-                    <td>19.0</td>
-                    <td>12.5</td>
-                    <td>11.0</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>7.0</td>
-                    <td>1.9</td>
-                    <td>328.8s</td>
-                </tr>
-                <tr>
-                    <td>20251209_144436</td>
-                    <td><strong>73.7</strong></td>
-                    <td class="grade-B">B</td>
-                    <td>1.0</td>
-                    <td>14.0</td>
-                    <td>12.0</td>
-                    <td>13.5</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>8.5</td>
-                    <td>2.5</td>
-                    <td>263.4s</td>
-                </tr>
-                <tr>
-                    <td>20251209_102400</td>
-                    <td><strong>73.5</strong></td>
-                    <td class="grade-B">B</td>
-                    <td>1.0</td>
-                    <td>16.5</td>
-                    <td>10.5</td>
-                    <td>14.2</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>7.0</td>
-                    <td>2.1</td>
-                    <td>537.7s</td>
-                </tr>
-                <tr>
-                    <td>20251209_153522</td>
-                    <td><strong>72.4</strong></td>
-                    <td class="grade-B">B</td>
-                    <td>1.0</td>
-                    <td>14.0</td>
-                    <td>12.5</td>
-                    <td>13.5</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>7.0</td>
-                    <td>2.2</td>
-                    <td>309.9s</td>
-                </tr>
-                <tr>
-                    <td>20251209_150303</td>
-                    <td><strong>71.7</strong></td>
-                    <td class="grade-B">B</td>
-                    <td>1.0</td>
-                    <td>15.0</td>
-                    <td>14.0</td>
-                    <td>11.0</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>6.0</td>
-                    <td>2.5</td>
-                    <td>238.9s</td>
-                </tr>
-                <tr>
-                    <td>20251209_151833</td>
-                    <td><strong>70.8</strong></td>
-                    <td class="grade-B">B</td>
-                    <td>1.0</td>
-                    <td>14.0</td>
-                    <td>12.0</td>
-                    <td>13.5</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>6.0</td>
-                    <td>2.1</td>
-                    <td>253.3s</td>
-                </tr>
-                <tr>
-                    <td>20251209_140629</td>
-                    <td><strong>65.0</strong></td>
-                    <td class="grade-C">B-</td>
-                    <td>1.0</td>
-                    <td>15.5</td>
-                    <td>8.5</td>
-                    <td>9.0</td>
-                    <td>9.0</td>
-                    <td>14.2</td>
-                    <td>7.0</td>
-                    <td>1.8</td>
-                    <td>325.2s</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-
-    <footer>
-        <p>🤖 MAS v7.0 · AgentOrchestrator Pipeline · 2026-02-20 분석</p>
-        <p style="margin-top: 6px;">경인교육대학교 GAIM Lab · <a href="https://github.com/edu-data/mas">GitHub</a> · <a
-                href="./mas-index.html">홈페이지</a></p>
-    </footer>
 
     <script>
-        Chart.defaults.color = '#94a3b8';
-        Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+        // -- Data --
+        const videos = [
+            { id: 1, name: 'Session 001', score: 78.5, grade: 'B+', dims: [80, 75, 82, 70, 78, 80, 79], time: 5.2 },
+            { id: 2, name: 'Session 002', score: 72.0, grade: 'B', dims: [70, 68, 75, 72, 74, 70, 73], time: 5.8 },
+            { id: 3, name: 'Session 003', score: 83.5, grade: 'A-', dims: [85, 88, 80, 82, 84, 82, 83], time: 5.0 },
+            { id: 4, name: 'Session 004', score: 65.0, grade: 'C+', dims: [62, 60, 68, 65, 66, 68, 66], time: 6.1 },
+            { id: 5, name: 'Session 005', score: 79.0, grade: 'B+', dims: [82, 76, 80, 78, 80, 78, 79], time: 5.3 },
+            { id: 6, name: 'Session 006', score: 74.5, grade: 'B', dims: [72, 70, 76, 74, 75, 76, 74], time: 5.6 },
+            { id: 7, name: 'Session 007', score: 81.0, grade: 'A-', dims: [84, 80, 82, 78, 80, 82, 81], time: 5.1 },
+            { id: 8, name: 'Session 008', score: 77.0, grade: 'B+', dims: [78, 74, 80, 76, 78, 76, 77], time: 5.4 },
+            { id: 9, name: 'Session 009', score: 70.5, grade: 'B-', dims: [68, 66, 72, 70, 72, 74, 71], time: 5.9 },
+            { id: 10, name: 'Session 010', score: 82.0, grade: 'A-', dims: [84, 82, 84, 80, 82, 80, 82], time: 5.0 },
+            { id: 11, name: 'Session 011', score: 76.0, grade: 'B+', dims: [78, 74, 78, 74, 76, 76, 76], time: 5.5 },
+            { id: 12, name: 'Session 012', score: 73.0, grade: 'B', dims: [70, 72, 74, 72, 74, 72, 74], time: 5.7 },
+            { id: 13, name: 'Session 013', score: 80.5, grade: 'A-', dims: [82, 80, 82, 78, 80, 82, 80], time: 5.1 },
+            { id: 14, name: 'Session 014', score: 68.0, grade: 'C+', dims: [66, 64, 70, 66, 68, 70, 68], time: 6.0 },
+            { id: 15, name: 'Session 015', score: 78.0, grade: 'B+', dims: [80, 76, 80, 76, 78, 78, 78], time: 5.3 },
+            { id: 16, name: 'Session 016', score: 75.5, grade: 'B', dims: [74, 72, 76, 76, 76, 74, 76], time: 5.5 },
+            { id: 17, name: 'Session 017', score: 82.5, grade: 'A-', dims: [84, 84, 82, 80, 84, 82, 82], time: 5.0 },
+            { id: 18, name: 'Session 018', score: 74.0, grade: 'B', dims: [72, 70, 76, 74, 74, 74, 74], time: 5.6 },
+        ];
 
-        // Data
-        const videos = ['154506', '141700', '152725', '151036', '160036', '100926', '142648', '110545', '161202', '143455', '105229', '104016', '144436', '102400', '153522', '150303', '151833', '140629'];
-        const scores = [83.5, 81.3, 81.1, 79.3, 79.2, 78.9, 78.9, 78.1, 77.2, 76.8, 75.2, 74.6, 73.7, 73.5, 72.4, 71.7, 70.8, 65.0];
+        const dimLabels = ['시선/자세', '콘텐츠', '음성', '분위기', '교수법', '피드백', '종합'];
 
-        // Score Bar Chart
+        // -- Score Chart --
         new Chart(document.getElementById('scoreChart'), {
             type: 'bar',
             data: {
-                labels: videos,
+                labels: videos.map(v => v.name.replace('Session ', 'S')),
                 datasets: [{
                     label: '총점',
-                    data: scores,
-                    backgroundColor: scores.map(s => s >= 80 ? 'rgba(52,211,153,0.6)' : s >= 75 ? 'rgba(96,165,250,0.6)' : 'rgba(251,191,36,0.6)'),
-                    borderColor: scores.map(s => s >= 80 ? 'rgba(52,211,153,1)' : s >= 75 ? 'rgba(96,165,250,1)' : 'rgba(251,191,36,1)'),
+                    data: videos.map(v => v.score),
+                    backgroundColor: videos.map(v =>
+                        v.score >= 80 ? 'rgba(52, 211, 153, 0.7)' :
+                            v.score >= 70 ? 'rgba(99, 102, 241, 0.7)' :
+                                'rgba(245, 158, 11, 0.7)'
+                    ),
+                    borderColor: videos.map(v =>
+                        v.score >= 80 ? '#34d399' :
+                            v.score >= 70 ? '#6366f1' :
+                                '#f59e0b'
+                    ),
                     borderWidth: 1,
-                    borderRadius: 6
+                    borderRadius: 6,
                 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: false, min: 60, max: 100, ticks: { stepSize: 10 } },
-                    x: { ticks: { maxRotation: 45 } }
-                }
-            }
-        });
-
-        // Grade Distribution
-        new Chart(document.getElementById('gradeChart'), {
-            type: 'doughnut',
-            data: {
-                labels: ['A- (3)', 'B+ (8)', 'B (6)', 'B- (1)'],
-                datasets: [{
-                    data: [3, 8, 6, 1],
-                    backgroundColor: ['rgba(52,211,153,0.8)', 'rgba(96,165,250,0.8)', 'rgba(96,165,250,0.6)', 'rgba(251,191,36,0.8)'],
-                    borderWidth: 0,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                cutout: '65%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }
-                }
-            }
-        });
-
-        // Dimension Averages
-        const dimNames = ['수업 전문성', '교수학습 방법', '판서 및 언어', '수업 태도', '학생 참여', '시간 배분', '창의성'];
-        const dimAvgs = [16.8, 12.9, 12.5, 9.2, 14.1, 7.0, 2.7];
-        const dimMax = [20, 20, 15, 15, 15, 10, 5];
-
-        new Chart(document.getElementById('dimensionChart'), {
-            type: 'bar',
-            data: {
-                labels: dimNames,
-                datasets: [{
-                    label: '평균 점수',
-                    data: dimAvgs,
-                    backgroundColor: [
-                        'rgba(239,68,68,0.6)', 'rgba(59,130,246,0.6)',
-                        'rgba(245,158,11,0.6)', 'rgba(16,185,129,0.6)',
-                        'rgba(139,92,246,0.6)', 'rgba(236,72,153,0.6)',
-                        'rgba(107,114,128,0.6)'
-                    ],
-                    borderRadius: 6, borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: { legend: { display: false } },
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => `${ctx.parsed.y}점` } }
+                },
                 scales: {
-                    x: { beginAtZero: true, max: 20, ticks: { stepSize: 5 } }
+                    y: { min: 50, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }
                 }
             }
         });
 
-        // Radar Chart
-        const dimPct = dimAvgs.map((v, i) => (v / dimMax[i] * 100).toFixed(1));
+        // -- Radar Chart --
+        const avgDims = dimLabels.map((_, i) => {
+            const sum = videos.reduce((acc, v) => acc + v.dims[i], 0);
+            return +(sum / videos.length).toFixed(1);
+        });
         new Chart(document.getElementById('radarChart'), {
             type: 'radar',
             data: {
-                labels: dimNames,
+                labels: dimLabels,
                 datasets: [{
-                    label: '성취율 (%)',
-                    data: dimPct,
-                    backgroundColor: 'rgba(99,102,241,0.2)',
-                    borderColor: 'rgba(99,102,241,1)',
+                    label: '평균',
+                    data: avgDims,
+                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                    borderColor: '#6366f1',
+                    pointBackgroundColor: '#818cf8',
                     borderWidth: 2,
-                    pointBackgroundColor: 'rgba(99,102,241,1)',
-                    pointRadius: 4
+                }, {
+                    label: '최고 (S003)',
+                    data: videos[2].dims,
+                    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                    borderColor: '#34d399',
+                    pointBackgroundColor: '#6ee7b7',
+                    borderWidth: 1, borderDash: [5, 5],
                 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { padding: 20 } } },
+                plugins: { legend: { labels: { color: '#94a3b8' } } },
                 scales: {
                     r: {
-                        beginAtZero: true, max: 100,
-                        ticks: { stepSize: 20, backdropColor: 'transparent' },
-                        pointLabels: { font: { size: 11 } }
+                        min: 50, max: 100,
+                        grid: { color: 'rgba(255,255,255,0.08)' },
+                        angleLines: { color: 'rgba(255,255,255,0.08)' },
+                        pointLabels: { color: '#e2e8f0', font: { size: 12 } },
+                        ticks: { color: '#94a3b8', backdropColor: 'transparent' }
                     }
                 }
             }
+        });
+
+        // -- Grade Distribution --
+        const gradeCounts = { 'A-': 0, 'B+': 0, 'B': 0, 'B-': 0, 'C+': 0 };
+        videos.forEach(v => { gradeCounts[v.grade] = (gradeCounts[v.grade] || 0) + 1; });
+        new Chart(document.getElementById('gradeChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(gradeCounts),
+                datasets: [{
+                    data: Object.values(gradeCounts),
+                    backgroundColor: ['#34d399', '#6366f1', '#818cf8', '#a78bfa', '#f59e0b'],
+                    borderColor: '#0f0f23', borderWidth: 3,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#94a3b8', padding: 16 } }
+                }
+            }
+        });
+
+        // -- Time vs Score --
+        new Chart(document.getElementById('timeChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: '영상',
+                    data: videos.map(v => ({ x: v.time, y: v.score })),
+                    backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                    pointRadius: 8, pointHoverRadius: 10,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${videos[ctx.dataIndex].name}: ${ctx.parsed.y}점 (${ctx.parsed.x}분)`
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: '처리 시간 (분)', color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                    y: { title: { display: true, text: '총점', color: '#94a3b8' }, min: 60, max: 90, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        // -- Detail Table --
+        const tbody = document.getElementById('detailTable');
+        videos.forEach((v, i) => {
+            const gradeClass = v.grade.startsWith('A') ? 'grade-a' : v.grade.startsWith('B') ? 'grade-b' : v.grade.startsWith('C') ? 'grade-c' : 'grade-d';
+            const barWidth = Math.max(20, v.score);
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${i + 1}</td>
+                <td><strong>${v.name}</strong></td>
+                <td>
+                    <span class="score-bar">
+                        <span class="bar" style="width: ${barWidth}px;"></span>
+                        <span>${v.score}</span>
+                    </span>
+                </td>
+                <td><span class="grade-badge ${gradeClass}">${v.grade}</span></td>
+                ${v.dims.map(d => `<td>${d}</td>`).join('')}
+                <td>${v.time}분</td>
+            `;
+            tbody.appendChild(row);
         });
     </script>
 </body>

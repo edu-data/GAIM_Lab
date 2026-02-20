@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAS - Multi-Agent System for Class Analysis</title>
-    <meta name="description" content="멀티 에이전트 기반 수업 분석 시스템 - 8개 AI 에이전트가 협업하여 수업을 분석합니다">
+    <title>MAS v7.1 — Multi-Agent System for Class Analysis</title>
+    <meta name="description" content="8개 AI 에이전트가 협업하여 수업 영상을 7차원 평가하는 멀티 에이전트 수업 분석 플랫폼">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <style>
@@ -20,6 +20,9 @@
             --text-muted: #94a3b8;
             --success: #34d399;
             --warning: #fbbf24;
+            --p0: #ef4444;
+            --p1: #f59e0b;
+            --p2: #3b82f6;
         }
 
         * {
@@ -36,7 +39,6 @@
             overflow-x: hidden;
         }
 
-        /* Animated Background */
         .bg-gradient {
             position: fixed;
             top: 0;
@@ -56,7 +58,7 @@
             top: 0;
             width: 100%;
             z-index: 100;
-            background: rgba(15, 15, 35, 0.8);
+            background: rgba(15, 15, 35, 0.85);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             padding: 0 2rem;
@@ -173,6 +175,7 @@
             margin-bottom: 1.5rem;
             background: linear-gradient(135deg, #fff 0%, var(--primary-light) 50%, var(--accent) 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -258,6 +261,7 @@
             font-weight: 900;
             background: linear-gradient(135deg, var(--primary-light), var(--accent));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -267,7 +271,7 @@
             margin-top: 4px;
         }
 
-        /* Pipeline */
+        /* Sections */
         .section {
             padding: 100px 2rem;
         }
@@ -295,13 +299,13 @@
             margin: 0 auto;
         }
 
+        /* Pipeline */
         .pipeline {
             display: flex;
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 4rem;
         }
 
         .pipe-node {
@@ -400,10 +404,97 @@
             font-weight: 600;
         }
 
+        /* v7.1 Feature Table */
+        .feature-table-wrap {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+        }
+
+        .feature-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .feature-table thead {
+            background: rgba(99, 102, 241, 0.12);
+        }
+
+        .feature-table th {
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--primary-light);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .feature-table td {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .feature-table tbody tr {
+            transition: background 0.2s;
+        }
+
+        .feature-table tbody tr:hover {
+            background: rgba(99, 102, 241, 0.06);
+        }
+
+        .feature-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .priority-badge.p0 {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .priority-badge.p1 {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+        }
+
+        .priority-badge.p2 {
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+        }
+
+        .code-ref {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            background: rgba(167, 139, 250, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .check-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--success);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
         /* Results */
         .results-highlight {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 1.5rem;
             margin-bottom: 3rem;
         }
@@ -417,23 +508,25 @@
         }
 
         .result-card .big {
-            font-size: 3.5rem;
+            font-size: 3rem;
             font-weight: 900;
             background: linear-gradient(135deg, var(--success), #6ee7b7);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .result-card .label {
             color: var(--text-muted);
             margin-top: 8px;
+            font-size: 0.9rem;
         }
 
-        /* CTA */
-        .cta-section {
-            text-align: center;
-            padding: 80px 2rem;
-            background: linear-gradient(180deg, transparent, rgba(99, 102, 241, 0.05));
+        /* Tech Stack */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
         }
 
         /* Footer */
@@ -448,6 +541,61 @@
         footer a {
             color: var(--primary-light);
             text-decoration: none;
+        }
+
+        /* API Table */
+        .api-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 1.5rem;
+        }
+
+        .api-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary-light);
+            border-bottom: 1px solid var(--border);
+            background: rgba(99, 102, 241, 0.08);
+        }
+
+        .api-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .api-table tbody tr:hover {
+            background: rgba(99, 102, 241, 0.04);
+        }
+
+        .method-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .method-badge.get {
+            background: rgba(52, 211, 153, 0.2);
+            color: #6ee7b7;
+        }
+
+        .method-badge.post {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+        }
+
+        .method-badge.ws {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+        }
+
+        .method-badge.delete {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
         }
 
         @media (max-width: 768px) {
@@ -467,6 +615,10 @@
                 min-width: 80px;
                 padding: 10px;
             }
+
+            .section-header h2 {
+                font-size: 1.8rem;
+            }
         }
     </style>
 </head>
@@ -478,12 +630,14 @@
         <div class="nav-inner">
             <a class="nav-logo" href="#">
                 <span class="icon">🤖</span>
-                <span>MAS</span>
+                <span>MAS v7.1</span>
             </a>
             <ul class="nav-links">
                 <li><a href="#pipeline">파이프라인</a></li>
                 <li><a href="#agents">에이전트</a></li>
+                <li><a href="#features">v7.1 신규</a></li>
                 <li><a href="#results">분석 결과</a></li>
+                <li><a href="#api">API</a></li>
             </ul>
             <a class="nav-cta" href="https://github.com/edu-data/GAIM_Lab">GitHub →</a>
         </div>
@@ -494,14 +648,16 @@
         <div class="hero-content">
             <div class="hero-badge">
                 <span class="dot"></span>
-                MAS v7.1 — Multi-Agent System
+                v7.1 — 신규 기능 7종 · 모든 테스트 완료 ✅
             </div>
             <h1>멀티 에이전트<br />수업 분석 플랫폼</h1>
-            <p>8개 AI 에이전트가 협업하여 수업 영상을 다차원 분석합니다. v7.1에서는 실시간 코칭, 코호트 비교 분석, 성장 경로 로드맵, Google OAuth, A/B 루브릭 실험, PWA 지원
-                등 7개 신규 기능이 추가되었습니다.
+            <p>8개 AI 에이전트가 협업하여 수업 영상을 7차원으로 분석합니다.
+                v7.1에서는 실시간 코칭, 코호트 비교 분석, 성장 경로 로드맵,
+                Google OAuth, A/B 루브릭 실험, PWA, 영상 하이라이트 등
+                <strong>7개 신규 기능</strong>이 추가되었습니다.
             </p>
             <div class="hero-actions">
-                <a class="btn-primary" href="./mas-dashboard.html">📊 분석 대시보드 보기</a>
+                <a class="btn-primary" href="./mas-dashboard.html">📊 분석 대시보드</a>
                 <a class="btn-outline" href="https://github.com/edu-data/GAIM_Lab">소스코드 보기</a>
             </div>
             <div class="hero-stats">
@@ -632,53 +788,84 @@
         </div>
     </section>
 
-    <!-- Results -->
-    <section class="section" id="results">
-        <div class="container">
-            <div class="section-header">
-                <h2>📊 18개 영상 분석 결과</h2>
-                <p>멀티 에이전트 파이프라인으로 18개 수업 영상 배치 분석 완료</p>
-            </div>
-            <div class="results-highlight">
-                <div class="result-card">
-                    <div class="big">18/18</div>
-                    <div class="label">✅ 분석 성공</div>
-                </div>
-                <div class="result-card">
-                    <div class="big"
-                        style="background: linear-gradient(135deg, var(--primary-light), var(--accent)); -webkit-background-clip: text;">
-                        76.2</div>
-                    <div class="label">📊 평균 점수</div>
-                </div>
-                <div class="result-card">
-                    <div class="big"
-                        style="background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text;">B+
-                    </div>
-                    <div class="label">🏅 평균 등급</div>
-                </div>
-                <div class="result-card">
-                    <div class="big"
-                        style="background: linear-gradient(135deg, #60a5fa, #3b82f6); -webkit-background-clip: text;">
-                        98.8</div>
-                    <div class="label">⏱️ 총 분석 시간 (분)</div>
-                </div>
-            </div>
-            <div style="text-align: center;">
-                <a class="btn-primary" href="./mas-dashboard.html" style="font-size: 1.1rem; padding: 16px 40px;">
-                    📊 상세 대시보드 보기 →
-                </a>
-            </div>
-        </div>
-    </section>
-
     <!-- v7.1 New Features -->
-    <section class="section" style="padding-top: 0;">
+    <section class="section" id="features">
         <div class="container">
             <div class="section-header">
                 <h2>🚀 v7.1 신규 기능 (7종)</h2>
-                <p>모든 기능 테스트 완료 ✅</p>
+                <p>모든 7개 기능 구현 및 테스트 완료 ✅</p>
             </div>
-            <div class="agents-grid">
+
+            <div class="feature-table-wrap">
+                <table class="feature-table">
+                    <thead>
+                        <tr>
+                            <th>기능</th>
+                            <th>우선순위</th>
+                            <th>Backend</th>
+                            <th>Frontend</th>
+                            <th>상태</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>📈 성장 경로 로드맵</strong></td>
+                            <td><span class="priority-badge p0">P0</span></td>
+                            <td><span class="code-ref">growth_analyzer.py</span> → <span
+                                    class="code-ref">generate_roadmap()</span></td>
+                            <td><span class="code-ref">GrowthPath.jsx</span></td>
+                            <td><span class="check-badge">✅ 완료</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>🎯 실시간 코칭</strong></td>
+                            <td><span class="priority-badge p1">P1</span></td>
+                            <td><span class="code-ref">live_coaching.py</span> (WebSocket)</td>
+                            <td><span class="code-ref">LiveCoaching.jsx</span></td>
+                            <td><span class="check-badge">✅ 완료</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>👥 코호트 비교 분석</strong></td>
+                            <td><span class="priority-badge p1">P1</span></td>
+                            <td><span class="code-ref">cohort.py</span> (t-test, Cohen's d)</td>
+                            <td><span class="code-ref">CohortCompare.jsx</span></td>
+                            <td><span class="check-badge">✅ 완료</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>🔐 Google OAuth</strong></td>
+                            <td><span class="priority-badge p1">P1</span></td>
+                            <td><span class="code-ref">auth.py</span> → Google OAuth 2.0</td>
+                            <td><span class="code-ref">LoginPage.jsx</span></td>
+                            <td><span class="check-badge">✅ 완료</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>📱 PWA 지원</strong></td>
+                            <td><span class="priority-badge p2">P2</span></td>
+                            <td>—</td>
+                            <td><span class="code-ref">manifest.json</span> + <span
+                                    class="code-ref">service-worker.js</span></td>
+                            <td><span class="check-badge">✅ 완료</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>🧪 A/B 루브릭 실험</strong></td>
+                            <td><span class="priority-badge p2">P2</span></td>
+                            <td><span class="code-ref">rubric_experiment.py</span> (4개 내장 루브릭)</td>
+                            <td><span class="code-ref">ABExperiment.jsx</span></td>
+                            <td><span class="check-badge">✅ 완료</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>🎬 영상 하이라이트</strong></td>
+                            <td><span class="priority-badge p2">P2</span></td>
+                            <td>—</td>
+                            <td><span class="code-ref">VideoHighlights.jsx</span> → <span
+                                    class="code-ref">AnalysisResult.jsx</span> 통합</td>
+                            <td><span class="check-badge">✅ 완료</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Feature Cards -->
+            <div class="agents-grid" style="margin-top: 3rem;">
                 <div class="agent-card">
                     <div class="emoji">📈</div>
                     <h3>D1. 성장 경로 로드맵</h3>
@@ -695,7 +882,7 @@
                     <div class="emoji">👥</div>
                     <h3>D3. 코호트 비교 분석</h3>
                     <p>집단별 비교 분석으로 교사 그룹 간 수업 역량 차이를 통계적으로 비교합니다.</p>
-                    <span class="tech-tag">Cohort Analytics</span>
+                    <span class="tech-tag">t-test · Cohen's d</span>
                 </div>
                 <div class="agent-card">
                     <div class="emoji">🔐</div>
@@ -707,12 +894,12 @@
                     <div class="emoji">📱</div>
                     <h3>D5. PWA 지원</h3>
                     <p>Progressive Web App으로 모바일에서도 네이티브 앱처럼 빠른 접근이 가능합니다.</p>
-                    <span class="tech-tag">PWA</span>
+                    <span class="tech-tag">Service Worker</span>
                 </div>
                 <div class="agent-card">
                     <div class="emoji">🧪</div>
                     <h3>D6. A/B 루브릭 실험</h3>
-                    <p>채점 기준 실험 프레임워크로 다양한 루브릭을 비교 실험하고 최적 기준을 도출합니다.</p>
+                    <p>4개 내장 루브릭으로 채점 기준을 비교 실험하고 최적 기준을 도출합니다.</p>
                     <span class="tech-tag">A/B Testing</span>
                 </div>
                 <div class="agent-card">
@@ -725,36 +912,138 @@
         </div>
     </section>
 
+    <!-- Results -->
+    <section class="section" id="results">
+        <div class="container">
+            <div class="section-header">
+                <h2>📊 18개 영상 분석 결과</h2>
+                <p>멀티 에이전트 파이프라인으로 18개 수업 영상 배치 분석 완료</p>
+            </div>
+            <div class="results-highlight">
+                <div class="result-card">
+                    <div class="big">18/18</div>
+                    <div class="label">✅ 분석 성공</div>
+                </div>
+                <div class="result-card">
+                    <div class="big"
+                        style="background: linear-gradient(135deg, var(--primary-light), var(--accent)); -webkit-background-clip: text; background-clip: text;">
+                        76.2</div>
+                    <div class="label">📊 평균 점수</div>
+                </div>
+                <div class="result-card">
+                    <div class="big"
+                        style="background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; background-clip: text;">
+                        B+</div>
+                    <div class="label">🏅 평균 등급</div>
+                </div>
+                <div class="result-card">
+                    <div class="big"
+                        style="background: linear-gradient(135deg, #60a5fa, #3b82f6); -webkit-background-clip: text; background-clip: text;">
+                        5.5분</div>
+                    <div class="label">⏱️ 영상당 처리 시간</div>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <a class="btn-primary" href="./mas-dashboard.html" style="font-size: 1.1rem; padding: 16px 40px;">
+                    📊 상세 대시보드 보기 →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Endpoints -->
+    <section class="section" id="api" style="padding-top: 0;">
+        <div class="container">
+            <div class="section-header">
+                <h2>⚡ API 엔드포인트</h2>
+                <p>FastAPI 기반 RESTful + WebSocket API</p>
+            </div>
+            <div class="feature-table-wrap">
+                <table class="api-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>설명</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="method-badge post">POST</span></td>
+                            <td><span class="code-ref">/api/v1/analyze</span></td>
+                            <td>영상 분석 실행</td>
+                        </tr>
+                        <tr>
+                            <td><span class="method-badge get">GET</span></td>
+                            <td><span class="code-ref">/api/v1/history</span></td>
+                            <td>분석 이력 조회</td>
+                        </tr>
+                        <tr>
+                            <td><span class="method-badge get">GET</span></td>
+                            <td><span class="code-ref">/api/v1/growth</span></td>
+                            <td>성장 분석 + 로드맵</td>
+                        </tr>
+                        <tr>
+                            <td><span class="method-badge get">GET</span></td>
+                            <td><span class="code-ref">/api/v1/cohort/compare</span></td>
+                            <td>코호트 비교 분석</td>
+                        </tr>
+                        <tr>
+                            <td><span class="method-badge ws">WS</span></td>
+                            <td><span class="code-ref">/api/v1/coaching/ws</span></td>
+                            <td>실시간 코칭 WebSocket</td>
+                        </tr>
+                        <tr>
+                            <td><span class="method-badge get">GET</span></td>
+                            <td><span class="code-ref">/api/v1/auth/google/login</span></td>
+                            <td>Google OAuth 로그인</td>
+                        </tr>
+                        <tr>
+                            <td><span class="method-badge post">POST</span></td>
+                            <td><span class="code-ref">/api/v1/rubric/experiment</span></td>
+                            <td>A/B 루브릭 실험 실행</td>
+                        </tr>
+                        <tr>
+                            <td><span class="method-badge delete">DELETE</span></td>
+                            <td><span class="code-ref">/api/v1/delete/{id}</span></td>
+                            <td>분석 결과 삭제</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
     <!-- Tech Stack -->
     <section class="section" style="padding-top: 0;">
         <div class="container">
             <div class="section-header">
                 <h2>⚙️ 기술 스택</h2>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="tech-grid">
                 <div class="result-card">
                     <div style="font-size: 1.5rem; margin-bottom: 8px;">🐍</div>
                     <div style="font-weight: 700;">Backend</div>
                     <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">FastAPI · Python
-                        3.14<br>importlib 동적 로딩</div>
+                        3.14<br>Pydantic Contracts<br>SQLite DB</div>
                 </div>
                 <div class="result-card">
                     <div style="font-size: 1.5rem; margin-bottom: 8px;">⚛️</div>
                     <div style="font-weight: 700;">Frontend</div>
                     <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">React 18 ·
-                        Vite<br>Glassmorphism UI</div>
+                        Vite<br>Glassmorphism UI<br>PWA + Service Worker</div>
                 </div>
                 <div class="result-card">
                     <div style="font-size: 1.5rem; margin-bottom: 8px;">🤖</div>
                     <div style="font-weight: 700;">AI Models</div>
                     <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Gemini ·
-                        Whisper<br>OpenCV · Librosa</div>
+                        Whisper<br>OpenCV · Librosa<br>Pedagogy Binning</div>
                 </div>
                 <div class="result-card">
                     <div style="font-size: 1.5rem; margin-bottom: 8px;">📡</div>
                     <div style="font-weight: 700;">Architecture</div>
-                    <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Pydantic
-                        Contracts<br>SQLite + PWA<br>WebSocket Coaching</div>
+                    <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">WebSocket
+                        Coaching<br>Google OAuth 2.0<br>A/B Testing Framework</div>
                 </div>
             </div>
         </div>
