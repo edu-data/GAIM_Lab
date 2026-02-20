@@ -14,7 +14,7 @@ from datetime import datetime
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 # 프로젝트 루트 경로
-GAIM_ROOT = Path(r"D:\AI\GAIM_Lab")
+GAIM_ROOT = Path(__file__).resolve().parent
 
 def load_module_from_path(module_name: str, file_path: Path):
     """특정 경로에서 모듈 로드"""
@@ -57,7 +57,7 @@ def run_sample_analysis(video_path: str, output_dir: str = None):
     
     # 출력 디렉토리 설정
     if output_dir is None:
-        output_dir = Path("D:/AI/GAIM_Lab/output") / f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        output_dir = GAIM_ROOT / "output" / f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     else:
         output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

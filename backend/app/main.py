@@ -8,13 +8,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from app.api import analysis, portfolio, badges, mentoring, realtime, agents
+from app.api import analysis, portfolio, badges, mentoring, realtime, agents, history
 
 # 앱 초기화
 app = FastAPI(
     title="GAIM Lab API",
     description="GINUE AI Microteaching Lab - 예비교원 수업역량 강화 시스템",
-    version="1.0.0",
+    version="7.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc"
 )
@@ -28,9 +28,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 정적 파일 서빙
-UPLOAD_DIR = Path("D:/AI/GAIM_Lab/uploads")
-OUTPUT_DIR = Path("D:/AI/GAIM_Lab/output")
+# 정적 파일 서빙 — v7.0: 상대 경로 기반
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+UPLOAD_DIR = _PROJECT_ROOT / "uploads"
+OUTPUT_DIR = _PROJECT_ROOT / "output"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -44,6 +45,7 @@ app.include_router(badges.router, prefix="/api/v1/badges", tags=["디지털 배�
 app.include_router(mentoring.router, prefix="/api/v1/mentoring", tags=["멘토링"])
 app.include_router(realtime.router, prefix="/api/v1", tags=["실시간"])
 app.include_router(agents.router, prefix="/api/v1/agents", tags=["에이전트"])
+app.include_router(history.router, prefix="/api/v1", tags=["이력/성장"])
 
 
 @app.get("/")

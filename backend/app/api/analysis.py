@@ -22,8 +22,9 @@ router = APIRouter()
 analysis_store: Dict[str, Dict] = {}
 
 # 디렉토리 설정
-UPLOAD_DIR = Path("D:/AI/GAIM_Lab/uploads")
-OUTPUT_DIR = Path("D:/AI/GAIM_Lab/output")
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+UPLOAD_DIR = _PROJECT_ROOT / "uploads"
+OUTPUT_DIR = _PROJECT_ROOT / "output"
 
 
 class AnalysisRequest(BaseModel):
@@ -289,7 +290,7 @@ async def run_demo_analysis():
 # 배치 작업 저장소
 batch_store: Dict[str, Dict] = {}
 
-VIDEO_DIR = Path("D:/AI/GAIM_Lab/video")
+VIDEO_DIR = _PROJECT_ROOT / "video"
 
 
 class BatchRequest(BaseModel):
@@ -403,7 +404,7 @@ async def run_batch_analysis(batch_id: str):
                 ["python", "run_sample_analysis.py", str(video)],
                 capture_output=True,
                 text=True,
-                cwd="D:/AI/GAIM_Lab",
+                cwd=str(_PROJECT_ROOT),
                 timeout=1800  # 30분 타임아웃
             )
             

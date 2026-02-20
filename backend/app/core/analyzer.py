@@ -58,7 +58,7 @@ class GAIMAnalysisPipeline:
         Returns:
             분석 결과 딕셔너리 (7차원 평가 포함)
         """
-        output_dir = output_dir or Path("D:/AI/GAIM_Lab/output")
+        output_dir = output_dir or Path(__file__).resolve().parent.parent.parent / "output"
         output_dir.mkdir(parents=True, exist_ok=True)
         
         # 1. MLC 분석 수행

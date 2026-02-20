@@ -2,7 +2,7 @@
 
 **멀티 에이전트 수업 분석 시스템** · 8개 AI 에이전트가 협업하여 수업 영상을 7차원 평가하는 플랫폼
 
-[![Version](https://img.shields.io/badge/version-6.0.0-7c3aed)](https://github.com/edu-data/mas/releases/tag/v6.0)
+[![Version](https://img.shields.io/badge/version-7.0.0-7c3aed)](https://github.com/edu-data/mas/releases/tag/v7.0)
 [![Python](https://img.shields.io/badge/python-3.9+-3776AB)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React_18-61DAFB)](https://react.dev)
@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://edu-data.github.io/mas/docs/mas-index.html"><strong>🌐 홈페이지</strong></a> ·
   <a href="https://edu-data.github.io/mas/docs/mas-dashboard.html"><strong>📊 대시보드</strong></a> ·
-  <a href="https://github.com/edu-data/mas/releases/tag/v4.0"><strong>📦 릴리스</strong></a>
+  <a href="https://github.com/edu-data/mas/releases/tag/v7.0"><strong>📦 릴리스</strong></a>
 </p>
 
 ---
@@ -27,14 +27,15 @@ MAS(Multi-Agent System)는 **예비교원의 수업 영상**을 8개 전문화�
 | 지표 | 결과 |
 | ---- | ---- |
 | ✅ 분석 성공률 | **18/18 (100%)** |
-| 📊 평균 점수 | **77.4점 (B+등급)** |
-| 🏆 점수 범위 | **69.7 ~ 83.2점 (13.5pt)** |
-| ⏱️ 총 처리 시간 | **114.9분 (영상당 ~6.4분)** |
+| 📊 평균 점수 | **76.2점 (B+등급)** |
+| 🏆 점수 범위 | **65.0 ~ 83.5점 (18.5pt)** |
+| ⏱️ 총 처리 시간 | **99.1분 (영상당 ~5.5분)** |
 | 🤖 에이전트 수 | **8개** |
 | 📐 평가 차원 | **7개** |
 | 🗣️ 화자 분리 | **pyannote 3.3 (v5.0+)** |
 | 🔬 신뢰도 분석 | **Test-Retest r=0.68, ±5pt 일치 82.6%** |
-| 📏 기준타당도 | **전문가 채점 대비 분석 도구 (v6.0 NEW)** |
+| 🗄️ 데이터 영속성 | **SQLite DB auto-save (v7.0 NEW)** |
+| 📈 성장 분석 | **차원별 추세 + 자동 피드백 (v7.0 NEW)** |
 
 ---
 
@@ -106,33 +107,36 @@ MAS(Multi-Agent System)는 **예비교원의 수업 영상**을 8개 전문화�
 MAS/
 ├── core/                        # 🧠 분석 엔진
 │   ├── agents/                  # 8개 AI 에이전트
-│   │   ├── orchestrator.py      # AgentOrchestrator (파이프라인 관리)
+│   │   ├── orchestrator.py      # AgentOrchestrator v7 (Pydantic 계약)
 │   │   ├── vision_agent.py      # 비전 분석
 │   │   ├── content_agent.py     # 콘텐츠 분석
 │   │   ├── stt_agent.py         # 음성 인식
 │   │   ├── vibe_agent.py        # 프로소디 분석
-│   │   ├── pedagogy_agent.py    # 교육학 평가
+│   │   ├── pedagogy_agent.py    # 교육학 평가 v7 (구간화 채점)
 │   │   ├── feedback_agent.py    # 피드백 생성
 │   │   └── master_agent.py      # 종합 보고서
+│   ├── database.py              # 🗄️ SQLite CRUD (v7.0 NEW)
+│   ├── growth_analyzer.py       # 📈 성장 경로 분석 (v7.0 NEW)
 │   └── analyzers/               # 기반 분석 모듈
 │       ├── timelapse_analyzer.py # FFmpeg 프레임 추출
 │       └── audio_analyzer.py    # 오디오 처리
 ├── backend/                     # ⚡ FastAPI 백엔드
 │   └── app/
-│       ├── api/                 # REST API + 에이전트 모니터링
+│       ├── api/                 # REST API + History API (v7.0)
 │       ├── core/                # RAG, Gemini 평가기
 │       └── services/            # 리포트 생성
 ├── frontend/                    # 💻 React 18 + Vite
 │   └── src/
 │       ├── components/          # UI 컴포넌트
-│       └── pages/               # AgentMonitor, Dashboard 등
+│       └── pages/               # Dashboard (DB 이력 연동)
+├── data/                        # 🗄️ SQLite DB (v7.0 NEW)
+├── config/                      # ⚙️ rubric_config.yaml (v7.0)
+├── tests/                       # 🧪 v7 검증 테스트
 ├── docs/                        # 📄 GitHub Pages
-├── run_batch_agents.py          # 🔄 배치 분석 (MAS 파이프라인)
+├── run_batch_agents.py          # 🔄 배치 분석 (v7.0 파이프라인)
 ├── run_sample_analysis.py       # 🔬 단일 영상 분석
 ├── reliability_analysis.py      # 📊 신뢰도 분석 (ICC/α/Test-Retest)
 ├── criterion_validity.py        # 🎯 기준타당도 분석 (전문가 vs AI)
-├── cross_analysis.py            # 🔀 교차 분석
-├── expert_scores.csv            # 📋 전문가 채점 템플릿
 └── pyproject.toml               # 📦 패키지 설정
 ```
 
@@ -201,31 +205,33 @@ python batch_analysis.py --limit 5
 | GET | `/api/v1/agents/status/{id}` | 에이전트 상태 조회 |
 | GET | `/api/v1/agents/events/{id}` | 이벤트 히스토리 조회 |
 
-### 배치·포트폴리오
+### 이력·성장·포트폴리오 (v7.0 NEW)
 
 | Method | 엔드포인트 | 설명 |
 | ------ | --------- | ---- |
+| GET | `/api/v1/history` | 분석 이력 조회 |
+| GET | `/api/v1/growth/{prefix}` | 성장 추세 분석 |
+| DELETE | `/api/v1/history/{id}` | 분석 결과 삭제 |
 | POST | `/api/v1/analysis/batch/start` | 배치 분석 시작 |
-| GET | `/api/v1/analysis/batch/{id}` | 배치 상태 조회 |
 | GET | `/api/v1/portfolio` | 포트폴리오 조회 |
-| GET | `/api/v1/badges` | 디지털 배지 목록 |
 
 ---
 
 ## 📊 분석 결과
 
-### 🤖 MAS v5.0 — 18개 영상 분석
+### 🤖 MAS v7.0 — 18개 영상 분석 (최신)
 
 | 통계 | 결과 |
 | ---- | ---- |
 | ✅ 성공률 | **18/18 (100%)** |
-| 📊 평균 점수 | **77.4점 (B+등급)** |
-| 🏆 최고 점수 | **83.2점 (20251209_141700, A-등급)** |
-| 📉 최저 점수 | **69.7점 (20251209_150303, B-등급)** |
-| 📏 점수 범위 | **13.5pt (v4.2 대비 1.4배 확대)** |
-| ⏱️ 총 처리 시간 | **114.9분** |
+| 📊 평균 점수 | **76.2점 (B+등급)** |
+| 🏆 최고 점수 | **83.5점 (20251209_154506, A-등급)** |
+| 📉 최저 점수 | **65.0점 (20251209_140629, B-등급)** |
+| 📏 점수 범위 | **18.5pt (v5.0 대비 1.4배 확대)** |
+| ⏱️ 총 처리 시간 | **99.1분 (영상당 ~5.5분)** |
+| 🗄️ DB 저장 | **18 records + 126 dimension scores** |
 
-**등급 분포**: A-등급 4개 (22%) / B+등급 11개 (61%) / B등급 2개 (11%) / B-등급 1개 (6%)
+**등급 분포**: A-등급 3개 (17%) / B+등급 8개 (44%) / B등급 6개 (33%) / B-등급 1개 (6%)
 
 ### 🔬 v6.0 — 신뢰도·타당도 분석 (최신)
 
@@ -266,6 +272,28 @@ python batch_analysis.py --limit 5
 ---
 
 ## 📜 버전 히스토리 (Changelog)
+
+### v7.0 — Pydantic 계약 · SQLite 영속성 · 성장 분석 `2026-02-20`
+
+- **채점 엔진 v7 리팩토링** (`pedagogy_agent.py`)
+  - 구간화(Binning) 기반 결정론적 채점 (LLM 판단 의존 제거)
+  - 차원별 `confidence_score` 메타데이터 추가
+  - `w*0.95` 천장 방지 + `adjust_range` 확대
+  - 차원별 독립 프로필 리포팅 (`profile_summary`)
+- **Orchestrator v7** (`orchestrator.py`)
+  - `SharedContext` → Pydantic `BaseModel` 타입 계약
+  - 에이전트별 신뢰도 메타데이터 전파 (confidence propagation)
+  - 자동 DB 저장 hook (`_try_save_to_db`)
+- **SQLite 데이터 영속성** (`core/database.py` 신규)
+  - `analyses` + `dimension_scores` 테이블
+  - `AnalysisRepository` CRUD (save/get/history/growth/delete)
+  - WAL 모드, 자동 DB 파일 생성
+- **성장 경로 분석기** (`core/growth_analyzer.py` 신규)
+  - 차원별 선형 회귀 추세 분석
+  - 강점/약점 프로필 + 자동 개선 피드백 (규칙 기반)
+- **UX 개선**: History API (`/history`, `/growth`, `/delete`), Dashboard DB 이력 연동
+- **코드 품질**: 프로젝트 전체 하드코딩 경로 제거 (9개 파일), 레거시 스크립트 정리
+- **배치 결과**: 18/18 성공, 평균 76.2점, 점수 범위 18.5pt
 
 ### v6.0 — 신뢰도·기준타당도 분석 도구 `2026-02-19`
 
@@ -355,10 +383,11 @@ python batch_analysis.py --limit 5
 | ---- | ---- |
 | **AI/ML** | Google Gemini AI, OpenAI Whisper, pyannote.audio, OpenCV, Librosa |
 | **분석 도구** | ICC, Cronbach's α, Bland-Altman, Test-Retest, SEM |
-| **Backend** | FastAPI, Python 3.9+, RAG Pipeline |
-| **Frontend** | React 18, Vite, Chart.js |
+| **Backend** | FastAPI, Python 3.9+, RAG Pipeline, Pydantic |
+| **Frontend** | React 18, Vite, Chart.js, Recharts |
+| **데이터** | SQLite (WAL mode), Growth Analyzer |
 | **영상 처리** | FFmpeg (CUDA GPU 가속) |
-| **아키텍처** | Event-driven AgentOrchestrator, Pub/Sub MessageBus |
+| **아키텍처** | Pydantic Contract AgentOrchestrator, Pub/Sub MessageBus |
 | **배포** | GitHub Pages, GitHub Actions |
 
 ---

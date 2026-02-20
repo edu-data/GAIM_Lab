@@ -17,7 +17,7 @@ class GAIMReportGenerator:
     """
     
     def __init__(self, output_dir: Path = None):
-        self.output_dir = output_dir or Path("D:/AI/GAIM_Lab/output")
+        self.output_dir = output_dir or Path(__file__).resolve().parent.parent.parent / "output"
         self.output_dir.mkdir(parents=True, exist_ok=True)
     
     def generate_html_report(self, evaluation: Dict, video_name: str = "lecture") -> str:

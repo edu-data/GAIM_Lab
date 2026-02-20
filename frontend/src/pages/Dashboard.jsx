@@ -11,6 +11,29 @@ function Dashboard() {
     })
     const [demoResult, setDemoResult] = useState(null)
     const [loading, setLoading] = useState(false)
+    const [history, setHistory] = useState([])
+
+    // v7.0: Fetch real analysis history from DB
+    useEffect(() => {
+        fetch('/api/v1/history?limit=50')
+            .then(r => r.json())
+            .then(data => {
+                const items = data.history || []
+                setHistory(items)
+                if (items.length > 0) {
+                    const scores = items.map(h => h.total_score).filter(s => s > 0)
+                    const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 0
+                    const best = items.reduce((b, h) => h.total_score > b.total_score ? h : b, items[0])
+                    setStats({
+                        totalSessions: items.length,
+                        averageScore: avg,
+                        bestGrade: best.grade || '-',
+                        badges: Math.floor(items.length / 3)
+                    })
+                }
+            })
+            .catch(() => { }) // API may not be running
+    }, [])
 
     const runDemo = async () => {
         setLoading(true)

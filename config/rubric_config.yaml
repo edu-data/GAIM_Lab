@@ -1,63 +1,95 @@
 # ================================================================
-# GAIM Lab v6.0 - 평가 루브릭 설정 (채점 리밸런싱)
+# GAIM Lab v7.0 - 평가 루브릭 설정 (신뢰도 강화)
 # 수업 유형별 가중치 및 기본점 프리셋
 # ================================================================
+
+version: "7.0"
+description: "채점 신뢰도 강화 - adjust_range 확대, 입력 구간화(binning), confidence 메타데이터"
 
 # 7차원 평가 프레임워크 (초등임용 2차 수업실연 채점 기준 기반)
 dimensions:
   수업_전문성:
     weight: 20
     theory: "구성주의 학습이론 - 학습 목표의 명확한 제시는 학생의 인지적 스캐폴딩을 제공합니다."
+    sub_criteria:
+      - "학습 목표 명료성"
+      - "학습 내용 충실성"
+      - "내용 구조화 수준"
   교수학습_방법:
     weight: 20
     theory: "다중지능이론(Gardner) - 다양한 교수법은 학생의 다양한 학습 양식에 대응합니다."
+    sub_criteria:
+      - "교수법 다양성"
+      - "학습 활동 효과성"
+      - "교수 매체 활용"
   판서_및_언어:
     weight: 15
     theory: "Vygotsky의 근접발달영역(ZPD) - 명확한 언어 사용은 효과적인 비계설정의 핵심입니다."
+    sub_criteria:
+      - "판서 가독성"
+      - "언어 명료성"
+      - "발화 속도 적절성"
   수업_태도:
     weight: 15
     theory: "Bandura의 사회학습이론 - 교사의 열정과 태도는 학생의 학습 동기에 직접적으로 영향을 미칩니다."
+    sub_criteria:
+      - "교사 열정"
+      - "자신감"
+      - "비언어적 소통 (시선, 제스처)"
   학생_참여:
     weight: 15
-    theory: "구성주의적 참여이론(Engagment Theory) - 학생의 능동적 참여는 심층 학습의 핵심 요소입니다."
+    theory: "구성주의적 참여이론(Engagement Theory) - 학생의 능동적 참여는 심층 학습의 핵심 요소입니다."
+    sub_criteria:
+      - "질문 기법 (발문)"
+      - "피드백 제공"
+      - "상호작용 유도"
   시간_배분:
     weight: 10
     theory: "Keller의 ARCS 모델 - 체계적 시간 배분은 학습자의 주의와 만족에 기여합니다."
+    sub_criteria:
+      - "도입-전개-정리 균형"
+      - "활동 시간 적절성"
   창의성:
     weight: 5
     theory: "창의적 문제해결(Torrance) - 독창적 수업 설계는 학생의 확산적 사고를 자극합니다."
+    sub_criteria:
+      - "독창적 아이디어"
+      - "차별화된 교수 기법"
 
+# ================================================================
 # 수업 유형별 프리셋
+# v7.0: adjust_range 확대 → 점수 범위 25pt+ 확보
+# ================================================================
 presets:
   # 기본 (강의식)
   default:
-    수업_전문성: {base: 14.0, adjust_range: 5.0}
-    교수학습_방법: {base: 14.0, adjust_range: 5.0}
-    판서_및_언어: {base: 10.0, adjust_range: 4.0}
-    수업_태도: {base: 10.0, adjust_range: 4.0}
-    학생_참여: {base: 10.0, adjust_range: 4.0}
-    시간_배분: {base: 7.0, adjust_range: 2.5}
-    창의성: {base: 3.0, adjust_range: 1.5}
+    수업_전문성: {base: 14.0, adjust_range: 7.0}
+    교수학습_방법: {base: 14.0, adjust_range: 7.0}
+    판서_및_언어: {base: 10.0, adjust_range: 6.0}
+    수업_태도: {base: 10.0, adjust_range: 6.0}
+    학생_참여: {base: 10.0, adjust_range: 6.0}
+    시간_배분: {base: 7.0, adjust_range: 4.0}
+    창의성: {base: 3.0, adjust_range: 2.5}
 
   # 토론식 수업
   discussion:
-    수업_전문성: {base: 13.0, adjust_range: 5.0}
-    교수학습_방법: {base: 14.0, adjust_range: 5.0}
-    판서_및_언어: {base: 10.0, adjust_range: 4.0}
-    수업_태도: {base: 10.0, adjust_range: 4.0}
-    학생_참여: {base: 12.0, adjust_range: 5.0}  # 참여 가중
-    시간_배분: {base: 7.0, adjust_range: 2.5}
-    창의성: {base: 3.0, adjust_range: 1.5}
+    수업_전문성: {base: 13.0, adjust_range: 7.0}
+    교수학습_방법: {base: 14.0, adjust_range: 7.0}
+    판서_및_언어: {base: 10.0, adjust_range: 6.0}
+    수업_태도: {base: 10.0, adjust_range: 6.0}
+    학생_참여: {base: 12.0, adjust_range: 7.0}
+    시간_배분: {base: 7.0, adjust_range: 4.0}
+    창의성: {base: 3.0, adjust_range: 2.5}
 
   # 실험/실습 수업
   experiment:
-    수업_전문성: {base: 12.0, adjust_range: 5.0}
-    교수학습_방법: {base: 15.0, adjust_range: 5.0}
-    판서_및_언어: {base: 9.0, adjust_range: 4.0}
-    수업_태도: {base: 10.0, adjust_range: 4.0}
-    학생_참여: {base: 11.0, adjust_range: 4.0}
-    시간_배분: {base: 7.0, adjust_range: 2.5}
-    창의성: {base: 4.0, adjust_range: 2.0}  # 창의성 가중
+    수업_전문성: {base: 12.0, adjust_range: 7.0}
+    교수학습_방법: {base: 15.0, adjust_range: 7.0}
+    판서_및_언어: {base: 9.0, adjust_range: 6.0}
+    수업_태도: {base: 10.0, adjust_range: 6.0}
+    학생_참여: {base: 11.0, adjust_range: 6.0}
+    시간_배분: {base: 7.0, adjust_range: 4.0}
+    창의성: {base: 4.0, adjust_range: 2.5}
 
 # 등급 기준
 grading:
@@ -71,3 +103,55 @@ grading:
   C: 55
   C-: 50
   D: 0
+
+# ================================================================
+# v7.0: 신뢰도 가중치 — 에이전트 데이터 유효성에 따른 점수 신뢰도
+# ================================================================
+confidence_weights:
+  vision: 0.20      # 비전 데이터 가용 시 전체 신뢰도 기여
+  stt: 0.30         # STT 데이터(핵심 — 발화 분석)
+  vibe: 0.15        # 프로소디 데이터
+  content: 0.15     # 콘텐츠 분석 데이터
+  discourse: 0.20   # 담화 분석 데이터
+
+# ================================================================
+# v7.0: 입력 구간화(Binning) 설정
+# 연속 메트릭을 이산 구간으로 변환하여 결정론적 채점 보장
+# ================================================================
+binning:
+  gesture_active_ratio:
+    INACTIVE: [0.0, 0.15]
+    LOW: [0.15, 0.35]
+    MODERATE: [0.35, 0.55]
+    ACTIVE: [0.55, 1.0]
+  eye_contact_ratio:
+    POOR: [0.0, 0.2]
+    LOW: [0.2, 0.4]
+    MODERATE: [0.4, 0.6]
+    GOOD: [0.6, 0.8]
+    EXCELLENT: [0.8, 1.0]
+  filler_ratio:
+    CLEAN: [0.0, 0.02]
+    GOOD: [0.02, 0.035]
+    MODERATE: [0.035, 0.05]
+    HIGH: [0.05, 0.07]
+    EXCESSIVE: [0.07, 1.0]
+  monotone_ratio:
+    EXPRESSIVE: [0.0, 0.2]
+    VARIED: [0.2, 0.35]
+    MODERATE: [0.35, 0.5]
+    MONOTONE: [0.5, 0.7]
+    FLAT: [0.7, 1.0]
+  teacher_ratio:
+    STUDENT_LED: [0.0, 0.5]
+    BALANCED: [0.5, 0.65]
+    TEACHER_MODERATE: [0.65, 0.8]
+    TEACHER_DOMINANT: [0.8, 0.92]
+    LECTURE_ONLY: [0.92, 1.0]
+  speaking_wpm:
+    VERY_SLOW: [0, 40]
+    SLOW: [40, 60]
+    MODERATE: [60, 80]
+    GOOD: [80, 110]
+    FAST: [110, 145]
+    VERY_FAST: [145, 999]

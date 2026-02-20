@@ -1,10 +1,10 @@
 """
-🎯 Agent Orchestrator - 멀티 에이전트 파이프라인 오케스트레이터
-Google ADK 스타일의 에이전트 실행 관리 시스템
+Agent Orchestrator - Multi-Agent Pipeline Orchestrator
+Google ADK style agent execution management system
 
-v6.0: Phase 2 진짜 병렬 실행 (ThreadPoolExecutor), 채점 리밸런싱
-파이프라인 흐름:
-EXTRACT → [VISION | CONTENT | STT | VIBE] (병렬) → PEDAGOGY → FEEDBACK → SYNTHESIZE
+v7.0: Pydantic-based SharedContext, confidence metadata propagation
+Pipeline flow:
+EXTRACT -> [VISION | CONTENT | STT | VIBE] (parallel) -> PEDAGOGY -> FEEDBACK -> SYNTHESIZE
 """
 
 import time
@@ -94,39 +94,70 @@ class AgentState:
         }
 
 
-@dataclass
-class SharedContext:
-    """에이전트 간 공유 컨텍스트"""
-    video_path: str = ""
-    temp_dir: str = ""
-    # 단계별 결과 저장
-    extracted_frames: List[str] = field(default_factory=list)
-    audio_path: str = ""
-    vision_summary: Dict = field(default_factory=dict)
-    vision_timeline: List[Dict] = field(default_factory=list)
-    content_summary: Dict = field(default_factory=dict)
-    content_timeline: List[Dict] = field(default_factory=list)
-    stt_result: Dict = field(default_factory=dict)
-    vibe_summary: Dict = field(default_factory=dict)
-    vibe_timeline: List[Dict] = field(default_factory=list)
-    audio_metrics: Dict = field(default_factory=dict)
-    discourse_result: Dict = field(default_factory=dict)  # v5.0
-    pedagogy_result: Dict = field(default_factory=dict)
-    feedback_result: Dict = field(default_factory=dict)
-    master_report: Dict = field(default_factory=dict)
-    duration: float = 0.0
-    metadata: Dict = field(default_factory=dict)
+# v7.0: Pydantic-based SharedContext (with dataclass fallback)
+try:
+    from pydantic import BaseModel, Field as PydField
+    HAS_PYDANTIC = True
+except ImportError:
+    HAS_PYDANTIC = False
+
+if HAS_PYDANTIC:
+    class SharedContext(BaseModel):
+        """v7.0: Pydantic-validated agent shared context"""
+        model_config = {"arbitrary_types_allowed": True}
+
+        video_path: str = ""
+        temp_dir: str = ""
+        extracted_frames: List[str] = PydField(default_factory=list)
+        audio_path: str = ""
+        vision_summary: Dict = PydField(default_factory=dict)
+        vision_timeline: List[Dict] = PydField(default_factory=list)
+        content_summary: Dict = PydField(default_factory=dict)
+        content_timeline: List[Dict] = PydField(default_factory=list)
+        stt_result: Dict = PydField(default_factory=dict)
+        vibe_summary: Dict = PydField(default_factory=dict)
+        vibe_timeline: List[Dict] = PydField(default_factory=list)
+        audio_metrics: Dict = PydField(default_factory=dict)
+        discourse_result: Dict = PydField(default_factory=dict)
+        pedagogy_result: Dict = PydField(default_factory=dict)
+        feedback_result: Dict = PydField(default_factory=dict)
+        master_report: Dict = PydField(default_factory=dict)
+        duration: float = 0.0
+        metadata: Dict = PydField(default_factory=dict)
+else:
+    @dataclass
+    class SharedContext:
+        """Agent shared context (dataclass fallback)"""
+        video_path: str = ""
+        temp_dir: str = ""
+        extracted_frames: List[str] = field(default_factory=list)
+        audio_path: str = ""
+        vision_summary: Dict = field(default_factory=dict)
+        vision_timeline: List[Dict] = field(default_factory=list)
+        content_summary: Dict = field(default_factory=dict)
+        content_timeline: List[Dict] = field(default_factory=list)
+        stt_result: Dict = field(default_factory=dict)
+        vibe_summary: Dict = field(default_factory=dict)
+        vibe_timeline: List[Dict] = field(default_factory=list)
+        audio_metrics: Dict = field(default_factory=dict)
+        discourse_result: Dict = field(default_factory=dict)
+        pedagogy_result: Dict = field(default_factory=dict)
+        feedback_result: Dict = field(default_factory=dict)
+        master_report: Dict = field(default_factory=dict)
+        duration: float = 0.0
+        metadata: Dict = field(default_factory=dict)
 
 
 class AgentOrchestrator:
     """
-    🎯 멀티 에이전트 파이프라인 오케스트레이터
+    Multi-Agent Pipeline Orchestrator (v7.0)
 
-    6개 전문 에이전트 + Master Agent의 실행을 관리하며,
-    에이전트 간 컨텍스트 공유와 상태 모니터링을 제공합니다.
+    Manages 6 specialist agents + Master Agent with
+    Pydantic-validated context sharing, confidence metadata,
+    and thread-safe state monitoring.
 
-    파이프라인:
-        EXTRACT → VISION + CONTENT (병렬) → STT → VIBE → PEDAGOGY → FEEDBACK → SYNTHESIZE
+    Pipeline:
+        EXTRACT -> [VISION | CONTENT | STT | VIBE] (parallel) -> PEDAGOGY -> FEEDBACK -> SYNTHESIZE
     """
 
     def __init__(self):
@@ -251,11 +282,22 @@ class AgentOrchestrator:
         total_elapsed = round(self.pipeline_end - self.pipeline_start, 2)
         self._emit("pipeline_done", "orchestrator", {"total_elapsed": total_elapsed})
 
+        # v7.0: Extract confidence & profile from pedagogy result
+        pedagogy = self.context.pedagogy_result or {}
+        confidence = pedagogy.get("confidence", {})
+        profile = pedagogy.get("profile_summary", {})
+
+        # v7.0: Auto-save to DB if available
+        self._try_save_to_db(video_path, result, total_elapsed)
+
         return {
             "pipeline_id": self.pipeline_id,
+            "version": "7.0",
             "total_elapsed": total_elapsed,
             "agents": {name: s.to_dict() for name, s in self.agents.items()},
             "report": result or {},
+            "confidence": confidence,
+            "profile_summary": profile,
             "event_count": len(self.event_log),
         }
 
@@ -495,7 +537,7 @@ class AgentOrchestrator:
         return self.event_log
 
     def reset(self):
-        """오케스트레이터 초기화"""
+        """Reset orchestrator state"""
         for agent in self.agents.values():
             agent.status = AgentStatus.IDLE
             agent.progress = 0
@@ -508,3 +550,19 @@ class AgentOrchestrator:
         self.pipeline_id = None
         self.pipeline_start = None
         self.pipeline_end = None
+
+    def _try_save_to_db(self, video_path: str, result: Dict, elapsed: float):
+        """v7.0: Auto-save analysis result to SQLite DB"""
+        try:
+            # Use absolute path to avoid sys.path issues in batch context
+            db_mod = _load_module("database", _CORE_DIR / "database.py")
+            repo = db_mod.AnalysisRepository()
+            repo.save_result(
+                video_path=video_path,
+                pipeline_id=self.pipeline_id,
+                result=result or {},
+                pedagogy=self.context.pedagogy_result,
+                elapsed_seconds=elapsed,
+            )
+        except Exception:
+            pass  # DB save is optional, don't break pipeline

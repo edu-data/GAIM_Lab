@@ -1,5 +1,5 @@
 """
-🤖 GAIM Lab - 멀티 에이전트 배치 분석 스크립트
+🤖 GAIM Lab v7.0 — 멀티 에이전트 배치 분석 스크립트
 18개 영상을 AgentOrchestrator 파이프라인으로 분석
 """
 
@@ -19,8 +19,8 @@ if hasattr(sys.stdout, 'buffer'):
     except:
         pass
 
-# 프로젝트 루트
-GAIM_ROOT = Path(r"D:\AI\GAIM_Lab")
+# 프로젝트 루트 (상대 경로 기반)
+GAIM_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(GAIM_ROOT))
 sys.path.insert(0, str(GAIM_ROOT / "backend" / "app"))
 
@@ -89,8 +89,11 @@ def run_single_agent_analysis(video_path: Path, output_dir: Path):
         # 직렬화 가능한 부분만 저장
         save = {
             "pipeline_id": result.get("pipeline_id"),
+            "version": result.get("version", "7.0"),
             "total_elapsed": result.get("total_elapsed"),
             "event_count": result.get("event_count"),
+            "confidence": result.get("confidence", {}),
+            "profile_summary": result.get("profile_summary", {}),
             "agents": result.get("agents", {}),
         }
         # report에서 주요 점수 추출
@@ -100,7 +103,7 @@ def run_single_agent_analysis(video_path: Path, output_dir: Path):
             save["pedagogy"] = ped
             save["feedback"] = report.get("feedback", {})
             save["stt"] = report.get("stt", {})
-            save["discourse"] = report.get("discourse", {})  # v5.0
+            save["discourse"] = report.get("discourse", {})
             save["vision_summary"] = report.get("vision_summary", {})
             save["content_summary"] = report.get("content_summary", {})
             save["vibe_summary"] = report.get("vibe_summary", {})
@@ -123,9 +126,13 @@ def extract_scores(result: dict) -> dict:
                 return d.get("score", 0)
         return 0
 
+    # v7.0: confidence metadata
+    confidence = result.get("confidence", {})
+
     return {
         "total_score": ped.get("total_score", 0),
         "grade": ped.get("grade", "N/A"),
+        "confidence": confidence.get("overall", 0),
         "teaching_expertise": get_dim("수업 전문성"),
         "teaching_method": get_dim("교수학습 방법"),
         "communication": get_dim("판서 및 언어"),
@@ -218,7 +225,7 @@ def run_batch():
     # ============================================================
     csv_path = batch_dir / "agent_batch_summary.csv"
     fieldnames = [
-        "video", "total_score", "grade",
+        "video", "total_score", "grade", "confidence",
         "teaching_expertise", "teaching_method", "communication",
         "teaching_attitude", "student_engagement", "time_management",
         "creativity", "strengths_count", "improvements_count",
@@ -240,7 +247,7 @@ def run_batch():
             "total_videos": len(video_files),
             "total_time_seconds": round(total_elapsed, 1),
             "total_time_minutes": round(total_elapsed / 60, 1),
-            "pipeline": "AgentOrchestrator (v4.0)",
+            "pipeline": "AgentOrchestrator (v7.0)",
             "agents": ["extractor", "vision", "content", "stt", "vibe", "pedagogy", "feedback", "master"],
             "results": results,
         }, f, ensure_ascii=False, indent=2, default=str)

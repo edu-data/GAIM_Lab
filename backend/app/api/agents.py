@@ -22,7 +22,7 @@ router = APIRouter()
 pipeline_store: Dict[str, Dict] = {}
 
 # 비디오 디렉토리
-VIDEO_DIR = Path("D:/AI/GAIM_Lab/video")
+VIDEO_DIR = Path(PROJECT_ROOT) / "video"
 
 
 class AgentAnalysisRequest(BaseModel):
