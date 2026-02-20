@@ -1,0 +1,241 @@
+{
+  "analysis_type": "동형검사 신뢰도 (Parallel Forms Reliability)",
+  "form_a": "v6 Pipeline",
+  "form_b": "v7 Pipeline",
+  "version": "v6 vs v7",
+  "n_videos": 18,
+  "total_score": {
+    "pearson_r": 0.6714,
+    "icc": 0.5079,
+    "cronbach_alpha": 0.794,
+    "mae": 3.95,
+    "grade_agreement": "9/18",
+    "grade_agreement_pct": 50.0,
+    "bland_altman": {
+      "mean_diff": 3.28,
+      "sd_diff": 3.42,
+      "loa_lower": -3.42,
+      "loa_upper": 9.98
+    },
+    "v6_mean": 72.89,
+    "v7_mean": 76.18
+  },
+  "dimensions": {
+    "teaching_expertise": {
+      "label": "수업 전문성",
+      "max": 20,
+      "r": 0.6247,
+      "icc": 0.566,
+      "alpha": 0.758,
+      "mae": 1.33,
+      "v6_mean": 15.94,
+      "v7_mean": 16.78
+    },
+    "teaching_method": {
+      "label": "교수학습 방법",
+      "max": 20,
+      "r": 0.8624,
+      "icc": 0.7134,
+      "alpha": 0.9095,
+      "mae": 1.33,
+      "v6_mean": 14.69,
+      "v7_mean": 13.47
+    },
+    "communication": {
+      "label": "의사소통",
+      "max": 15,
+      "r": 0.8219,
+      "icc": 0.4283,
+      "alpha": 0.8477,
+      "mae": 1.67,
+      "v6_mean": 11.31,
+      "v7_mean": 12.86
+    },
+    "teaching_attitude": {
+      "label": "수업 태도",
+      "max": 15,
+      "r": 0.3745,
+      "icc": 0.364,
+      "alpha": 0.5206,
+      "mae": 0.78,
+      "v6_mean": 9.14,
+      "v7_mean": 9.19
+    },
+    "student_engagement": {
+      "label": "학생 참여",
+      "max": 15,
+      "r": 0.2546,
+      "icc": 0.0669,
+      "alpha": 0.282,
+      "mae": 2.27,
+      "v6_mean": 11.78,
+      "v7_mean": 14.05
+    },
+    "time_management": {
+      "label": "시간 배분",
+      "max": 10,
+      "r": 0.9976,
+      "icc": 0.8731,
+      "alpha": 0.9286,
+      "mae": 0.28,
+      "v6_mean": 7.08,
+      "v7_mean": 7.08
+    },
+    "creativity": {
+      "label": "창의성",
+      "max": 5,
+      "r": 0.9394,
+      "icc": 0.8354,
+      "alpha": 0.9458,
+      "mae": 0.27,
+      "v6_mean": 2.95,
+      "v7_mean": 2.74
+    }
+  },
+  "video_comparison": [
+    {
+      "video": "20251209_100926",
+      "v6_score": 72.4,
+      "v7_score": 78.9,
+      "diff": 6.5,
+      "v6_grade": "B",
+      "v7_grade": "B+"
+    },
+    {
+      "video": "20251209_102400",
+      "v6_score": 70.0,
+      "v7_score": 73.5,
+      "diff": 3.5,
+      "v6_grade": "B",
+      "v7_grade": "B"
+    },
+    {
+      "video": "20251209_104016",
+      "v6_score": 71.3,
+      "v7_score": 74.6,
+      "diff": 3.3,
+      "v6_grade": "B",
+      "v7_grade": "B"
+    },
+    {
+      "video": "20251209_105229",
+      "v6_score": 74.5,
+      "v7_score": 75.2,
+      "diff": 0.7,
+      "v6_grade": "B",
+      "v7_grade": "B+"
+    },
+    {
+      "video": "20251209_110545",
+      "v6_score": 71.4,
+      "v7_score": 78.1,
+      "diff": 6.7,
+      "v6_grade": "B",
+      "v7_grade": "B+"
+    },
+    {
+      "video": "20251209_140629",
+      "v6_score": 68.7,
+      "v7_score": 65.0,
+      "diff": -3.7,
+      "v6_grade": "B-",
+      "v7_grade": "B-"
+    },
+    {
+      "video": "20251209_141700",
+      "v6_score": 80.1,
+      "v7_score": 81.3,
+      "diff": 1.2,
+      "v6_grade": "A-",
+      "v7_grade": "A-"
+    },
+    {
+      "video": "20251209_142648",
+      "v6_score": 74.2,
+      "v7_score": 78.9,
+      "diff": 4.7,
+      "v6_grade": "B",
+      "v7_grade": "B+"
+    },
+    {
+      "video": "20251209_143455",
+      "v6_score": 76.1,
+      "v7_score": 76.8,
+      "diff": 0.7,
+      "v6_grade": "B+",
+      "v7_grade": "B+"
+    },
+    {
+      "video": "20251209_144436",
+      "v6_score": 71.7,
+      "v7_score": 73.7,
+      "diff": 2.0,
+      "v6_grade": "B",
+      "v7_grade": "B"
+    },
+    {
+      "video": "20251209_150303",
+      "v6_score": 63.7,
+      "v7_score": 71.7,
+      "diff": 8.0,
+      "v6_grade": "C+",
+      "v7_grade": "B"
+    },
+    {
+      "video": "20251209_151036",
+      "v6_score": 71.9,
+      "v7_score": 79.3,
+      "diff": 7.4,
+      "v6_grade": "B",
+      "v7_grade": "B+"
+    },
+    {
+      "video": "20251209_151833",
+      "v6_score": 72.7,
+      "v7_score": 70.8,
+      "diff": -1.9,
+      "v6_grade": "B",
+      "v7_grade": "B"
+    },
+    {
+      "video": "20251209_152725",
+      "v6_score": 75.7,
+      "v7_score": 81.1,
+      "diff": 5.4,
+      "v6_grade": "B+",
+      "v7_grade": "A-"
+    },
+    {
+      "video": "20251209_153522",
+      "v6_score": 70.0,
+      "v7_score": 72.4,
+      "diff": 2.4,
+      "v6_grade": "B",
+      "v7_grade": "B"
+    },
+    {
+      "video": "20251209_154506",
+      "v6_score": 75.9,
+      "v7_score": 83.5,
+      "diff": 7.6,
+      "v6_grade": "B+",
+      "v7_grade": "A-"
+    },
+    {
+      "video": "20251209_160036",
+      "v6_score": 74.2,
+      "v7_score": 79.2,
+      "diff": 5.0,
+      "v6_grade": "B",
+      "v7_grade": "B+"
+    },
+    {
+      "video": "20251209_161202",
+      "v6_score": 77.6,
+      "v7_score": 77.2,
+      "diff": -0.4,
+      "v6_grade": "B+",
+      "v7_grade": "B+"
+    }
+  ]
+}

@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAS 동형검사 신뢰도 분석 - Parallel Forms Reliability (v6 vs v7)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1040 50%, #0d1b2a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+            padding: 40px 24px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+        }
+
+        .pipeline-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            font-size: 13px;
+            color: #a5b4fc;
+            margin-bottom: 16px;
+        }
+
+        .pipeline-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #34d399;
+            box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #f8fafc, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .header a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+
+        .header a:hover {
+            text-decoration: underline;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .summary-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .summary-card .value.good {
+            background: linear-gradient(135deg, #34d399, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .summary-card .value.warn {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .summary-card .label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 6px;
+        }
+
+        /* Section */
+        .section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: #e2e8f0;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .chart-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 24px;
+        }
+
+        .chart-box h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+
+        .chart-box canvas {
+            max-height: 300px;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: rgba(99, 102, 241, 0.15);
+            padding: 10px 12px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #a5b4fc;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 8px 12px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .icc-excellent {
+            color: #34d399;
+            font-weight: 700;
+        }
+
+        .icc-good {
+            color: #60a5fa;
+            font-weight: 700;
+        }
+
+        .icc-moderate {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+
+        .icc-poor {
+            color: #f87171;
+            font-weight: 700;
+        }
+
+        .diff-pos {
+            color: #34d399;
+        }
+
+        .diff-neg {
+            color: #f87171;
+        }
+
+        .grade-match {
+            color: #34d399;
+        }
+
+        .grade-mismatch {
+            color: #f87171;
+        }
+
+        /* Interpretation Box */
+        .interp-box {
+            background: rgba(99, 102, 241, 0.08);
+            border-left: 4px solid #6366f1;
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            margin-top: 16px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .interp-box strong {
+            color: #a5b4fc;
+        }
+
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        footer a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div class="pipeline-badge">
+            <span class="dot"></span>
+            동형검사 신뢰도 분석 - Form A (v6) vs Form B (v7)
+        </div>
+        <h1>🔬 MAS 동형검사 신뢰도 분석</h1>
+        <p>Parallel Forms Reliability · 동일 18개 영상에 대한 Form A(v6)와 Form B(v7) 파이프라인 분석 결과 비교</p>
+        <p style="margin-top: 8px;"><a href="./mas-dashboard.html">← 대시보드로 돌아가기</a></p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="value">18</div>
+            <div class="label">📹 비교 영상 수</div>
+        </div>
+        <div class="summary-card">
+            <div class="value warn">0.67</div>
+            <div class="label">📈 동형검사 신뢰도 계수 (r)</div>
+        </div>
+        <div class="summary-card">
+            <div class="value warn">0.51</div>
+            <div class="label">📊 절대적 일치도 ICC(2,1)</div>
+        </div>
+        <div class="summary-card">
+            <div class="value good">0.79</div>
+            <div class="label">🔑 Cronbach's α</div>
+        </div>
+        <div class="summary-card">
+            <div class="value warn">50%</div>
+            <div class="label">🏷️ 등급 일치율</div>
+        </div>
+        <div class="summary-card">
+            <div class="value">3.95</div>
+            <div class="label">📏 MAE (점)</div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1: Score Comparison & Bland-Altman -->
+    <div class="charts-grid">
+        <div class="chart-box">
+            <h3>📊 Form A (v6) vs Form B (v7) 총점 산점도</h3>
+            <canvas id="scatterChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <h3>📉 Bland-Altman Plot</h3>
+            <canvas id="blandAltman"></canvas>
+        </div>
+    </div>
+
+    <!-- Charts Row 2: Dimension ICC & Score Diff -->
+    <div class="charts-grid">
+        <div class="chart-box">
+            <h3>🎯 차원별 동형검사 신뢰도 ICC(2,1)</h3>
+            <canvas id="iccChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <h3>📈 차원별 평균 점수 비교</h3>
+            <canvas id="dimCompare"></canvas>
+        </div>
+    </div>
+
+    <!-- Dimension Reliability Table -->
+    <div class="section">
+        <h3>📋 차원별 동형검사 신뢰도 상세</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>차원</th>
+                    <th>배점</th>
+                    <th>Form A (v6)</th>
+                    <th>Form B (v7)</th>
+                    <th>Pearson r</th>
+                    <th>ICC(2,1)</th>
+                    <th>Cronbach's α</th>
+                    <th>MAE</th>
+                    <th>해석</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>수업 전문성</td>
+                    <td>20</td>
+                    <td>15.94</td>
+                    <td>16.78</td>
+                    <td>0.6247</td>
+                    <td class="icc-moderate">0.5660</td>
+                    <td>0.758</td>
+                    <td>1.33</td>
+                    <td>보통</td>
+                </tr>
+                <tr>
+                    <td>교수학습 방법</td>
+                    <td>20</td>
+                    <td>14.69</td>
+                    <td>13.47</td>
+                    <td>0.8624</td>
+                    <td class="icc-good">0.7134</td>
+                    <td>0.910</td>
+                    <td>1.33</td>
+                    <td>양호</td>
+                </tr>
+                <tr>
+                    <td>의사소통</td>
+                    <td>15</td>
+                    <td>11.31</td>
+                    <td>12.86</td>
+                    <td>0.8219</td>
+                    <td class="icc-poor">0.4283</td>
+                    <td>0.848</td>
+                    <td>1.67</td>
+                    <td>미흡</td>
+                </tr>
+                <tr>
+                    <td>수업 태도</td>
+                    <td>15</td>
+                    <td>9.14</td>
+                    <td>9.19</td>
+                    <td>0.3745</td>
+                    <td class="icc-poor">0.3640</td>
+                    <td>0.521</td>
+                    <td>0.78</td>
+                    <td>미흡</td>
+                </tr>
+                <tr>
+                    <td>학생 참여</td>
+                    <td>15</td>
+                    <td>11.78</td>
+                    <td>14.05</td>
+                    <td>0.2546</td>
+                    <td class="icc-poor">0.0669</td>
+                    <td>0.282</td>
+                    <td>2.27</td>
+                    <td>미흡</td>
+                </tr>
+                <tr>
+                    <td>시간 배분</td>
+                    <td>10</td>
+                    <td>7.08</td>
+                    <td>7.08</td>
+                    <td>0.9976</td>
+                    <td class="icc-excellent">0.8731</td>
+                    <td>0.929</td>
+                    <td>0.28</td>
+                    <td>양호</td>
+                </tr>
+                <tr>
+                    <td>창의성</td>
+                    <td>5</td>
+                    <td>2.95</td>
+                    <td>2.74</td>
+                    <td>0.9394</td>
+                    <td class="icc-excellent">0.8354</td>
+                    <td>0.946</td>
+                    <td>0.27</td>
+                    <td>양호</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="interp-box">
+            <strong>📘 동형검사 신뢰도 해석 (Parallel Forms Reliability):</strong><br>
+            동형검사 신뢰도는 동일 구인을 측정하는 두 가지 동형 검사(Form A, Form B)를 동일 피험자에게 시행하여 상관을 구하는 방법입니다.<br><br>
+            <strong>🟢 높은 신뢰도 (ICC >= 0.75):</strong> 시간 배분(0.87), 창의성(0.84) - 두 Form 간 채점이 매우 일관적<br>
+            <strong>🟡 보통 신뢰도 (0.50 <= ICC < 0.75):</strong> 교수학습 방법(0.71), 수업 전문성(0.57) - 상관은 높으나 수준 차이 존재<br>
+                    <strong>🔴 낮은 신뢰도 (ICC < 0.50):</strong> 의사소통(0.43), 수업 태도(0.36), 학생 참여(0.07) - Form B에서 체계적 상향 조정됨
+        </div>
+    </div>
+
+    <!-- Video-by-Video Comparison Table -->
+    <div class="section">
+        <h3>📋 영상별 Form A vs Form B 점수 비교</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>영상</th>
+                    <th>Form A (v6)</th>
+                    <th>Form B (v7)</th>
+                    <th>차이</th>
+                    <th>Form A 등급</th>
+                    <th>Form B 등급</th>
+                    <th>등급 일치</th>
+                </tr>
+            </thead>
+            <tbody id="videoTableBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Interpretation -->
+    <div class="section">
+        <h3>📝 동형검사 신뢰도 종합 해석</h3>
+        <div class="interp-box">
+            <strong>동형검사 신뢰도 개요:</strong> Form A(v6)와 Form B(v7)는 동일 구인(교수 역량)을 측정하는 두 가지 동형 검사입니다. 동형검사 신뢰도 계수 r =
+            0.671로 '보통~강함' 수준이며, ICC(2,1) = 0.508(보통) 수준입니다.<br><br>
+            <strong>체계적 편향:</strong> Bland-Altman 분석 결과 Form B가 Form A보다 평균 +3.28점 높음 (95% LoA: -3.42 ~ 9.98). 이는 Form
+            B에서 의사소통(+1.55), 학생 참여(+2.27) 차원의 채점 기준이 상향 조정된 것이 주원인입니다.<br><br>
+            <strong>안정적 차원:</strong> 시간 배분(r=0.998, ICC=0.873)과 창의성(r=0.939, ICC=0.835)은 두 Form 간 거의 동일한 채점을 보여 높은 동형검사
+            신뢰도를 확인함.<br><br>
+            <strong>개선 필요 차원:</strong> 학생 참여(ICC=0.067)의 경우 Form B에서 대부분 14.2점으로 수렴하여 변별력이 저하됨. 향후 버전에서 채점 루브릭의 구체화가
+            필요합니다.
+        </div>
+    </div>
+
+    <footer>
+        <p>🤖 MAS v7.0 · 동형검사 신뢰도 분석 (Parallel Forms Reliability) · Form A(v6) vs Form B(v7) · 2026-02-20</p>
+        <p style="margin-top: 6px;">경인교육대학교 GAIM Lab · <a href="https://github.com/edu-data/mas">GitHub</a> · <a
+                href="./mas-dashboard.html">대시보드</a> · <a href="./mas-index.html">홈페이지</a></p>
+    </footer>
+
+    <script>
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+
+        // Data
+        const videos = ['100926', '102400', '104016', '105229', '110545', '140629', '141700', '142648', '143455', '144436', '150303', '151036', '151833', '152725', '153522', '154506', '160036', '161202'];
+        const v6 = [72.4, 70.0, 71.3, 74.5, 71.4, 68.7, 80.1, 74.2, 76.1, 71.7, 63.7, 71.9, 72.7, 75.7, 70.0, 75.9, 74.2, 77.6];
+        const v7 = [78.9, 73.5, 74.6, 75.2, 78.1, 65.0, 81.3, 78.9, 76.8, 73.7, 71.7, 79.3, 70.8, 81.1, 72.4, 83.5, 79.2, 77.2];
+        const v6grades = ['B', 'B', 'B', 'B', 'B', 'B-', 'A-', 'B', 'B+', 'B', 'C+', 'B', 'B', 'B+', 'B', 'B+', 'B', 'B+'];
+        const v7grades = ['B+', 'B', 'B', 'B+', 'B+', 'B-', 'A-', 'B+', 'B+', 'B', 'B', 'B+', 'B', 'A-', 'B', 'A-', 'B+', 'B+'];
+
+        // 1. Scatter: v6 vs v7
+        const scatterData = v6.map((x, i) => ({ x, y: v7[i] }));
+        new Chart(document.getElementById('scatterChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'v6 vs v7',
+                    data: scatterData,
+                    backgroundColor: 'rgba(99,102,241,0.7)',
+                    borderColor: 'rgba(139,92,246,1)',
+                    borderWidth: 1,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                }, {
+                    label: '완전 일치선',
+                    data: [{ x: 60, y: 60 }, { x: 85, y: 85 }],
+                    type: 'line',
+                    borderColor: 'rgba(251,191,36,0.5)',
+                    borderDash: [6, 4],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => {
+                                if (ctx.datasetIndex === 0) {
+                                    const i = ctx.dataIndex;
+                                    return `${videos[i]}: v6=${v6[i]}, v7=${v7[i]} (${(v7[i] - v6[i] > 0 ? '+' : '')}${(v7[i] - v6[i]).toFixed(1)})`;
+                                }
+                                return '';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'v6 총점' }, min: 60, max: 90 },
+                    y: { title: { display: true, text: 'v7 총점' }, min: 60, max: 90 }
+                }
+            }
+        });
+
+        // 2. Bland-Altman
+        const means = v6.map((x, i) => (x + v7[i]) / 2);
+        const diffs = v6.map((x, i) => v7[i] - x);
+        const meanDiff = 3.28;
+        const loaUpper = 9.98;
+        const loaLower = -3.42;
+
+        new Chart(document.getElementById('blandAltman'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: '차이 (v7 - v6)',
+                    data: means.map((m, i) => ({ x: m, y: diffs[i] })),
+                    backgroundColor: diffs.map(d => d > 0 ? 'rgba(52,211,153,0.7)' : 'rgba(248,113,113,0.7)'),
+                    borderColor: diffs.map(d => d > 0 ? 'rgba(52,211,153,1)' : 'rgba(248,113,113,1)'),
+                    borderWidth: 1,
+                    pointRadius: 6,
+                }, {
+                    label: `Bias (${meanDiff.toFixed(2)})`,
+                    data: [{ x: 60, y: meanDiff }, { x: 85, y: meanDiff }],
+                    type: 'line', borderColor: 'rgba(96,165,250,0.8)', borderWidth: 2, borderDash: [6, 3],
+                    pointRadius: 0, fill: false,
+                }, {
+                    label: `95% LoA Upper (${loaUpper.toFixed(2)})`,
+                    data: [{ x: 60, y: loaUpper }, { x: 85, y: loaUpper }],
+                    type: 'line', borderColor: 'rgba(248,113,113,0.5)', borderWidth: 1, borderDash: [4, 4],
+                    pointRadius: 0, fill: false,
+                }, {
+                    label: `95% LoA Lower (${loaLower.toFixed(2)})`,
+                    data: [{ x: 60, y: loaLower }, { x: 85, y: loaLower }],
+                    type: 'line', borderColor: 'rgba(248,113,113,0.5)', borderWidth: 1, borderDash: [4, 4],
+                    pointRadius: 0, fill: false,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11 } } } },
+                scales: {
+                    x: { title: { display: true, text: '평균 ((v6+v7)/2)' }, min: 60, max: 85 },
+                    y: { title: { display: true, text: '차이 (v7 - v6)' }, min: -8, max: 14 }
+                }
+            }
+        });
+
+        // 3. ICC by Dimension
+        const dimNames = ['수업 전문성', '교수학습 방법', '의사소통', '수업 태도', '학생 참여', '시간 배분', '창의성'];
+        const dimICC = [0.566, 0.713, 0.428, 0.364, 0.067, 0.873, 0.835];
+        const dimColors = dimICC.map(v => v >= 0.75 ? 'rgba(52,211,153,0.7)' : v >= 0.50 ? 'rgba(96,165,250,0.7)' : 'rgba(248,113,113,0.7)');
+        const dimBorders = dimICC.map(v => v >= 0.75 ? 'rgba(52,211,153,1)' : v >= 0.50 ? 'rgba(96,165,250,1)' : 'rgba(248,113,113,1)');
+
+        new Chart(document.getElementById('iccChart'), {
+            type: 'bar',
+            data: {
+                labels: dimNames,
+                datasets: [{
+                    label: 'ICC(2,1)',
+                    data: dimICC,
+                    backgroundColor: dimColors,
+                    borderColor: dimBorders,
+                    borderWidth: 1,
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { min: 0, max: 1, ticks: { stepSize: 0.25 } },
+                    y: {}
+                }
+            }
+        });
+
+        // 4. Dimension Mean Comparison
+        const v6dimMeans = [15.94, 14.69, 11.31, 9.14, 11.78, 7.08, 2.95];
+        const v7dimMeans = [16.78, 13.47, 12.86, 9.19, 14.05, 7.08, 2.74];
+
+        new Chart(document.getElementById('dimCompare'), {
+            type: 'bar',
+            data: {
+                labels: dimNames,
+                datasets: [{
+                    label: 'v6 평균',
+                    data: v6dimMeans,
+                    backgroundColor: 'rgba(96,165,250,0.6)',
+                    borderColor: 'rgba(96,165,250,1)',
+                    borderWidth: 1, borderRadius: 4,
+                }, {
+                    label: 'v7 평균',
+                    data: v7dimMeans,
+                    backgroundColor: 'rgba(139,92,246,0.6)',
+                    borderColor: 'rgba(139,92,246,1)',
+                    borderWidth: 1, borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // 5. Video Table
+        const tbody = document.getElementById('videoTableBody');
+        const sorted = videos.map((v, i) => ({ v, v6: v6[i], v7: v7[i], d: v7[i] - v6[i], g6: v6grades[i], g7: v7grades[i] }))
+            .sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+
+        sorted.forEach(row => {
+            const diffClass = row.d > 0 ? 'diff-pos' : row.d < 0 ? 'diff-neg' : '';
+            const gradeMatch = row.g6 === row.g7;
+            const matchClass = gradeMatch ? 'grade-match' : 'grade-mismatch';
+            const matchIcon = gradeMatch ? '✓' : '✗';
+            tbody.innerHTML += `<tr>
+                <td>20251209_${row.v}</td>
+                <td>${row.v6.toFixed(1)}</td>
+                <td><strong>${row.v7.toFixed(1)}</strong></td>
+                <td class="${diffClass}">${row.d > 0 ? '+' : ''}${row.d.toFixed(1)}</td>
+                <td>${row.g6}</td>
+                <td>${row.g7}</td>
+                <td class="${matchClass}">${matchIcon}</td>
+            </tr>`;
+        });
+    </script>
+</body>
+
+</html>
