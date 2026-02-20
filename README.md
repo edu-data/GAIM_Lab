@@ -12,8 +12,8 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <p align="center">
-  <a href="https://edu-data.github.io/GAIM_Lab/mas-index.html"><strong>🌐 홈페이지</strong></a> ·
-  <a href="https://edu-data.github.io/GAIM_Lab/mas-dashboard.html"><strong>📊 대시보드</strong></a> ·
+  <a href="https://edu-data.github.io/mas/docs/mas-index.html"><strong>🌐 홈페이지</strong></a> ·
+  <a href="https://edu-data.github.io/mas/docs/mas-dashboard.html"><strong>📊 대시보드</strong></a> ·
   <a href="https://github.com/edu-data/GAIM_Lab/releases/tag/v7.1"><strong>📦 릴리스</strong></a>
 </p>
 
@@ -275,9 +275,9 @@ python batch_analysis.py --limit 5
 
 | 대시보드 | 링크 |
 | -------- | ---- |
-| 🤖 MAS 홈페이지 | [edu-data.github.io/GAIM_Lab](https://edu-data.github.io/GAIM_Lab/mas-index.html) |
+| 🤖 MAS 홈페이지 | [edu-data.github.io/mas](https://edu-data.github.io/mas/docs/mas-index.html) |
 | 📊 v5.0 배치 대시보드 | [18개 영상 시각화 + 화자 분리](https://edu-data.github.io/GAIM_Lab/batch_dashboard.html) |
-| 📊 MAS 대시보드 | [v4.2 분석 결과](https://edu-data.github.io/GAIM_Lab/mas-dashboard.html) |
+| 📊 MAS 대시보드 | [v4.2 분석 결과](https://edu-data.github.io/mas/docs/mas-dashboard.html) |
 
 ### 📋 이전 보고서
 
@@ -450,5 +450,5 @@ MIT License · 경인교육대학교 GAIM Lab
   <strong>경인교육대학교 GINUE AI Microteaching Lab</strong><br/>
   <a href="mailto:educpa@ginue.ac.kr">educpa@ginue.ac.kr</a> ·
   <a href="https://github.com/edu-data/GAIM_Lab">GitHub</a> ·
-  <a href="https://edu-data.github.io/GAIM_Lab/mas-index.html">웹사이트</a>
+  <a href="https://edu-data.github.io/mas/docs/mas-index.html">웹사이트</a>
 </p>
