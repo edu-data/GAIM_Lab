@@ -1,6 +1,6 @@
-# ?�� MAS ??Multi-Agent System for Class Analysis
+# 🤖 MAS — Multi-Agent System for Class Analysis
 
-**멀???�이?�트 ?�업 분석 ?�스??* · 8�?AI ?�이?�트가 ?�업?�여 ?�업 ?�상??7차원 ?��??�는 ?�랫??
+**멀티 에이전트 수업 분석 시스템** · 8개 AI 에이전트가 협업하여 수업 영상을 7차원 평가하는 플랫폼
 
 [![Version](https://img.shields.io/badge/version-7.1.0-7c3aed)](https://github.com/edu-data/GAIM_Lab/releases/tag/v7.1)
 [![Python](https://img.shields.io/badge/python-3.9+-3776AB)](https://python.org)
@@ -12,443 +12,443 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <p align="center">
-  <a href="https://edu-data.github.io/GAIM_Lab/mas-index.html"><strong>?�� ?�페?��?</strong></a> ·
-  <a href="https://edu-data.github.io/GAIM_Lab/mas-dashboard.html"><strong>?�� ?�?�보??/strong></a> ·
-  <a href="https://github.com/edu-data/GAIM_Lab/releases/tag/v7.1"><strong>?�� 릴리??/strong></a>
+  <a href="https://edu-data.github.io/GAIM_Lab/mas-index.html"><strong>🌐 홈페이지</strong></a> ·
+  <a href="https://edu-data.github.io/GAIM_Lab/mas-dashboard.html"><strong>📊 대시보드</strong></a> ·
+  <a href="https://github.com/edu-data/GAIM_Lab/releases/tag/v7.1"><strong>📦 릴리스</strong></a>
 </p>
 
 ---
 
-## ?�� ?�로?�트 ?�개
+## 🎯 프로젝트 소개
 
-MAS(Multi-Agent System)??**?�비교원???�업 ?�상**??8�??�문?�된 AI ?�이?�트가 **병렬·?�차 ?�이?�라??*?�로 분석?�여, 초등?�교 ?�용 2�??�업?�연 기�????�라 **7차원 100??만점**?�로 ?�동 ?��??�는 ?�스?�입?�다.
+MAS(Multi-Agent System)는 **예비교원의 수업 영상**을 8개 전문화된 AI 에이전트가 **병렬·순차 파이프라인**으로 분석하여, 초등학교 임용 2차 수업실연 기준에 따라 **7차원 100점 만점**으로 자동 평가하는 시스템입니다.
 
-### 주요 ?�과
+### 주요 성과
 
-| 지??| 결과 |
+| 지표 | 결과 |
 | ---- | ---- |
-| ??분석 ?�공�?| **18/18 (100%)** |
-| ?�� ?�균 ?�수 | **76.2??(B+?�급)** |
-| ?�� ?�수 범위 | **65.0 ~ 83.5??(18.5pt)** |
-| ?�️ �?처리 ?�간 | **99.1�?(?�상??~5.5�?** |
-| ?�� ?�이?�트 ??| **8�?* |
-| ?�� ?��? 차원 | **7�?* |
-| ?���??�자 분리 | **pyannote 3.3 (v5.0+)** |
-| ?�� ?�뢰??분석 | **Test-Retest r=0.68, ±5pt ?�치 82.6%** |
-| ?���??�이???�속??| **SQLite DB auto-save (v7.0)** |
-| ?�� ?�장 분석 | **차원�?추세 + ?�동 ?�드�?(v7.0)** |
-| ?�� ?�장 경로 | **3/6/12�?맞춤 개선 로드�?(v7.1 NEW)** |
-| ?�� ?�시�?코칭 | **WebSocket ?�이�??�드�?(v7.1 NEW)** |
-| ?�� 코호??비교 | **t-test, Cohen's d 집단 비교 (v7.1 NEW)** |
-| ?�� A/B ?�험 | **루브�?비교 ?�험 (v7.1 NEW)** |
-| ?�� PWA | **?�프?�인 ?�근, ?�치 가??(v7.1 NEW)** |
+| ✅ 분석 성공률 | **18/18 (100%)** |
+| 📊 평균 점수 | **76.2점 (B+등급)** |
+| 🏆 점수 범위 | **65.0 ~ 83.5점 (18.5pt)** |
+| ⏱️ 총 처리 시간 | **99.1분 (영상당 ~5.5분)** |
+| 🤖 에이전트 수 | **8개** |
+| 📐 평가 차원 | **7개** |
+| 🗣️ 화자 분리 | **pyannote 3.3 (v5.0+)** |
+| 🔬 신뢰도 분석 | **Test-Retest r=0.68, ±5pt 일치 82.6%** |
+| 🗄️ 데이터 영속성 | **SQLite DB auto-save (v7.0)** |
+| 📈 성장 분석 | **차원별 추세 + 자동 피드백 (v7.0)** |
+| 🎯 성장 경로 | **3/6/12주 맞춤 개선 로드맵 (v7.1 NEW)** |
+| 🔴 실시간 코칭 | **WebSocket 라이브 피드백 (v7.1 NEW)** |
+| 📊 코호트 비교 | **t-test, Cohen's d 집단 비교 (v7.1 NEW)** |
+| 🧪 A/B 실험 | **루브릭 비교 실험 (v7.1 NEW)** |
+| 📱 PWA | **오프라인 접근, 설치 가능 (v7.1 NEW)** |
 
 ---
 
-## ?�� ?�이?�트 ?�이?�라??
+## 🔗 에이전트 파이프라인
 
 ```
-?��??�?�?�?�?�?�?�?�?�?�?�?�??
-?? Extractor   ?? GPU 가??FFmpeg ?�레???�디??추출
-?��??�?�?�?�?�?��??�?�?�?�?�??
-       ??
-  ?��??�?�?�?��??�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�??
-  ??        병렬 ?�행             ??
-  ?��??�?�?�?�?�?�?�?�?�?��??�?�?�?�?�?�?�?�?��??�?�?�?�?�?�?�??
-  ??Vision   ??Content ?? STT   ?? ?�각/콘텐�??�성 분석
-  ??Agent    ??Agent   ??Agent  ??
-  ?��??�?�?�?��??�?�?�?�?��??�?�?�?��??�?�?�?��??�?�?��??�?�??
-       ?��??�?�?�?�?�?�?�?�?�?��??�?�?�?�?�?�?�??
-                  ??
-          ?��??�?�?�?�?�?�?��??�?�?�?�?�?�??
-          ?? Vibe Agent   ?? ?�로?�디(?�양·?�도·?�너지) 분석
-          ?��??�?�?�?�?�?�?��??�?�?�?�?�?�??
-          ?��??�?�?�?�?�?�?��??�?�?�?�?�?�??
-          ??Pedagogy Agent?? 교육??7차원 체계???��?
-          ?��??�?�?�?�?�?�?��??�?�?�?�?�?�??
-          ?��??�?�?�?�?�?�?��??�?�?�?�?�?�??
-          ??Feedback Agent?? LLM + 규칙 기반 맞춤???�드�?
-          ?��??�?�?�?�?�?�?��??�?�?�?�?�?�??
-          ?��??�?�?�?�?�?�?��??�?�?�?�?�?�??
-          ??Master Agent  ?? 종합 보고???�성
-          ?��??�?�?�?�?�?�?�?�?�?�?�?�?�?�??
+┌─────────────┐
+│  Extractor   │  GPU 가속 FFmpeg 프레임/오디오 추출
+└──────┬──────┘
+       │
+  ┌────┴────────────────────────┐
+  │         병렬 실행             │
+  ├──────────┬─────────┬────────┤
+  │ Vision   │ Content │  STT   │  시각/콘텐츠/음성 분석
+  │ Agent    │ Agent   │ Agent  │
+  └────┬─────┴────┬────┴───┬───┘
+       └──────────┼────────┘
+                  │
+          ┌───────┴───────┐
+          │  Vibe Agent   │  프로소디(억양·속도·에너지) 분석
+          └───────┬───────┘
+          ┌───────┴───────┐
+          │ Pedagogy Agent│  교육학 7차원 체계적 평가
+          └───────┬───────┘
+          ┌───────┴───────┐
+          │ Feedback Agent│  LLM + 규칙 기반 맞춤형 피드백
+          └───────┬───────┘
+          ┌───────┴───────┐
+          │ Master Agent  │  종합 보고서 생성
+          └───────────────┘
 ```
 
 ---
 
-## ?�� 8�?AI ?�이?�트
+## 🤖 8개 AI 에이전트
 
-| # | ?�이?�트 | ??�� | ?�심 기술 |
+| # | 에이전트 | 역할 | 핵심 기술 |
 | - | ------- | ---- | -------- |
-| 1 | **Extractor** | ?�상?�서 ?�레?�·오?�오 초고??추출 | FFmpeg CUDA, GPU 가??|
-| 2 | **Vision** | 교사 ?�선, ?�스�? ?�세 비언?�적 분석 | OpenCV, Gemini Vision |
-| 3 | **Content** | ?�서, 교수?�료, 멀?��??�어 콘텐�?분석 | Gemini AI |
-| 4 | **STT** | ?�성?�텍?�트 변?? ?�자 분리, ?�국???�러 감�? | OpenAI Whisper, pyannote.audio |
-| 5 | **Vibe** | ?�성 ?�로?�디(?�양·?�도·?�너지) 분석 | Librosa |
-| 6 | **Pedagogy** | 교육???�론 기반 7차원 체계???��? | RAG + Gemini |
-| 7 | **Feedback** | 개인 맞춤???�드백·액???�랜 ?�성 | LLM + Rule Engine |
-| 8 | **Master** | ?�체 결과 종합, 최종 보고???�성 | Gemini AI |
+| 1 | **Extractor** | 영상에서 프레임·오디오 초고속 추출 | FFmpeg CUDA, GPU 가속 |
+| 2 | **Vision** | 교사 시선, 제스처, 자세 비언어적 분석 | OpenCV, Gemini Vision |
+| 3 | **Content** | 판서, 교수자료, 멀티미디어 콘텐츠 분석 | Gemini AI |
+| 4 | **STT** | 음성→텍스트 변환, 화자 분리, 한국어 필러 감지 | OpenAI Whisper, pyannote.audio |
+| 5 | **Vibe** | 음성 프로소디(억양·속도·에너지) 분석 | Librosa |
+| 6 | **Pedagogy** | 교육학 이론 기반 7차원 체계적 평가 | RAG + Gemini |
+| 7 | **Feedback** | 개인 맞춤형 피드백·액션 플랜 생성 | LLM + Rule Engine |
+| 8 | **Master** | 전체 결과 종합, 최종 보고서 생성 | Gemini AI |
 
 ---
 
-## ?�� 7차원 ?��? ?�레?�워??
+## 📐 7차원 평가 프레임워크
 
-초등?�교 ?�용 2�??�업?�연 ?��? 기�? 기반 **100??만점** 체계:
+초등학교 임용 2차 수업실연 평가 기준 기반 **100점 만점** 체계:
 
-| 차원 | 배점 | ?��? ?�역 |
+| 차원 | 배점 | 평가 영역 |
 | ---- | :--: | -------- |
-| ?�업 ?�문??| 20??| ?�습목표 명료?? ?�습?�용 충실??|
-| 교수?�습 방법 | 20??| 교수�??�양?? ?�습?�동 ?�과??|
-| ?�서 �??�어 | 15??| ?�서 가?�성, ?�어 명료?? 발화?�도 |
-| ?�업 ?�도 | 15??| 교사 ?�정, ?�생 ?�통, ?�신�?|
-| ?�생 참여 | 15??| 질문 기법, ?�드�??�공 |
-| ?�간 배분 | 10??| ?�업 ?�계�??�간 균형 |
-| 창의??| 5??| ?�업 기법??창의??|
+| 수업 전문성 | 20점 | 학습목표 명료성, 학습내용 충실성 |
+| 교수학습 방법 | 20점 | 교수법 다양성, 학습활동 효과성 |
+| 판서 및 언어 | 15점 | 판서 가독성, 언어 명료성, 발화속도 |
+| 수업 태도 | 15점 | 교사 열정, 학생 소통, 자신감 |
+| 학생 참여 | 15점 | 질문 기법, 피드백 제공 |
+| 시간 배분 | 10점 | 수업 단계별 시간 균형 |
+| 창의성 | 5점 | 수업 기법의 창의성 |
 
 ---
 
-## ?���??�스??구조
+## 🏗️ 시스템 구조
 
 ```
 MAS/
-?��??� core/                        # ?�� 분석 ?�진
-??  ?��??� agents/                  # 8�?AI ?�이?�트
-??  ??  ?��??� orchestrator.py      # AgentOrchestrator v7 (Pydantic 계약)
-??  ??  ?��??� vision_agent.py      # 비전 분석
-??  ??  ?��??� content_agent.py     # 콘텐�?분석
-??  ??  ?��??� stt_agent.py         # ?�성 ?�식
-??  ??  ?��??� vibe_agent.py        # ?�로?�디 분석
-??  ??  ?��??� pedagogy_agent.py    # 교육???��? v7 (구간??채점)
-??  ??  ?��??� feedback_agent.py    # ?�드�??�성
-??  ??  ?��??� master_agent.py      # 종합 보고??
-??  ?��??� database.py              # ?���?SQLite CRUD (v7.0)
-??  ?��??� growth_analyzer.py       # ?�� ?�장 경로 + 로드�?(v7.1)
-??  ?��??� analyzers/               # 기반 분석 모듈
-??      ?��??� timelapse_analyzer.py # FFmpeg ?�레??추출
-??      ?��??� audio_analyzer.py    # ?�디??처리
-?��??� backend/                     # ??FastAPI 백엔??
-??  ?��??� app/
-??      ?��??� api/                 # REST API
-??      ??  ?��??� auth.py          # ?�� Google OAuth + JWT (v7.1 NEW)
-??      ??  ?��??� cohort.py        # ?�� 코호??비교 분석 (v7.1 NEW)
-??      ??  ?��??� live_coaching.py # ?�� WebSocket ?�시�?코칭 (v7.1 NEW)
-??      ??  ?��??� rubric_experiment.py # ?�� A/B 루브�??�험 (v7.1 NEW)
-??      ?��??� core/                # RAG, Gemini ?��?�?
-??      ?��??� services/            # 리포???�성
-?��??� frontend/                    # ?�� React 18 + Vite + PWA
-??  ?��??� public/                  # ?�� manifest.json, SW (v7.1 NEW)
-??  ?��??� src/
-??      ?��??� components/          # VideoHighlights ??(v7.1 NEW)
-??      ?��??� pages/               # 10�??�이지 (5�??�규 v7.1)
-?��??� data/                        # ?���?SQLite DB
-?��??� config/                      # ?�️ rubric_config.yaml
-?��??� scripts/                     # ?�� 분석/배치/리포???�크립트
-?��??� tests/                       # ?�� 검�??�스??
-?��??� docs/                        # ?�� GitHub Pages
-?��??� pyproject.toml               # ?�� ?�키지 ?�정
+├── core/                        # 🧠 분석 엔진
+│   ├── agents/                  # 8개 AI 에이전트
+│   │   ├── orchestrator.py      # AgentOrchestrator v7 (Pydantic 계약)
+│   │   ├── vision_agent.py      # 비전 분석
+│   │   ├── content_agent.py     # 콘텐츠 분석
+│   │   ├── stt_agent.py         # 음성 인식
+│   │   ├── vibe_agent.py        # 프로소디 분석
+│   │   ├── pedagogy_agent.py    # 교육학 평가 v7 (구간화 채점)
+│   │   ├── feedback_agent.py    # 피드백 생성
+│   │   └── master_agent.py      # 종합 보고서
+│   ├── database.py              # 🗄️ SQLite CRUD (v7.0)
+│   ├── growth_analyzer.py       # 📈 성장 경로 + 로드맵 (v7.1)
+│   └── analyzers/               # 기반 분석 모듈
+│       ├── timelapse_analyzer.py # FFmpeg 프레임 추출
+│       └── audio_analyzer.py    # 오디오 처리
+├── backend/                     # ⚡ FastAPI 백엔드
+│   └── app/
+│       ├── api/                 # REST API
+│       │   ├── auth.py          # 👤 Google OAuth + JWT (v7.1 NEW)
+│       │   ├── cohort.py        # 📊 코호트 비교 분석 (v7.1 NEW)
+│       │   ├── live_coaching.py # 🔴 WebSocket 실시간 코칭 (v7.1 NEW)
+│       │   └── rubric_experiment.py # 🧪 A/B 루브릭 실험 (v7.1 NEW)
+│       ├── core/                # RAG, Gemini 평가기
+│       └── services/            # 리포트 생성
+├── frontend/                    # 💻 React 18 + Vite + PWA
+│   ├── public/                  # 📱 manifest.json, SW (v7.1 NEW)
+│   └── src/
+│       ├── components/          # VideoHighlights 등 (v7.1 NEW)
+│       └── pages/               # 10개 페이지 (5개 신규 v7.1)
+├── data/                        # 🗄️ SQLite DB
+├── config/                      # ⚙️ rubric_config.yaml
+├── scripts/                     # 📜 분석/배치/리포트 스크립트
+├── tests/                       # 🧪 검증 테스트
+├── docs/                        # 📄 GitHub Pages
+└── pyproject.toml               # 📦 패키지 설정
 ```
 
 ---
 
-## ?? ?�작?�기
+## 🚀 시작하기
 
-### ?�수 ?�구?�항
+### 필수 요구사항
 
 - **Python** 3.9+
 - **Node.js** 18+
-- **FFmpeg** (CUDA GPU 가??권장)
+- **FFmpeg** (CUDA GPU 가속 권장)
 - **Google Gemini API Key**
 
-### ?�치 �??�행
+### 설치 및 실행
 
 ```bash
-# 1. ?�?�소 ?�론
+# 1. 저장소 클론
 git clone https://github.com/edu-data/GAIM_Lab.git
 cd GAIM_Lab
 
-# 2. ?�경변???�정
+# 2. 환경변수 설정
 export GOOGLE_API_KEY="your-gemini-api-key"
 
-# 3. Backend ?�행
+# 3. Backend 실행
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 
-# 4. Frontend ?�행 (???��???
+# 4. Frontend 실행 (새 터미널)
 cd frontend
 npm install
 npm run dev
 ```
 
-### 분석 ?�행
+### 분석 실행
 
 ```bash
-# ?�일 ?�상 분석
+# 단일 영상 분석
 python run_sample_analysis.py video/sample.mp4
 
-# 배치 분석 (MAS ?�이?�라??
+# 배치 분석 (MAS 파이프라인)
 python run_batch_agents.py
 
-# ?�거??배치 분석
+# 레거시 배치 분석
 python batch_analysis.py --limit 5
 ```
 
 ---
 
-## ?�� API ?�드?�인??
+## 🔗 API 엔드포인트
 
 ### 분석 API
 
-| Method | ?�드?�인??| ?�명 |
+| Method | 엔드포인트 | 설명 |
 | ------ | --------- | ---- |
-| POST | `/api/v1/analysis/upload` | ?�상 ?�로??|
-| POST | `/api/v1/analysis/analyze` | 분석 ?�작 |
+| POST | `/api/v1/analysis/upload` | 영상 업로드 |
+| POST | `/api/v1/analysis/analyze` | 분석 시작 |
 | GET | `/api/v1/analysis/{id}` | 분석 결과 조회 |
 
-### ?�이?�트 모니?�링 API
+### 에이전트 모니터링 API
 
-| Method | ?�드?�인??| ?�명 |
+| Method | 엔드포인트 | 설명 |
 | ------ | --------- | ---- |
-| POST | `/api/v1/agents/start` | MAS ?�이?�라???�작 |
-| GET | `/api/v1/agents/status/{id}` | ?�이?�트 ?�태 조회 |
-| GET | `/api/v1/agents/events/{id}` | ?�벤???�스?�리 조회 |
+| POST | `/api/v1/agents/start` | MAS 파이프라인 시작 |
+| GET | `/api/v1/agents/status/{id}` | 에이전트 상태 조회 |
+| GET | `/api/v1/agents/events/{id}` | 이벤트 히스토리 조회 |
 
-### ?�력·?�장·?�트?�리??(v7.0)
+### 이력·성장·포트폴리오 (v7.0)
 
-| Method | ?�드?�인??| ?�명 |
+| Method | 엔드포인트 | 설명 |
 | ------ | --------- | ---- |
-| GET | `/api/v1/history` | 분석 ?�력 조회 |
-| GET | `/api/v1/growth/{prefix}` | ?�장 추세 분석 |
-| DELETE | `/api/v1/history/{id}` | 분석 결과 ??�� |
-| POST | `/api/v1/analysis/batch/start` | 배치 분석 ?�작 |
-| GET | `/api/v1/portfolio` | ?�트?�리??조회 |
+| GET | `/api/v1/history` | 분석 이력 조회 |
+| GET | `/api/v1/growth/{prefix}` | 성장 추세 분석 |
+| DELETE | `/api/v1/history/{id}` | 분석 결과 삭제 |
+| POST | `/api/v1/analysis/batch/start` | 배치 분석 시작 |
+| GET | `/api/v1/portfolio` | 포트폴리오 조회 |
 
-### ?�규 기능 API (v7.1 NEW)
+### 신규 기능 API (v7.1 NEW)
 
-| Method | ?�드?�인??| ?�명 |
+| Method | 엔드포인트 | 설명 |
 | ------ | --------- | ---- |
-| WS | `/api/v1/ws/live-coaching` | ?�시�?코칭 WebSocket |
-| POST | `/api/v1/cohort/compare` | 코호??비교 (t-test, Cohen's d) |
-| GET | `/api/v1/experiment/rubrics` | A/B 루브�?목록 조회 |
-| POST | `/api/v1/experiment/ab` | A/B 루브�?비교 ?�험 |
-| GET | `/api/v1/auth/google/login` | Google OAuth 로그??|
-| POST | `/api/v1/auth/login` | JWT 로그??|
-| POST | `/api/v1/growth/roadmap` | ?�장 경로 로드�??�성 |
+| WS | `/api/v1/ws/live-coaching` | 실시간 코칭 WebSocket |
+| POST | `/api/v1/cohort/compare` | 코호트 비교 (t-test, Cohen's d) |
+| GET | `/api/v1/experiment/rubrics` | A/B 루브릭 목록 조회 |
+| POST | `/api/v1/experiment/ab` | A/B 루브릭 비교 실험 |
+| GET | `/api/v1/auth/google/login` | Google OAuth 로그인 |
+| POST | `/api/v1/auth/login` | JWT 로그인 |
+| POST | `/api/v1/growth/roadmap` | 성장 경로 로드맵 생성 |
 
 ---
 
-## ?�� 분석 결과
+## 📊 분석 결과
 
-### ?�� MAS v7.0 ??18�??�상 분석 (최신)
+### 🤖 MAS v7.0 — 18개 영상 분석 (최신)
 
-| ?�계 | 결과 |
+| 통계 | 결과 |
 | ---- | ---- |
-| ???�공�?| **18/18 (100%)** |
-| ?�� ?�균 ?�수 | **76.2??(B+?�급)** |
-| ?�� 최고 ?�수 | **83.5??(20251209_154506, A-?�급)** |
-| ?�� 최�? ?�수 | **65.0??(20251209_140629, B-?�급)** |
-| ?�� ?�수 범위 | **18.5pt (v5.0 ?��?1.4�??��?)** |
-| ?�️ �?처리 ?�간 | **99.1�?(?�상??~5.5�?** |
-| ?���?DB ?�??| **18 records + 126 dimension scores** |
+| ✅ 성공률 | **18/18 (100%)** |
+| 📊 평균 점수 | **76.2점 (B+등급)** |
+| 🏆 최고 점수 | **83.5점 (20251209_154506, A-등급)** |
+| 📉 최저 점수 | **65.0점 (20251209_140629, B-등급)** |
+| 📏 점수 범위 | **18.5pt (v5.0 대비 1.4배 확대)** |
+| ⏱️ 총 처리 시간 | **99.1분 (영상당 ~5.5분)** |
+| 🗄️ DB 저장 | **18 records + 126 dimension scores** |
 
-**?�급 분포**: A-?�급 3�?(17%) / B+?�급 8�?(44%) / B?�급 6�?(33%) / B-?�급 1�?(6%)
+**등급 분포**: A-등급 3개 (17%) / B+등급 8개 (44%) / B등급 6개 (33%) / B-등급 1개 (6%)
 
-### ?�� v6.0 ???�뢰?�·�??�도 분석 (최신)
+### 🔬 v6.0 — 신뢰도·타당도 분석 (최신)
 
-6??반복 배치 분석 × 18?�상 × 7차원 ?�뢰??검�?
+6회 반복 배치 분석 × 18영상 × 7차원 신뢰도 검증:
 
-| ?�뢰??지??| 결과 | 비고 |
+| 신뢰도 지표 | 결과 | 비고 |
 | ---- | :--: | ---- |
-| Cronbach's α | 0.33 | 7차원 각각 ?�립??구인 측정 |
-| Test-Retest r | **0.68** (0.35~0.93) | ?�행 �??�위 ?�정??|
-| MAD (?�균 ?��?�? | **3.09??* | 100??만점 기�? |
-| ±5???�치??| **82.6%** | ?�용???�치 ?��? |
-| ±3???�치??| 57.0% | ?�격 ?�치 ?��? |
+| Cronbach's α | 0.33 | 7차원 각각 독립적 구인 측정 |
+| Test-Retest r | **0.68** (0.35~0.93) | 실행 간 순위 안정성 |
+| MAD (평균 절대차) | **3.09점** | 100점 만점 기준 |
+| ±5점 일치율 | **82.6%** | 실용적 일치 수준 |
+| ±3점 일치율 | 57.0% | 엄격 일치 수준 |
 
-**차원�??�수 지??*:
+**차원별 우수 지표**:
 
-| 차원 | ICC(2,1) | Retest r | ?�정 |
+| 차원 | ICC(2,1) | Retest r | 판정 |
 | ---- | :--: | :--: | :--: |
-| ?�서 �??�어 | 0.7454 | 0.8647 | ???�수 |
-| ?�간 배분 | 0.5747 | 0.9531 | ???�수 |
-| ?�업 ?�문??| 0.4894 | 0.5721 | ?�️ ?�호 |
+| 판서 및 언어 | 0.7454 | 0.8647 | ✅ 우수 |
+| 시간 배분 | 0.5747 | 0.9531 | ✅ 우수 |
+| 수업 전문성 | 0.4894 | 0.5721 | ⚠️ 양호 |
 
-| ?�?�보??| 링크 |
+| 대시보드 | 링크 |
 | -------- | ---- |
-| ?�� MAS ?�페?��? | [edu-data.github.io/GAIM_Lab](https://edu-data.github.io/GAIM_Lab/mas-index.html) |
-| ?�� v5.0 배치 ?�?�보??| [18�??�상 ?�각??+ ?�자 분리](https://edu-data.github.io/GAIM_Lab/batch_dashboard.html) |
-| ?�� MAS ?�?�보??| [v4.2 분석 결과](https://edu-data.github.io/GAIM_Lab/mas-dashboard.html) |
+| 🤖 MAS 홈페이지 | [edu-data.github.io/GAIM_Lab](https://edu-data.github.io/GAIM_Lab/mas-index.html) |
+| 📊 v5.0 배치 대시보드 | [18개 영상 시각화 + 화자 분리](https://edu-data.github.io/GAIM_Lab/batch_dashboard.html) |
+| 📊 MAS 대시보드 | [v4.2 분석 결과](https://edu-data.github.io/GAIM_Lab/mas-dashboard.html) |
 
-### ?�� ?�전 보고??
+### 📋 이전 보고서
 
-| 보고??| ?�명 |
+| 보고서 | 설명 |
 | ------ | ---- |
-| [v5.0 배치 ?�?�보??(https://edu-data.github.io/GAIM_Lab/batch_dashboard.html) | ?�자분리·?�수분포·?�점??|
-| [최고??리포??(https://edu-data.github.io/GAIM_Lab/best_report_110545.html) | 84???�상 ?�세 분석 |
-| [FIAS ?�?�보??(https://edu-data.github.io/GAIM_Lab/fias-dashboard.html) | Flanders ?�호?�용 분석 |
-| [종합 ?��? 보고??(https://edu-data.github.io/GAIM_Lab/comprehensive_report.html) | 18�??�상 종합 분석 |
-| [GAIM Lab ?�사?�트](https://edu-data.github.io/GAIM_Lab/) | ?�스???�개 |
+| [v5.0 배치 대시보드](https://edu-data.github.io/GAIM_Lab/batch_dashboard.html) | 화자분리·점수분포·산점도 |
+| [최고점 리포트](https://edu-data.github.io/GAIM_Lab/best_report_110545.html) | 84점 영상 상세 분석 |
+| [FIAS 대시보드](https://edu-data.github.io/GAIM_Lab/fias-dashboard.html) | Flanders 상호작용 분석 |
+| [종합 평가 보고서](https://edu-data.github.io/GAIM_Lab/comprehensive_report.html) | 18개 영상 종합 분석 |
+| [GAIM Lab 웹사이트](https://edu-data.github.io/GAIM_Lab/) | 시스템 소개 |
 
 ---
 
-## ?�� 버전 ?�스?�리 (Changelog)
+## 📜 버전 히스토리 (Changelog)
 
-### v7.1 ???�규 기능 7�?· PWA · ?�시�?코칭 `2026-02-20`
+### v7.1 — 신규 기능 7종 · PWA · 실시간 코칭 `2026-02-20`
 
-- **?�� ?�장 경로 (P0)**: 3/6/12�?맞춤 개선 로드�??�성 (`growth_analyzer.py` + `GrowthPath.jsx`)
-- **?�� ?�시�?코칭 ?�이??(P1)**: WebSocket 기반 ?�시�??�드�?(`live_coaching.py` + `LiveCoaching.jsx`)
-  - ?�러?�드 감�?, WPM 모니?�링, 침묵 ?��?
-- **?�� 코호??비교 분석 (P1)**: 집단 �?t-test, Cohen's d ?�계 비교 (`cohort.py` + `CohortCompare.jsx`)
-- **?�� Google OAuth (P1)**: JWT + Google ?�셜 로그??(`auth.py` + `LoginPage.jsx`)
-- **?�� PWA 지??(P2)**: Service Worker + Web App Manifest (`manifest.json`, `service-worker.js`)
-- **?�� A/B 루브�??�험 (P2)**: 2�?루브�??�시 ?�용 채점 비교 (`rubric_experiment.py` + `ABExperiment.jsx`)
-- **?�� ?�상 ?�이?�이??(P2)**: 비디???�?�라??마커 컴포?�트 (`VideoHighlights.jsx` ??`AnalysisResult.jsx` ?�합)
-- **?�로?�트 구조 ?�리**: ?�크립트 `scripts/` ?�렉?�리 ?�동, `data/` 분리
+- **🎯 성장 경로 (P0)**: 3/6/12주 맞춤 개선 로드맵 생성 (`growth_analyzer.py` + `GrowthPath.jsx`)
+- **🔴 실시간 코칭 라이트 (P1)**: WebSocket 기반 실시간 피드백 (`live_coaching.py` + `LiveCoaching.jsx`)
+  - 필러워드 감지, WPM 모니터링, 침묵 탐지
+- **📊 코호트 비교 분석 (P1)**: 집단 간 t-test, Cohen's d 통계 비교 (`cohort.py` + `CohortCompare.jsx`)
+- **👤 Google OAuth (P1)**: JWT + Google 소셜 로그인 (`auth.py` + `LoginPage.jsx`)
+- **📱 PWA 지원 (P2)**: Service Worker + Web App Manifest (`manifest.json`, `service-worker.js`)
+- **🧪 A/B 루브릭 실험 (P2)**: 2개 루브릭 동시 적용 채점 비교 (`rubric_experiment.py` + `ABExperiment.jsx`)
+- **🎬 영상 하이라이트 (P2)**: 비디오 타임라인 마커 컴포넌트 (`VideoHighlights.jsx` → `AnalysisResult.jsx` 통합)
+- **프로젝트 구조 정리**: 스크립트 `scripts/` 디렉토리 이동, `data/` 분리
 
-### v7.0 ??Pydantic 계약 · SQLite ?�속??· ?�장 분석 `2026-02-20`
+### v7.0 — Pydantic 계약 · SQLite 영속성 · 성장 분석 `2026-02-20`
 
-- **채점 ?�진 v7 리팩?�링** (`pedagogy_agent.py`)
-  - 구간??Binning) 기반 결정론적 채점 (LLM ?�단 ?�존 ?�거)
-  - 차원�?`confidence_score` 메�??�이??추�?
-  - `w*0.95` 천장 방�? + `adjust_range` ?��?
-  - 차원�??�립 ?�로??리포??(`profile_summary`)
+- **채점 엔진 v7 리팩토링** (`pedagogy_agent.py`)
+  - 구간화(Binning) 기반 결정론적 채점 (LLM 판단 의존 제거)
+  - 차원별 `confidence_score` 메타데이터 추가
+  - `w*0.95` 천장 방지 + `adjust_range` 확대
+  - 차원별 독립 프로필 리포팅 (`profile_summary`)
 - **Orchestrator v7** (`orchestrator.py`)
-  - `SharedContext` ??Pydantic `BaseModel` ?�??계약
-  - ?�이?�트�??�뢰??메�??�이???�파 (confidence propagation)
-  - ?�동 DB ?�??hook (`_try_save_to_db`)
-- **SQLite ?�이???�속??* (`core/database.py` ?�규)
-  - `analyses` + `dimension_scores` ?�이�?
+  - `SharedContext` → Pydantic `BaseModel` 타입 계약
+  - 에이전트별 신뢰도 메타데이터 전파 (confidence propagation)
+  - 자동 DB 저장 hook (`_try_save_to_db`)
+- **SQLite 데이터 영속성** (`core/database.py` 신규)
+  - `analyses` + `dimension_scores` 테이블
   - `AnalysisRepository` CRUD (save/get/history/growth/delete)
-  - WAL 모드, ?�동 DB ?�일 ?�성
-- **?�장 경로 분석�?* (`core/growth_analyzer.py` ?�규)
-  - 차원�??�형 ?��? 추세 분석
-  - 강점/?�점 ?�로??+ ?�동 개선 ?�드�?(규칙 기반)
-- **UX 개선**: History API (`/history`, `/growth`, `/delete`), Dashboard DB ?�력 ?�동
-- **코드 ?�질**: ?�로?�트 ?�체 ?�드코딩 경로 ?�거 (9�??�일), ?�거???�크립트 ?�리
-- **배치 결과**: 18/18 ?�공, ?�균 76.2?? ?�수 범위 18.5pt
+  - WAL 모드, 자동 DB 파일 생성
+- **성장 경로 분석기** (`core/growth_analyzer.py` 신규)
+  - 차원별 선형 회귀 추세 분석
+  - 강점/약점 프로필 + 자동 개선 피드백 (규칙 기반)
+- **UX 개선**: History API (`/history`, `/growth`, `/delete`), Dashboard DB 이력 연동
+- **코드 품질**: 프로젝트 전체 하드코딩 경로 제거 (9개 파일), 레거시 스크립트 정리
+- **배치 결과**: 18/18 성공, 평균 76.2점, 점수 범위 18.5pt
 
-### v6.0 ???�뢰?�·기준?�?�도 분석 ?�구 `2026-02-19`
+### v6.0 — 신뢰도·기준타당도 분석 도구 `2026-02-19`
 
-- **pyannote.audio 3.3 ?�합**: Python 3.14 + PyTorch 2.10 ?�경 8-layer ?�환???�치
-  - torchaudio 2.10 API ?�텁, numpy 2.0 NaN 별칭, torchcodec DLL mock
-  - huggingface_hub `use_auth_token?�token` ?�동 변??
-  - `torch.serialization.load` weights_only ?�치
-- **?�뢰??분석** (`reliability_analysis.py`)
+- **pyannote.audio 3.3 통합**: Python 3.14 + PyTorch 2.10 환경 8-layer 호환성 패치
+  - torchaudio 2.10 API 스텁, numpy 2.0 NaN 별칭, torchcodec DLL mock
+  - huggingface_hub `use_auth_token→token` 자동 변환
+  - `torch.serialization.load` weights_only 패치
+- **신뢰도 분석** (`reliability_analysis.py`)
   - Cronbach's α / ICC(2,1) / ICC(2,k) / SEM
-  - Test-Retest ?��?(Pearson r) / MAD / ±3pt·±5pt ?�치??
-  - IQR 기반 ?�상�??�행 ?�동 ?�터�?
-  - HTML 리포??(Chart.js ?�각??
-- **기�??�?�도 분석** (`criterion_validity.py`)
-  - Pearson r / Spearman ? / R² / MAE / RMSE
-  - Bland-Altman ?�치??분석 + ?�점??
-  - ?�급 ?�확·?�접 ?�치??
-  - `expert_scores.csv` ?�문가 채점 ?�플�?
-- **교차 분석** (`cross_analysis.py`) / **YouTube ?�운로더** (`download_youtube_videos.py`)
-- `pedagogy_agent.py` v6.0 채점 리밸?�싱
+  - Test-Retest 상관(Pearson r) / MAD / ±3pt·±5pt 일치율
+  - IQR 기반 이상치 실행 자동 필터링
+  - HTML 리포트 (Chart.js 시각화)
+- **기준타당도 분석** (`criterion_validity.py`)
+  - Pearson r / Spearman ρ / R² / MAE / RMSE
+  - Bland-Altman 일치도 분석 + 산점도
+  - 등급 정확·인접 일치율
+  - `expert_scores.csv` 전문가 채점 템플릿
+- **교차 분석** (`cross_analysis.py`) / **YouTube 다운로더** (`download_youtube_videos.py`)
+- `pedagogy_agent.py` v6.0 채점 리밸런싱
 
-### v5.0 ???�자 분리 & ?�화 분석 `2026-02-18`
+### v5.0 — 화자 분리 & 담화 분석 `2026-02-18`
 
-- **Discourse Analyzer** ?�규 추�?: STT 결과?�서 교사/?�생 발화�?분리?�여 ?�화 ?�턴 분석
-- 교사 발화 비율, ?�생 발화 ?�수, 질문 ?�형 ?�동 분류
-- v5.0 배치 ?�?�보?? ?�자 분리 ?�점??차트 (교사비율 vs 총점, ?�생발화 vs 총점)
-- ?�수 범위 ?��?: v4.2 **9.7pt** ??v5.0 **13.5pt** (1.4�?
-- ?�급분포 개선: A-:4 / B+:11 / B:2 / B-:1
-- ?�균 ?�수: **77.4??* (v4.2 ?��?+0.4pt)
+- **Discourse Analyzer** 신규 추가: STT 결과에서 교사/학생 발화를 분리하여 담화 패턴 분석
+- 교사 발화 비율, 학생 발화 횟수, 질문 유형 자동 분류
+- v5.0 배치 대시보드: 화자 분리 산점도 차트 (교사비율 vs 총점, 학생발화 vs 총점)
+- 점수 범위 확대: v4.2 **9.7pt** → v5.0 **13.5pt** (1.4배)
+- 등급분포 개선: A-:4 / B+:11 / B:2 / B-:1
+- 평균 점수: **77.4점** (v4.2 대비 +0.4pt)
 
-### v4.2 ???�이?�트 버그 ?�정 `2026-02-18`
+### v4.2 — 에이전트 버그 수정 `2026-02-18`
 
-- **Vision/Content ?�레??경로 버그 ?�정**: `flash_extract_resources`가 `{temp_dir}/frame_*.jpg`???�?�하지�? ?��??�트?�이?��? `{temp_dir}/frames/`?�서 검?�하??경로 불일�??�결
-- Vision Agent 0.02s ??**5.24s** (?�굴감�?·?�스처·�?직임 ?�분??
-- Content Agent 0.0s ??**161.3s** (OCR·?�라?�드·?�스?��????�분??
-- `_phase_synthesize`??vision/content/vibe ?�약 ?�이??추�?
-- 배치 ?�분??결과: ?�균 **77.0??*, ?�급분포 A-:2 / B+:13 / B:3
+- **Vision/Content 프레임 경로 버그 수정**: `flash_extract_resources`가 `{temp_dir}/frame_*.jpg`에 저장하지만, 오케스트레이터가 `{temp_dir}/frames/`에서 검색하던 경로 불일치 해결
+- Vision Agent 0.02s → **5.24s** (얼굴감지·제스처·움직임 실분석)
+- Content Agent 0.0s → **161.3s** (OCR·슬라이드·텍스트밀도 실분석)
+- `_phase_synthesize`에 vision/content/vibe 요약 데이터 추가
+- 배치 재분석 결과: 평균 **77.0점**, 등급분포 A-:2 / B+:13 / B:3
 
-### v4.1 ???�수 차별??강화 `2026-02-18`
+### v4.1 — 점수 차별화 강화 `2026-02-18`
 
-- `pedagogy_agent.py` ?�면 리팩?�링
-- `_safe()` ?�퍼�??�이?�트 ?�러/�??�이???�전 처리
-- STT ?�이??기반 7차원 ?�체 차별??강화
-- ?�국??발화?�도 기�? 보정 (3.0~5.0 ?�절/�?
-- ?�수 범위 **71.5~82.6** (11pt range, ?�전 44.9~53.4?�서 ?�??개선)
-- ?�급분포 A- 11�?/ B+ 4�?/ B 3�?
+- `pedagogy_agent.py` 전면 리팩토링
+- `_safe()` 헬퍼로 에이전트 에러/빈 데이터 안전 처리
+- STT 데이터 기반 7차원 전체 차별화 강화
+- 한국어 발화속도 기준 보정 (3.0~5.0 음절/초)
+- 점수 범위 **71.5~82.6** (11pt range, 이전 44.9~53.4에서 대폭 개선)
+- 등급분포 A- 11개 / B+ 4개 / B 3개
 
-### v4.0 ??MAS 멀???�이?�트 ?�스??`2026-02-17`
+### v4.0 — MAS 멀티 에이전트 시스템 `2026-02-17`
 
-- **AgentOrchestrator** ?�이?�라???�키?�처 ?�입
-- 8�?AI ?�이?�트 ?�계 �?구현 (Extractor, Vision, Content, STT, Vibe, Pedagogy, Feedback, Master)
-- `SharedContext` ?�이?�트 �??�이??공유 ?�레?�워??
+- **AgentOrchestrator** 파이프라인 아키텍처 도입
+- 8개 AI 에이전트 설계 및 구현 (Extractor, Vision, Content, STT, Vibe, Pedagogy, Feedback, Master)
+- `SharedContext` 에이전트 간 데이터 공유 프레임워크
 - Event-driven Pub/Sub 메시지 버스
-- MAS ?�용 ?�페?��? (`mas-index.html`) �??�?�보??(`mas-dashboard.html`)
-- 18�??�상 배치 분석 ?�동??(`run_batch_agents.py`)
+- MAS 전용 홈페이지 (`mas-index.html`) 및 대시보드 (`mas-dashboard.html`)
+- 18개 영상 배치 분석 자동화 (`run_batch_agents.py`)
 
-### v3.0 ????UI �?리포???�스??`2026-02-05`
+### v3.0 — 웹 UI 및 리포트 시스템 `2026-02-05`
 
-- **FastAPI 백엔??* + **React 18 ?�론?�엔??* ?�?�택 구현
-- ?�생 ?�트?�리???�이??차트·?�장 추적·?��???배�? ?�스??
-- ?�시�?분석 진행 ?�드�?UI
-- 모의?�업 ?�상 분석 ?�동??�?HTML/PDF 리포???�성
-- E2E ?�스??(Vitest + Playwright)
+- **FastAPI 백엔드** + **React 18 프론트엔드** 풀스택 구현
+- 학생 포트폴리오 레이더 차트·성장 추적·디지털 배지 시스템
+- 실시간 분석 진행 피드백 UI
+- 모의수업 영상 분석 자동화 및 HTML/PDF 리포트 생성
+- E2E 테스트 (Vitest + Playwright)
 
-### v2.0 ??배치 분석 �?RAG ?�합 `2026-02-05`
+### v2.0 — 배치 분석 및 RAG 통합 `2026-02-05`
 
-- **배치 분석 ?�스??* (`batch_analysis.py`): 18�??�상 ?�차 처리, CSV ?�약
-- **RAG ?�이?�라??*: Vertex AI Search + 교육??지??베이???�합
-- 리포??v2: QR코드 ?�입, 반응??차트
-- FIAS(Flanders ?�호?�용 분석) ?�?�보??추�?
-- 배치 ?�?�보??(?�수분포·?�급·?�이?�차???�각??
+- **배치 분석 시스템** (`batch_analysis.py`): 18개 영상 순차 처리, CSV 요약
+- **RAG 파이프라인**: Vertex AI Search + 교육학 지식 베이스 통합
+- 리포트 v2: QR코드 삽입, 반응형 차트
+- FIAS(Flanders 상호작용 분석) 대시보드 추가
+- 배치 대시보드 (점수분포·등급·레이더차트 시각화)
 
-### v1.0 ??초기 ?�스??`2026-02-04`
+### v1.0 — 초기 시스템 `2026-02-04`
 
-- **GAIM Lab ?�상 분석 ?�스??* 초기 ?�키?�처 ?�계
-- `TimeLapseAnalyzer` ?�상 ?�레??추출 �?분석
-- `GAIMLectureEvaluator` 7차원 100??만점 ?��? ?�레?�워??구현
-- `GAIMReportGenerator` HTML 리포???�성
-- GPU 가??FFmpeg ?�레??추출 구현
-- 병렬 ?�레??분석 (`ParallelFrameAnalyzer`) 멀?�프로세??최적??
-- GitHub Pages ?�로모션 ?�딩 ?�이지
+- **GAIM Lab 영상 분석 시스템** 초기 아키텍처 설계
+- `TimeLapseAnalyzer` 영상 프레임 추출 및 분석
+- `GAIMLectureEvaluator` 7차원 100점 만점 평가 프레임워크 구현
+- `GAIMReportGenerator` HTML 리포트 생성
+- GPU 가속 FFmpeg 프레임 추출 구현
+- 병렬 프레임 분석 (`ParallelFrameAnalyzer`) 멀티프로세싱 최적화
+- GitHub Pages 프로모션 랜딩 페이지
 
 ---
 
-## ?�️ 기술 ?�택
+## ⚙️ 기술 스택
 
-| ?�역 | 기술 |
+| 영역 | 기술 |
 | ---- | ---- |
 | **AI/ML** | Google Gemini AI, OpenAI Whisper, pyannote.audio, OpenCV, Librosa |
-| **분석 ?�구** | ICC, Cronbach's α, Bland-Altman, Test-Retest, SEM |
+| **분석 도구** | ICC, Cronbach's α, Bland-Altman, Test-Retest, SEM |
 | **Backend** | FastAPI, WebSocket, Python 3.9+, RAG Pipeline, Pydantic |
 | **Frontend** | React 18, Vite, Chart.js, Recharts, PWA |
-| **?�증** | Google OAuth 2.0, JWT |
-| **?�이??* | SQLite (WAL mode), Growth Analyzer |
-| **?�상 처리** | FFmpeg (CUDA GPU 가?? |
-| **?�키?�처** | Pydantic Contract AgentOrchestrator, Pub/Sub MessageBus |
+| **인증** | Google OAuth 2.0, JWT |
+| **데이터** | SQLite (WAL mode), Growth Analyzer |
+| **영상 처리** | FFmpeg (CUDA GPU 가속) |
+| **아키텍처** | Pydantic Contract AgentOrchestrator, Pub/Sub MessageBus |
 | **배포** | GitHub Pages, GitHub Actions, PWA Service Worker |
 
 ---
 
-## ?�� ?�스??
+## 🧪 테스트
 
 ```bash
-# Frontend ?�위 ?�스??
+# Frontend 단위 테스트
 cd frontend && npm test
 
-# E2E ?�스??
+# E2E 테스트
 npm run test:e2e
 
-# RAG ?�이?�라???�스??
+# RAG 파이프라인 테스트
 python test_rag_pipeline.py
 ```
 
 ---
 
-## ?�� ?�이?�스
+## 📄 라이선스
 
-MIT License · 경인교육?�?�교 GAIM Lab
+MIT License · 경인교육대학교 GAIM Lab
 
 ---
 
 <p align="center">
-  <strong>경인교육?�?�교 GINUE AI Microteaching Lab</strong><br/>
+  <strong>경인교육대학교 GINUE AI Microteaching Lab</strong><br/>
   <a href="mailto:educpa@ginue.ac.kr">educpa@ginue.ac.kr</a> ·
   <a href="https://github.com/edu-data/GAIM_Lab">GitHub</a> ·
-  <a href="https://edu-data.github.io/GAIM_Lab/mas-index.html">?�사?�트</a>
+  <a href="https://edu-data.github.io/GAIM_Lab/mas-index.html">웹사이트</a>
 </p>
