@@ -433,16 +433,16 @@ export default function AgentMonitor() {
                     <h3>📊 분석 결과</h3>
                     <div className="result-summary">
                         <div className="result-score-big">
-                            <span className="score-number">{finalReport.totalScore}</span>
+                            <span className="score-number">{finalReport.summary?.totalScore ?? finalReport.totalScore ?? '—'}</span>
                             <span className="score-label">/100</span>
                         </div>
-                        <div className={`result-grade grade-${finalReport.grade.replace('+', 'p')}`}>
-                            {finalReport.grade}
+                        <div className={`result-grade grade-${(finalReport.summary?.grade || finalReport.grade || 'C').replace('+', 'p')}`}>
+                            {finalReport.summary?.grade || finalReport.grade || '—'}
                         </div>
                     </div>
 
                     <div className="dimensions-grid">
-                        {finalReport.dimensions.map((dim, i) => (
+                        {(finalReport.dimensions || []).map((dim, i) => (
                             <div key={i} className="dim-item">
                                 <div className="dim-header">
                                     <span className="dim-name">{dim.name}</span>
@@ -460,27 +460,27 @@ export default function AgentMonitor() {
 
                     {finalReport.feedback && (
                         <div className="feedback-list">
-                            {finalReport.feedback.strengths.map((s, i) => (
+                            {(finalReport.feedback.strengths || []).map((s, i) => (
                                 <div key={`s${i}`} className="feedback-item strength">✅ {s.message}</div>
                             ))}
-                            {finalReport.feedback.improvements.map((s, i) => (
+                            {(finalReport.feedback.improvements || []).map((s, i) => (
                                 <div key={`i${i}`} className="feedback-item improve">⚠️ {s.message}</div>
                             ))}
-                            {finalReport.feedback.tips.map((t, i) => (
+                            {(finalReport.feedback.tips || []).map((t, i) => (
                                 <div key={`t${i}`} className="feedback-item tip">{t}</div>
                             ))}
                         </div>
                     )}
 
                     <div className="result-metrics">
-                        <div className="metric"><span className="metric-label">영상 길이</span><span className="metric-value">{formatDuration(finalReport.summary.duration)}</span></div>
-                        <div className="metric"><span className="metric-label">해상도</span><span className="metric-value">{finalReport.summary.resolution}</span></div>
-                        <div className="metric"><span className="metric-label">분석 프레임</span><span className="metric-value">{finalReport.summary.totalFrames}장</span></div>
-                        <div className="metric"><span className="metric-label">제스처 활성</span><span className="metric-value">{finalReport.metrics.gestureActivity}%</span></div>
-                        <div className="metric"><span className="metric-label">슬라이드</span><span className="metric-value">{finalReport.metrics.slideCount}장</span></div>
-                        <div className="metric"><span className="metric-label">음성 활성</span><span className="metric-value">{finalReport.metrics.speechActivity}%</span></div>
-                        <div className="metric"><span className="metric-label">추정 어절</span><span className="metric-value">{finalReport.metrics.estimatedWords}어절</span></div>
-                        <div className="metric"><span className="metric-label">침묵 비율</span><span className="metric-value">{finalReport.metrics.silenceRatio}%</span></div>
+                        <div className="metric"><span className="metric-label">영상 길이</span><span className="metric-value">{formatDuration(finalReport.summary?.duration || 0)}</span></div>
+                        <div className="metric"><span className="metric-label">해상도</span><span className="metric-value">{finalReport.summary?.resolution || '—'}</span></div>
+                        <div className="metric"><span className="metric-label">분석 프레임</span><span className="metric-value">{finalReport.summary?.totalFrames || 0}장</span></div>
+                        <div className="metric"><span className="metric-label">제스처 활성</span><span className="metric-value">{finalReport.metrics?.gestureActivity || 0}%</span></div>
+                        <div className="metric"><span className="metric-label">슬라이드</span><span className="metric-value">{finalReport.metrics?.slideCount || 0}장</span></div>
+                        <div className="metric"><span className="metric-label">음성 활성</span><span className="metric-value">{finalReport.metrics?.speechActivity || 0}%</span></div>
+                        <div className="metric"><span className="metric-label">추정 어절</span><span className="metric-value">{finalReport.metrics?.estimatedWords || 0}어절</span></div>
+                        <div className="metric"><span className="metric-label">침묵 비율</span><span className="metric-value">{finalReport.metrics?.silenceRatio || 0}%</span></div>
                     </div>
                 </div>
             )}
