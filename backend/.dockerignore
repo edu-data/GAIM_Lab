@@ -10,3 +10,16 @@ test_output.json
 video/
 uploads/
 output/
+# Exclude ML-dependent API modules (not needed for Cloud Run auth-only mode)
+app/api/analysis.py
+app/api/agents.py
+app/api/badges.py
+app/api/cohort.py
+app/api/history.py
+app/api/live_coaching.py
+app/api/mentoring.py
+app/api/portfolio.py
+app/api/realtime.py
+app/api/rubric_experiment.py
+# Exclude ML core modules
+app/core/
