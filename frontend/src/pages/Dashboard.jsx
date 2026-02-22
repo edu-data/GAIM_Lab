@@ -39,7 +39,17 @@ function Dashboard() {
                 }
                 setLoading(false)
             })
-            .catch(() => { setLoading(false) })
+            .catch(() => {
+                // Demo fallback — API 미연결 시 샘플 데이터 표시
+                const demoHistory = [
+                    { filename: '20251209_100926.mp4', total_score: 76.1, grade: 'C+', created_at: '2025-12-09T10:09:26' },
+                    { filename: '20251209_102400.mp4', total_score: 84.0, grade: 'B', created_at: '2025-12-09T10:24:00' },
+                    { filename: '20251209_104016.mp4', total_score: 71.3, grade: 'C', created_at: '2025-12-09T10:40:16' },
+                ]
+                setHistory(demoHistory)
+                setStats({ totalSessions: 3, averageScore: 77.1, bestGrade: 'B', bestScore: 84, scoreRange: 12.7, badges: 1 })
+                setLoading(false)
+            })
     }, [])
 
     const runDemo = async () => {
@@ -49,6 +59,20 @@ function Dashboard() {
             setDemoResult(data.gaim_evaluation)
         } catch (e) {
             console.error('Demo failed:', e)
+            // Fallback demo result
+            setDemoResult({
+                total_score: 76.1,
+                grade: 'C+',
+                dimensions: [
+                    { name: '수업 전문성', score: 12, max_score: 15, percentage: 80 },
+                    { name: '교수학습 방법', score: 11, max_score: 15, percentage: 73 },
+                    { name: '판서 및 언어', score: 11, max_score: 15, percentage: 73 },
+                    { name: '수업 태도', score: 11, max_score: 15, percentage: 73 },
+                    { name: '학생 참여', score: 10, max_score: 15, percentage: 67 },
+                    { name: '시간 배분', score: 11, max_score: 15, percentage: 73 },
+                    { name: '창의성', score: 10, max_score: 10, percentage: 100 },
+                ],
+            })
         }
         setDemoLoading(false)
     }

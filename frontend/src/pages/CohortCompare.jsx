@@ -1,6 +1,5 @@
 import { useState } from 'react'
-
-const API_BASE = '/api/v1/cohort'
+import api from '../lib/api'
 
 function CohortCompare() {
     const [groupA, setGroupA] = useState({ prefix: '', label: '' })
@@ -14,13 +13,8 @@ function CohortCompare() {
         setLoading(true)
         setError(null)
         try {
-            const res = await fetch(`${API_BASE}/compare`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ group_a: groupA, group_b: groupB }),
-            })
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
-            setResult(await res.json())
+            const data = await api.post('/cohort/compare', { group_a: groupA, group_b: groupB })
+            setResult(data)
         } catch (e) {
             setError(e.message)
             // Demo fallback

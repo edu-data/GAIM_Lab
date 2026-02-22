@@ -62,7 +62,7 @@ function LiveCoaching() {
     const [movementHistory, setMovementHistory] = useState([])
     const startTimeRef_cam = useRef(0) // shared with startTimeRef for movement history elapsed calc
 
-    const { videoRef, canvasRef, cameraOn, metrics: videoMetrics, startCamera, stopCamera, resetMetrics: resetCameraMetrics } = useCamera({
+    const { videoRef, canvasRef, cameraOn, error: cameraError, metrics: videoMetrics, startCamera, stopCamera, resetMetrics: resetCameraMetrics } = useCamera({
         onFrame: ({ avgMovement }) => {
             const elapsed = (Date.now() - startTimeRef_cam.current) / 1000
             setMovementHistory(prev => {
@@ -342,7 +342,13 @@ function LiveCoaching() {
                         {/* Camera Preview */}
                         <div className="lc-cam-box">
                             <video ref={videoRef} muted playsInline className="lc-cam-video" />
-                            {!cameraOn && <div className="lc-cam-off">📷 카메라 연결 중...</div>}
+                            {!cameraOn && (
+                                <div className="lc-cam-off">
+                                    {cameraError
+                                        ? `❌ 카메라 오류: ${cameraError}`
+                                        : '📷 카메라 연결 중...'}
+                                </div>
+                            )}
                             {cameraOn && (
                                 <div className="lc-cam-overlay">
                                     <span className="lc-cam-dot"></span>

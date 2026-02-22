@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import api from '../lib/api'
+import { API_HOST } from '../apiConfig'
 
 function LoginPage() {
     const [mode, setMode] = useState('login')
@@ -49,7 +50,8 @@ function LoginPage() {
     }
 
     const handleGoogleLogin = () => {
-        window.location.href = `${window.location.protocol}//${window.location.hostname}:8000/api/v1/auth/google/login`
+        const host = API_HOST || `${window.location.protocol}//${window.location.hostname}:8000`
+        window.location.href = `${host}/api/v1/auth/google/login`
     }
 
     const handleLogout = () => {

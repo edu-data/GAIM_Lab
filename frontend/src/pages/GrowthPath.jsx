@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-
-const API_BASE = '/api/v1'
+import api from '../lib/api'
 
 const PERIOD_TABS = [
     { key: '3주', label: '3주 단기', icon: '⚡', color: '#00d2ff' },
@@ -21,9 +20,7 @@ function GrowthPath() {
         setLoading(true)
         setError(null)
         try {
-            const res = await fetch(`${API_BASE}/growth/${prefix}`)
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
-            const data = await res.json()
+            const data = await api.get(`/growth/${prefix}`)
             setGrowth(data)
         } catch (e) {
             setError(e.message)
