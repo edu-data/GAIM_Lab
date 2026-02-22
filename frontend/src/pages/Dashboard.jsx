@@ -5,6 +5,7 @@ import {
     ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
     AreaChart, Area, CartesianGrid
 } from 'recharts'
+import api from '../lib/api'
 import './Dashboard.css'
 
 function Dashboard() {
@@ -18,8 +19,7 @@ function Dashboard() {
     const [demoLoading, setDemoLoading] = useState(false)
 
     useEffect(() => {
-        fetch('/api/v1/history?limit=50')
-            .then(r => r.json())
+        api.get('/history?limit=50')
             .then(data => {
                 const items = data.history || []
                 setHistory(items)
@@ -45,8 +45,7 @@ function Dashboard() {
     const runDemo = async () => {
         setDemoLoading(true)
         try {
-            const res = await fetch('/api/v1/analysis/demo', { method: 'POST' })
-            const data = await res.json()
+            const data = await api.post('/analysis/demo')
             setDemoResult(data.gaim_evaluation)
         } catch (e) {
             console.error('Demo failed:', e)

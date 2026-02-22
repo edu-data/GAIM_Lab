@@ -33,7 +33,7 @@ const agents = [
     { emoji: '🎨', name: 'Content', desc: '판서, 교수자료, 멀티미디어 분석', tech: 'Gemini AI' },
     { emoji: '🗣️', name: 'STT', desc: '음성→텍스트, 화자분리, 필러 감지', tech: 'Whisper + pyannote' },
     { emoji: '🔊', name: 'Vibe', desc: '억양·속도·에너지 프로소디 분석', tech: 'Librosa' },
-    { emoji: '📚', name: 'Pedagogy v7', desc: '구간화 채점 + Pydantic 신뢰도 전파', tech: 'Binning + Gemini' },
+    { emoji: '📚', name: 'Pedagogy v8', desc: '시그모이드 연속 채점 + 결정론적 해싱', tech: 'Sigmoid + Gemini' },
     { emoji: '💡', name: 'Feedback', desc: 'LLM + 규칙 기반 맞춤 피드백', tech: 'Gemini LLM' },
     { emoji: '🧠', name: 'Master', desc: '전체 결과 종합, 최종 보고서 생성', tech: 'Aggregation' },
 ]
@@ -45,7 +45,7 @@ function HomePage() {
             <section className="hero">
                 <div className="hero-badge">
                     <span className="hero-dot"></span>
-                    v7.1 — 신규 기능 7종 · Production Ready
+                    v8.0 — 연속 채점 · 프론트엔드 통합 · Production Ready
                 </div>
                 <h1 className="hero-title">
                     <span className="hero-title-gradient">멀티 에이전트</span>
@@ -138,11 +138,11 @@ function HomePage() {
                 </div>
             </section>
 
-            {/* v7.1 Features */}
+            {/* v8.0 Features */}
             <section className="home-section">
                 <div className="section-header">
-                    <h2>🚀 v7.1 신규 기능</h2>
-                    <p>7개 신규 기능 모두 구현 완료 ✅</p>
+                    <h2>🚀 v8.0 주요 기능</h2>
+                    <p>연속 채점, 프론트엔드 통합, 에러 방지 인프라 ✅</p>
                 </div>
                 <div className="features-grid">
                     {features.map((feat, i) => (
@@ -192,7 +192,7 @@ function HomePage() {
             <section className="home-section">
                 <div className="section-header">
                     <h2>📊 분석 결과 요약</h2>
-                    <p>MAS v7.0 — 18개 영상 분석 결과</p>
+                    <p>GAIM Lab v8.0 — 18개 영상 분석 결과</p>
                 </div>
                 <div className="results-grid">
                     <div className="result-card">

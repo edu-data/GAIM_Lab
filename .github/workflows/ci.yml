@@ -1,0 +1,101 @@
+name: GAIM Lab CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  CI: true
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '20'
+
+jobs:
+  # ═══════════════════════════════════════════════════════════
+  # Backend: Lint + Test
+  # ═══════════════════════════════════════════════════════════
+  backend:
+    name: 🐍 Backend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest argon2-cffi python-jose[cryptography] numpy
+          # 주요 의존성만 설치 (Cloud SQL, OpenCV 등 비필수 생략)
+
+      - name: Run backend tests
+        run: python -m pytest backend/tests/ -v --tb=short
+        env:
+          DEPLOY_ENV: local
+          GAIM_SECRET_KEY: test-only-ci-secret
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: backend/tests/
+          retention-days: 7
+
+  # ═══════════════════════════════════════════════════════════
+  # Frontend: Build Verification
+  # ═══════════════════════════════════════════════════════════
+  frontend:
+    name: ⚛️ Frontend Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          test -f dist/index.html && echo "✅ Build output verified" || (echo "❌ Build failed" && exit 1)
+
+  # ═══════════════════════════════════════════════════════════
+  # Summary
+  # ═══════════════════════════════════════════════════════════
+  ci-summary:
+    name: ✅ CI Summary
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check results
+        run: |
+          echo "Backend: ${{ needs.backend.result }}"
+          echo "Frontend: ${{ needs.frontend.result }}"
+          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ]; then
+            echo "❌ CI failed"
+            exit 1
+          fi
+          echo "✅ All CI checks passed"

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import api from '../lib/api'
 import './BatchAnalysis.css'
 
 function BatchAnalysis() {
@@ -18,8 +19,7 @@ function BatchAnalysis() {
 
     const fetchVideos = async () => {
         try {
-            const response = await fetch('/api/v1/analysis/batch/videos')
-            const data = await response.json()
+            const data = await api.get('/analysis/batch/videos')
             setVideos(data.videos || [])
         } catch (error) {
             console.error('Failed to fetch videos:', error)
@@ -54,16 +54,10 @@ function BatchAnalysis() {
 
         setLoading(true)
         try {
-            const response = await fetch('/api/v1/analysis/batch/start', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    video_names: selectedVideos.length === videos.length ? null : selectedVideos,
-                    limit: selectedVideos.length === videos.length ? null : selectedVideos.length
-                })
+            const data = await api.post('/analysis/batch/start', {
+                video_names: selectedVideos.length === videos.length ? null : selectedVideos,
+                limit: selectedVideos.length === videos.length ? null : selectedVideos.length
             })
-
-            const data = await response.json()
             setBatchStatus(data)
             setPolling(true)
         } catch (error) {
@@ -79,8 +73,7 @@ function BatchAnalysis() {
 
         const interval = setInterval(async () => {
             try {
-                const response = await fetch(`/api/v1/analysis/batch/${batchStatus.id}`)
-                const data = await response.json()
+                const data = await api.get(`/analysis/batch/${batchStatus.id}`)
                 setBatchStatus(data)
 
                 if (data.status === 'completed' || data.status === 'failed') {
@@ -98,8 +91,7 @@ function BatchAnalysis() {
     // 결과 조회
     const fetchBatchResults = async (batchId) => {
         try {
-            const response = await fetch(`/api/v1/analysis/batch/${batchId}/results`)
-            const data = await response.json()
+            const data = await api.get(`/analysis/batch/${batchId}/results`)
             setBatchResults(data)
         } catch (error) {
             console.error('Failed to fetch results:', error)

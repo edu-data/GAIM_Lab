@@ -4,7 +4,7 @@ import './RealtimeFeedback.css';
 
 const WS_BASE = API_HOST
     ? API_HOST.replace(/^https?:\/\//, (m) => m.startsWith('https') ? 'wss://' : 'ws://')
-    : 'ws://localhost:8000';
+    : `ws://${window.location.host}`;  // v8.0: dev proxy 경유 (localhost 하드코딩 제거)
 
 const RealtimeFeedback = ({ analysisId, onComplete, onError }) => {
     const [connected, setConnected] = useState(false);

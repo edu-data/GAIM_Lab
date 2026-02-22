@@ -4,7 +4,7 @@ const API_BASE = '/api/v1/experiment'
 
 function ABExperiment() {
     const [rubrics, setRubrics] = useState({})
-    const [rubricA, setRubricA] = useState('standard_v7')
+    const [rubricA, setRubricA] = useState('standard_v8')
     const [rubricB, setRubricB] = useState('student_centered')
     const [result, setResult] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -13,7 +13,7 @@ function ABExperiment() {
         fetch(`${API_BASE}/rubrics`)
             .then(r => r.json()).then(setRubrics)
             .catch(() => setRubrics({
-                standard_v7: { name: '표준 루브릭 v7', criteria: '임용시험 기준' },
+                standard_v8: { name: '표준 루브릭 v8', criteria: '임용시험 기준' },
                 student_centered: { name: '학생중심 루브릭', criteria: '학생 참여 중심' },
                 creativity_focus: { name: '창의성 강조', criteria: '창의적 교수법 중심' },
                 balanced: { name: '균등 배점', criteria: '7차원 동일 가중치' },

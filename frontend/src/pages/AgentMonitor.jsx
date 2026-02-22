@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useAsyncTask } from '../hooks/useAsyncTask'
 import AgentCard from '../components/AgentCard'
 import AgentTimeline from '../components/AgentTimeline'
 import {
@@ -54,6 +55,9 @@ export default function AgentMonitor() {
     const timerRef = useRef(null)
     const startTimeRef = useRef(null)
     const abortRef = useRef(false)
+
+    // useAsyncTask: UI freeze 방지를 위한 비동기 태스크 래퍼
+    const asyncTask = useAsyncTask()
 
     const logEndRef = useRef(null)
     useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [log])
@@ -290,19 +294,21 @@ export default function AgentMonitor() {
         }
     }, [videoFile, addLog, updateAgent])
 
-    // ── 값비싼 동기 연산을 비동기로 래핑 (UI freeze 방지) ──
+    // ── runAsync: useAsyncTask 훅으로 대체 ──
+    // asyncTask.runTask(fn, { name }) 사용
     async function runAsync(fn) {
-        // UI가 업데이트되도록 flush
-        await new Promise(r => setTimeout(r, 50))
-        const result = fn()
-        // 결과 반영 후 다시 yield
-        await new Promise(r => setTimeout(r, 50))
-        return result
+        return await asyncTask.runTask(async ({ yield: yieldFn }) => {
+            await yieldFn() // UI flush before
+            const result = fn()
+            await yieldFn() // UI flush after
+            return result
+        }, { name: 'agent-step' })
     }
 
     // ── 리셋 ──
     const resetPipeline = useCallback(() => {
         abortRef.current = true
+        asyncTask.cancel() // cancel any running async task
         if (timerRef.current) clearInterval(timerRef.current)
         setAgents(makeAgents())
         setPipelineStatus('idle')

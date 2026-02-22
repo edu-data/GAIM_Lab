@@ -1,0 +1,83 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\educp.NOTEBOOK\AppData\Local\Programs\Python\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: D:\AI\GAIM_Lab
+configfile: pyproject.toml
+plugins: anyio-4.12.1, langsmith-0.6.8
+collecting ... collected 32 items
+
+backend/tests/test_pedagogy_v8.py::TestSigmoidMap::test_returns_float PASSED [  3%]
+backend/tests/test_pedagogy_v8.py::TestSigmoidMap::test_center_of_bin_approximates_bin_score PASSED [  6%]
+backend/tests/test_pedagogy_v8.py::TestSigmoidMap::test_boundary_smoothness PASSED [  9%]
+backend/tests/test_pedagogy_v8.py::TestSigmoidMap::test_monotonicity_within_range PASSED [ 12%]
+backend/tests/test_pedagogy_v8.py::TestSigmoidMap::test_single_bin_returns_score PASSED [ 15%]
+backend/tests/test_pedagogy_v8.py::TestSigmoidMap::test_empty_bins_returns_zero PASSED [ 18%]
+backend/tests/test_pedagogy_v8.py::TestSteepnessSensitivity::test_high_steepness_sharper_transition PASSED [ 21%]
+backend/tests/test_pedagogy_v8.py::TestSteepnessSensitivity::test_steepness_does_not_crash PASSED [ 25%]
+backend/tests/test_pedagogy_v8.py::TestBinning::test_correct_bin_assignment PASSED [ 28%]
+backend/tests/test_pedagogy_v8.py::TestBinning::test_boundary_values PASSED [ 31%]
+backend/tests/test_pedagogy_v8.py::TestPedagogyAgentModes::test_binned_mode_initialization PASSED [ 34%]
+backend/tests/test_pedagogy_v8.py::TestPedagogyAgentModes::test_continuous_mode_initialization PASSED [ 37%]
+backend/tests/test_pedagogy_v8.py::TestPedagogyAgentModes::test_steepness_default PASSED [ 40%]
+backend/tests/test_pedagogy_v8.py::TestPedagogyAgentModes::test_steepness_env_override PASSED [ 43%]
+backend/tests/test_pedagogy_v8.py::TestPedagogyAgentModes::test_binned_vs_continuous_differ PASSED [ 46%]
+backend/tests/test_pedagogy_v8.py::TestPedagogyAgentModes::test_dimensions_loaded PASSED [ 50%]
+backend/tests/test_pedagogy_v8.py::TestPedagogyAgentModes::test_grading_thresholds PASSED [ 53%]
+backend/tests/test_security.py::TestArgon2Hashing::test_hash_produces_argon2_format PASSED [ 56%]
+backend/tests/test_security.py::TestArgon2Hashing::test_hash_verify_roundtrip PASSED [ 59%]
+backend/tests/test_security.py::TestArgon2Hashing::test_wrong_password_fails PASSED [ 62%]
+backend/tests/test_security.py::TestArgon2Hashing::test_different_hashes_for_same_password PASSED [ 65%]
+backend/tests/test_security.py::TestArgon2Hashing::test_unicode_password PASSED [ 68%]
+backend/tests/test_security.py::TestLegacyPBKDF2::test_legacy_hash_is_hex PASSED [ 71%]
+backend/tests/test_security.py::TestLegacyPBKDF2::test_legacy_hash_deterministic PASSED [ 75%]
+backend/tests/test_security.py::TestLegacyPBKDF2::test_is_legacy_detection PASSED [ 78%]
+backend/tests/test_security.py::TestLegacyPBKDF2::test_v71_salt_produces_different_hash PASSED [ 81%]
+backend/tests/test_security.py::TestJWT::test_create_and_decode PASSED   [ 84%]
+backend/tests/test_security.py::TestJWT::test_expired_token_raises PASSED [ 87%]
+backend/tests/test_security.py::TestJWT::test_wrong_secret_raises PASSED [ 90%]
+backend/tests/test_security.py::TestJWT::test_token_contains_expected_claims PASSED [ 93%]
+backend/tests/test_security.py::TestProductionSecretGuard::test_dev_key_is_insecure PASSED [ 96%]
+backend/tests/test_security.py::TestProductionSecretGuard::test_secret_key_minimum_length PASSED [100%]
+
+============================== warnings summary ===============================
+core\agents\feedback_agent.py:10
+  D:\AI\GAIM_Lab\core\agents\feedback_agent.py:10: FutureWarning: 
+  
+  All support for the `google.generativeai` package has ended. It will no longer be receiving 
+  updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+  See README for more details:
+  
+  https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+  
+    import google.generativeai as genai
+
+backend/tests/test_security.py::TestJWT::test_create_and_decode
+  D:\AI\GAIM_Lab\backend\tests\test_security.py:113: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expire = datetime.utcnow() + timedelta(hours=1)
+
+backend/tests/test_security.py::TestJWT::test_create_and_decode
+  D:\AI\GAIM_Lab\backend\tests\test_security.py:115: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    payload["iat"] = datetime.utcnow()
+
+backend/tests/test_security.py::TestJWT::test_expired_token_raises
+  D:\AI\GAIM_Lab\backend\tests\test_security.py:127: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "exp": datetime.utcnow() - timedelta(hours=1),
+
+backend/tests/test_security.py::TestJWT::test_expired_token_raises
+  D:\AI\GAIM_Lab\backend\tests\test_security.py:128: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "iat": datetime.utcnow() - timedelta(hours=2),
+
+backend/tests/test_security.py::TestJWT::test_wrong_secret_raises
+  D:\AI\GAIM_Lab\backend\tests\test_security.py:139: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "exp": datetime.utcnow() + timedelta(hours=1),
+
+backend/tests/test_security.py::TestJWT::test_token_contains_expected_claims
+  D:\AI\GAIM_Lab\backend\tests\test_security.py:151: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "exp": datetime.utcnow() + timedelta(hours=24),
+
+backend/tests/test_security.py::TestJWT::test_token_contains_expected_claims
+  D:\AI\GAIM_Lab\backend\tests\test_security.py:152: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "iat": datetime.utcnow(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 32 passed, 8 warnings in 9.87s ========================

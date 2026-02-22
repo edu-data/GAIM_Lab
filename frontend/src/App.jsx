@@ -1,18 +1,17 @@
-import { HashRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import HomePage from './pages/HomePage'
 import Dashboard from './pages/Dashboard'
 import Upload from './pages/Upload'
-import Portfolio from './pages/Portfolio'
-import BatchAnalysis from './pages/BatchAnalysis'
 import AnalysisResult from './pages/AnalysisResult'
 import AgentMonitor from './pages/AgentMonitor'
-import GrowthPath from './pages/GrowthPath'
 import LiveCoaching from './pages/LiveCoaching'
-import CohortCompare from './pages/CohortCompare'
 import LoginPage from './pages/LoginPage'
-import ABExperiment from './pages/ABExperiment'
 import AdminUsers from './pages/AdminUsers'
+// v8.0: 통합 페이지
+import ResearchTools from './pages/ResearchTools'
+import GrowthPortfolio from './pages/GrowthPortfolio'
+import ErrorBoundary from './components/ErrorBoundary'
 import './App.css'
 
 const menuItems = [
@@ -20,12 +19,9 @@ const menuItems = [
     { path: '/dashboard', icon: '📊', label: '대시보드' },
     { path: '/upload', icon: '🎬', label: '수업 분석' },
     { path: '/agents', icon: '🤖', label: 'MAS 분석' },
-    { path: '/batch', icon: '📦', label: '배치 분석' },
-    { path: '/growth', icon: '📈', label: '성장보고서' },
-    { path: '/cohort', icon: '🔬', label: '코호트 비교' },
+    { path: '/research', icon: '🔬', label: '연구 도구' },
+    { path: '/growth', icon: '🌱', label: '성장 포트폴리오' },
     { path: '/live', icon: '🔴', label: '실시간 코칭' },
-    { path: '/portfolio', icon: '📁', label: '포트폴리오' },
-    { path: '/experiment', icon: '🧪', label: 'A/B 실험' },
 ]
 
 function AppContent() {
@@ -56,7 +52,7 @@ function AppContent() {
                 <div className="sidebar-header">
                     <div className="sidebar-logo">
                         <span className="sidebar-logo-icon">🤖</span>
-                        {!collapsed && <span className="sidebar-logo-text">MAS <span className="version-tag">v7.1</span></span>}
+                        {!collapsed && <span className="sidebar-logo-text">GAIM <span className="version-tag">{typeof __APP_VERSION__ !== 'undefined' ? `v${__APP_VERSION__}` : 'v8.0.0'}</span></span>}
                     </div>
                     <button className="sidebar-collapse-btn" onClick={() => setCollapsed(!collapsed)} title={collapsed ? '펼치기' : '접기'}>
                         {collapsed ? '▶' : '◀'}
@@ -119,26 +115,30 @@ function AppContent() {
 
                 {/* Content */}
                 <main className="content-area">
-                    <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/upload" element={<Upload />} />
-                        <Route path="/agents" element={<AgentMonitor />} />
-                        <Route path="/batch" element={<BatchAnalysis />} />
-                        <Route path="/growth" element={<GrowthPath />} />
-                        <Route path="/cohort" element={<CohortCompare />} />
-                        <Route path="/live" element={<LiveCoaching />} />
-                        <Route path="/portfolio" element={<Portfolio />} />
-                        <Route path="/experiment" element={<ABExperiment />} />
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/admin/users" element={<AdminUsers />} />
-                        <Route path="/analysis/:analysisId" element={<AnalysisResult />} />
-                    </Routes>
+                    <ErrorBoundary>
+                        <Routes>
+                            <Route path="/" element={<HomePage />} />
+                            <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/upload" element={<Upload />} />
+                            <Route path="/agents" element={<AgentMonitor />} />
+                            <Route path="/research" element={<ResearchTools />} />
+                            <Route path="/growth" element={<GrowthPortfolio />} />
+                            <Route path="/live" element={<LiveCoaching />} />
+                            <Route path="/login" element={<LoginPage />} />
+                            <Route path="/admin/users" element={<AdminUsers />} />
+                            <Route path="/analysis/:analysisId" element={<AnalysisResult />} />
+                            {/* v8.0: backward-compatible redirects */}
+                            <Route path="/batch" element={<Navigate to="/research" replace />} />
+                            <Route path="/cohort" element={<Navigate to="/research" replace />} />
+                            <Route path="/experiment" element={<Navigate to="/research" replace />} />
+                            <Route path="/portfolio" element={<Navigate to="/growth" replace />} />
+                        </Routes>
+                    </ErrorBoundary>
                 </main>
 
                 {/* Footer */}
                 <footer className="app-footer">
-                    <p>© 2026 GINUE AI Microteaching Lab · 경인교육대학교 · MAS v7.1</p>
+                    <p>© 2026 GINUE AI Microteaching Lab · 경인교육대학교 · GAIM Lab {typeof __APP_VERSION__ !== 'undefined' ? `v${__APP_VERSION__}` : 'v8.0.0'}</p>
                 </footer>
             </div>
         </div>

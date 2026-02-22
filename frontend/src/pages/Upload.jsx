@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_BASE } from '../apiConfig'
+import api from '../lib/api'
 import './Upload.css'
 
 function Upload() {
@@ -68,15 +68,7 @@ function Upload() {
         formData.append('file', file)
 
         try {
-            const response = await fetch(`${API_BASE}/analysis/upload?use_turbo=true&use_text=true`, {
-                method: 'POST',
-                body: formData
-            })
-            const data = await response.json()
-
-            if (!response.ok) {
-                throw new Error(data.detail || '분석 실패')
-            }
+            const data = await api.post('/analysis/upload?use_turbo=true&use_text=true', formData)
 
             setAnalysisId(data.id)
 

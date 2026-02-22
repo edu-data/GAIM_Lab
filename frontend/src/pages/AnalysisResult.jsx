@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { API_BASE } from '../apiConfig'
+import api from '../lib/api'
 import './AnalysisResult.css'
 
 function AnalysisResult() {
@@ -17,16 +17,11 @@ function AnalysisResult() {
         const fetchResult = async () => {
             try {
                 // 먼저 상태 확인
-                const statusRes = await fetch(`${API_BASE}/analysis/${analysisId}`)
-                if (!statusRes.ok) throw new Error('분석 상태를 확인할 수 없습니다.')
-                const statusData = await statusRes.json()
+                const statusData = await api.analysis.status(analysisId)
                 setStatus(statusData)
 
                 if (statusData.status === 'completed') {
-                    // 결과 조회
-                    const resultRes = await fetch(`${API_BASE}/analysis/${analysisId}/result`)
-                    if (!resultRes.ok) throw new Error('분석 결과를 불러올 수 없습니다.')
-                    const resultData = await resultRes.json()
+                    const resultData = await api.analysis.result(analysisId)
                     setResult(resultData)
                     // Animate scores
                     setTimeout(() => animateScores(resultData), 300)

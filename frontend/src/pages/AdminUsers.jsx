@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AUTH_BASE } from '../apiConfig'
+import api from '../lib/api'
 import './AdminUsers.css'
-
-const API = AUTH_BASE
 
 function AdminUsers() {
     const [users, setUsers] = useState([])
@@ -15,19 +13,11 @@ function AdminUsers() {
     const [msg, setMsg] = useState(null)
     const navigate = useNavigate()
 
-    const token = localStorage.getItem('gaim_token')
-    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-
     const fetchUsers = async () => {
         try {
-            const res = await fetch(`${API}/users`, { headers })
-            if (res.status === 401 || res.status === 403) {
-                navigate('/login')
-                return
-            }
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
-            setUsers(await res.json())
+            setUsers(await api.auth.listUsers())
         } catch (e) {
+            if (e.message.includes('인증')) { navigate('/login'); return }
             setError(e.message)
         } finally {
             setLoading(false)
@@ -41,11 +31,7 @@ function AdminUsers() {
     const handleCreate = async (e) => {
         e.preventDefault()
         try {
-            const res = await fetch(`${API}/users`, {
-                method: 'POST', headers, body: JSON.stringify(newUser)
-            })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.detail)
+            const data = await api.auth.createUser(newUser)
             flash(`✅ ${data.message}`)
             setShowCreate(false)
             setNewUser({ username: '', password: '', name: '', role: 'student', email: '' })
@@ -55,11 +41,7 @@ function AdminUsers() {
 
     const handleUpdate = async (username, field, value) => {
         try {
-            const res = await fetch(`${API}/users/${username}`, {
-                method: 'PUT', headers, body: JSON.stringify({ [field]: value })
-            })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.detail)
+            const data = await api.auth.updateUser(username, { [field]: value })
             flash(`✅ ${data.message}`)
             fetchUsers()
         } catch (e) { flash(`❌ ${e.message}`) }
@@ -68,9 +50,7 @@ function AdminUsers() {
     const handleDelete = async (username) => {
         if (!confirm(`정말 '${username}' 사용자를 삭제하시겠습니까?`)) return
         try {
-            const res = await fetch(`${API}/users/${username}`, { method: 'DELETE', headers })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.detail)
+            const data = await api.auth.deleteUser(username)
             flash(`✅ ${data.message}`)
             fetchUsers()
         } catch (e) { flash(`❌ ${e.message}`) }
@@ -79,12 +59,7 @@ function AdminUsers() {
     const handleResetPassword = async (e) => {
         e.preventDefault()
         try {
-            const res = await fetch(`${API}/users/${resetPw.username}/reset-password`, {
-                method: 'POST', headers,
-                body: JSON.stringify({ new_password: resetPw.password })
-            })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.detail)
+            const data = await api.auth.resetPassword(resetPw.username, { new_password: resetPw.password })
             flash(`✅ ${data.message}`)
             setResetPw({ username: null, password: '' })
         } catch (e) { flash(`❌ ${e.message}`) }

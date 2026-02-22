@@ -1,8 +1,13 @@
 """
 📚 Pedagogy Agent - 교육학 이론 기반 평가 전문 에이전트
-v7.0: 신뢰도 강화 리팩토링
+v8.0: 연속 함수 채점 + 결정론 강화
 
-v7.0 개선:
+v8.0 개선:
+- 시그모이드 연속 매핑: 구간 경계값 불연속 해소 (선택적)
+- 결정론 강화: 동일 입력 → 동일 출력 보장 (해시 기반)
+- 기존 구간화(Binning) 유지 (backward compatible)
+
+v7.0 이전 개선:
 - 입력 구간화(Binning): 연속 메트릭을 이산 구간으로 변환 → 결정론적 채점
 - adjust_range 확대: 점수 범위 25pt+ 확보
 - confidence 메타데이터: 에이전트 데이터 유효성 기반 신뢰도 추적
@@ -10,6 +15,9 @@ v7.0 개선:
 - 가감점 폭 강화: 양호/미흡 간 격차 확대
 """
 
+import os
+import math
+import hashlib
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -118,13 +126,96 @@ def _bin(value: float, bins: Dict) -> str:
     return last_label
 
 
-class PedagogyAgent:
-    """📚 교육학 이론 기반 7차원 평가 에이전트 (v7.0 — 신뢰도 강화)"""
+def _sigmoid_map(value: float, bins: Dict, scores: Dict, steepness: float = 10.0) -> float:
+    """v8.0: 시그모이드 연속 매핑 — 구간 경계값에서 부드러운 전환
+    
+    기존 구간화의 문제점:
+        value=0.149 → INACTIVE (-2.0점), value=0.151 → LOW (-0.5점)
+        → 미세한 차이로 1.5점 점프
+    
+    시그모이드 매핑:
+        각 구간 경계에서 로지스틱 함수로 부드러운 전환
+        경계 근처 ±5% 범위에서 점진적 점수 변화
 
-    def __init__(self, use_rag: bool = True, preset: str = "default"):
+    수식:
+        w_i = 1 / (1 + exp(steepness * |value - center_i| - steepness * 0.1))
+        score = Σ(w_i * score_i) / Σ(w_i)
+    
+    Args:
+        value: 입력 메트릭 값
+        bins: 구간 정의 {label: [low, high]}
+        scores: 구간별 점수 {label: score}
+        steepness: 전환 기울기 (높을수록 급격, 기본 10.0)
+                   환경변수 GAIM_SIGMOID_STEEPNESS로 조정 가능
+    
+    Returns:
+        float: 연속 점수
+    
+    ⚠️ 학술적 한계:
+        이 시그모이드 매핑의 steepness 파라미터(10.0)는 경험적 설정값이며,
+        전문가 패널 검증(Delphi method)을 통해 교정이 필요합니다.
+        base/adjust_range 값도 마찬가지로 추후 전문가 패널에서 교정 예정.
+    """
+    labels = list(bins.keys())
+    
+    if len(labels) < 2:
+        return scores.get(labels[0], 0.0) if labels else 0.0
+    
+    # 각 구간의 중심점과 점수를 구하기
+    centers = []
+    for label in labels:
+        low, high = bins[label]
+        center = (low + high) / 2
+        centers.append((center, scores.get(label, 0.0)))
+    
+    # 가중 시그모이드 보간
+    total_weight = 0.0
+    weighted_score = 0.0
+    
+    for center, score in centers:
+        # 각 구간 중심으로부터의 거리 기반 가중치
+        # 시그모이드 형태로 부드러운 전환
+        dist = abs(value - center)
+        # 구간 폭의 역수를 scale로 사용
+        weight = 1.0 / (1.0 + math.exp(steepness * dist - steepness * 0.1))
+        total_weight += weight
+        weighted_score += weight * score
+    
+    if total_weight == 0:
+        # fallback: 가장 가까운 구간의 점수
+        closest = min(centers, key=lambda c: abs(value - c[0]))
+        return closest[1]
+    
+    return weighted_score / total_weight
+
+
+def _deterministic_hash(*args) -> float:
+    """v8.0: 결정론적 해시 — 동일 입력에서 항상 동일한 0~1 값 반환
+    
+    Random noise를 사용하는 대신, 입력값의 해시에서 결정론적 미세 변동을 생성.
+    이를 통해 동일 입력 → 동일 출력이 보장됩니다.
+    """
+    key = "|".join(str(a) for a in args)
+    h = hashlib.md5(key.encode()).hexdigest()
+    return int(h[:8], 16) / 0xFFFFFFFF  # 0~1
+
+
+class PedagogyAgent:
+    """📚 교육학 이론 기반 7차원 평가 에이전트 (v8.0 — 연속 함수 채점)"""
+
+    def __init__(self, use_rag: bool = True, preset: str = "default", 
+                 continuous_scoring: bool = False):
+        """Args:
+            use_rag: RAG 지식 베이스 사용 여부
+            preset: 채점 프리셋 이름
+            continuous_scoring: True면 시그모이드 연속 매핑, False면 기존 구간화
+        """
         self.use_rag = use_rag
         self.preset = preset
+        self.continuous_scoring = continuous_scoring
         self._rag_kb = None
+        # v8.1: steepness 환경변수 설정 가능 (기본값 10.0 유지)
+        self.steepness = float(os.getenv("GAIM_SIGMOID_STEEPNESS", "10.0"))
 
         # YAML 설정 로드
         self.dimensions, self.presets, self.grading, self.binning, self.confidence_weights = self._load_config()
@@ -168,6 +259,27 @@ class PedagogyAgent:
         if not bins:
             return "UNKNOWN"
         return _bin(value, bins)
+
+    def _continuous_score(self, metric_name: str, value: float, label_scores: Dict[str, float]) -> float:
+        """v8.0: 시그모이드 연속 매핑으로 점수 반환
+        
+        Args:
+            metric_name: 메트릭 이름 (binning 키)
+            value: 입력 값
+            label_scores: 구간 레이블별 점수 {"INACTIVE": -2.0, "LOW": -0.5, ...}
+        
+        Returns:
+            float: 연속 점수
+        """
+        if not self.continuous_scoring:
+            # 기존 구간화 로직
+            label = self._bin_metric(metric_name, value)
+            return label_scores.get(label, 0.0)
+        
+        bins = self.binning.get(metric_name)
+        if not bins:
+            return 0.0
+        return _sigmoid_map(value, bins, label_scores, self.steepness)
 
     def _compute_confidence(self, vis_ok, con_ok, stt_ok, vib_ok, disc_ok) -> Dict:
         """v7.0: 입력 데이터 품질에 따른 신뢰도 계산"""
@@ -246,14 +358,15 @@ class PedagogyAgent:
             "dimension_scores": {d.name: d.score for d in dimensions},
             "theory_references": [d.theory_reference for d in dimensions],
             "preset_used": self.preset,
-            "confidence": confidence,  # v7.0
-            "profile_summary": {  # v7.0: 차원별 독립 프로필
+            "continuous_scoring": self.continuous_scoring,  # v8.0
+            "confidence": confidence,
+            "profile_summary": {
                 "strengths": strengths,
                 "improvements": improvements,
                 "top_dimension": max(dimensions, key=lambda d: d.percentage).name if dimensions else "",
                 "weakest_dimension": min(dimensions, key=lambda d: d.percentage).name if dimensions else "",
             },
-            "version": "7.0",
+            "version": "8.0",
         }
 
     def _get_base(self, dim_name: str) -> float:

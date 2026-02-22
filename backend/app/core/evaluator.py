@@ -318,6 +318,27 @@ class GAIMLectureEvaluator:
     
     def _evaluate_language(self, data: Dict) -> DimensionScore:
         """판서 및 언어 평가 (15점)"""
+        gemini = data.get("gemini_metrics", {}).get("language", {})
+        
+        # Gemini 점수가 있으면 사용
+        if gemini and gemini.get("score", 0) > 0:
+            score = gemini.get("score", 0)
+            criteria = gemini.get("criteria", {})
+            feedback = [gemini.get("feedback", "")] if gemini.get("feedback") else []
+            return DimensionScore(
+                dimension="판서 및 언어",
+                score=score,
+                max_score=15,
+                percentage=round(score / 15 * 100, 1),
+                criteria_scores={
+                    "판서_가독성": criteria.get("판서_가독성", 0),
+                    "언어_명료성": criteria.get("언어_명료성", 0),
+                    "발화속도_적절성": criteria.get("발화속도_적절성", 0)
+                },
+                feedback=feedback if feedback else self._get_language_feedback(score, 100)
+            )
+        
+        # 기존 규칙 기반 평가 (fallback)
         content = data.get("content_metrics", {})
         vibe = data.get("vibe_metrics", {})
         
@@ -355,6 +376,27 @@ class GAIMLectureEvaluator:
     
     def _evaluate_attitude(self, data: Dict) -> DimensionScore:
         """수업 태도 평가 (15점)"""
+        gemini = data.get("gemini_metrics", {}).get("attitude", {})
+        
+        # Gemini 점수가 있으면 사용
+        if gemini and gemini.get("score", 0) > 0:
+            score = gemini.get("score", 0)
+            criteria = gemini.get("criteria", {})
+            feedback = [gemini.get("feedback", "")] if gemini.get("feedback") else []
+            return DimensionScore(
+                dimension="수업 태도",
+                score=score,
+                max_score=15,
+                percentage=round(score / 15 * 100, 1),
+                criteria_scores={
+                    "교사_열정": criteria.get("교사_열정", 0),
+                    "학생_소통": criteria.get("학생_소통", 0),
+                    "자신감": criteria.get("자신감", 0)
+                },
+                feedback=feedback if feedback else self._get_attitude_feedback(score, 0, 0)
+            )
+        
+        # 기존 규칙 기반 평가 (fallback)
         vision = data.get("vision_metrics", {})
         vibe = data.get("vibe_metrics", {})
         
@@ -433,6 +475,25 @@ class GAIMLectureEvaluator:
     
     def _evaluate_time_management(self, data: Dict) -> DimensionScore:
         """시간 배분 평가 (10점)"""
+        gemini = data.get("gemini_metrics", {}).get("time_management", {})
+        
+        # Gemini 점수가 있으면 사용
+        if gemini and gemini.get("score", 0) > 0:
+            score = gemini.get("score", 0)
+            criteria = gemini.get("criteria", {})
+            feedback = [gemini.get("feedback", "")] if gemini.get("feedback") else []
+            return DimensionScore(
+                dimension="시간 배분",
+                score=score,
+                max_score=10,
+                percentage=round(score / 10 * 100, 1),
+                criteria_scores={
+                    "시간_균형": criteria.get("시간_균형", 0)
+                },
+                feedback=feedback if feedback else self._get_time_feedback(score)
+            )
+        
+        # 기존 규칙 기반 평가 (fallback)
         text = data.get("text_metrics", {})
         vibe = data.get("vibe_metrics", {})
         

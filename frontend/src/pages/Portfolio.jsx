@@ -4,7 +4,7 @@ import {
     RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
     BarChart, Bar, Legend
 } from 'recharts'
-import { API_BASE } from '../apiConfig'
+import api from '../lib/api'
 import './Portfolio.css'
 
 function Portfolio() {
@@ -22,9 +22,7 @@ function Portfolio() {
         setLoading(true)
         setError(null)
         try {
-            const res = await fetch(`${API_BASE}/history?limit=50`)
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
-            const data = await res.json()
+            const data = await api.get('/history?limit=50')
 
             if (data.history && data.history.length > 0) {
                 // DB 데이터를 세션 형식으로 변환

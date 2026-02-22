@@ -2,7 +2,7 @@
 
 **멀티 에이전트 수업 분석 시스템** · 8개 AI 에이전트가 협업하여 수업 영상을 7차원 평가하는 플랫폼
 
-[![Version](https://img.shields.io/badge/version-7.2.0-7c3aed)](https://github.com/edu-data/GAIM_Lab/releases)
+[![Version](https://img.shields.io/badge/version-8.0.0-7c3aed)](https://github.com/edu-data/GAIM_Lab/releases)
 [![Python](https://img.shields.io/badge/python-3.9+-3776AB)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React_18-61DAFB)](https://react.dev)
@@ -17,11 +17,11 @@
   <a href="https://github.com/edu-data/GAIM_Lab/releases"><strong>📦 릴리스</strong></a>
 </p>
 
-> **🆕 NEW** — React 기반 새로운 홈페이지와 대시보드가 출시되었습니다!
+> **🆕 v8.0** — Gemini LLM 7차원 전면 평가 + 클라이언트 사이드 분석 엔진!
 >
-> - 🏠 [**홈페이지**](https://edu-data.github.io/GAIM_Lab/app/): 히어로 섹션, 에이전트 파이프라인, 7차원 프레임워크, 기술 스택
-> - 📊 [**대시보드**](https://edu-data.github.io/GAIM_Lab/app/#/dashboard): 실시간 통계, 점수 추세 차트, 분석 이력, 데모 분석
-> - 👤 [**로그인**](https://edu-data.github.io/GAIM_Lab/app/#/login): 2-column 레이아웃, Google OAuth + JWT 인증
+> - 🤖 **Gemini 7차원 전면 평가**: 모든 7개 차원이 Gemini LLM으로 평가 (평균 59.9 → **76.1점**)
+> - 🎬 **클라이언트 사이드 분석**: GitHub Pages에서 직접 영상 분석 (백엔드 불필요)
+> - 🔧 **React Hooks 리팩토링**: `useCamera`, `useAsyncTask` 커스텀 훅으로 코드 품질 향상
 
 ---
 
@@ -34,20 +34,20 @@ MAS(Multi-Agent System)는 **예비교원의 수업 영상**을 8개 전문화�
 | 지표 | 결과 |
 | ---- | ---- |
 | ✅ 분석 성공률 | **18/18 (100%)** |
-| 📊 평균 점수 | **76.2점 (B+등급)** |
-| 🏆 점수 범위 | **65.0 ~ 83.5점 (18.5pt)** |
-| ⏱️ 총 처리 시간 | **99.1분 (영상당 ~5.5분)** |
+| 📊 평균 점수 | **76.1점 (C+등급)** |
+| 🏆 최고 점수 | **84점 (B등급, 20251209_110545)** |
+| 📉 최저 점수 | **67점 (D+등급, 20251209_153522)** |
+| 📊 등급 분포 | **B×5 · C+×4 · C×7 · D+×1** |
+| ⏱️ 영상당 처리 | **~1.5분 (TURBO MODE v3)** |
 | 🤖 에이전트 수 | **8개** |
-| 📐 평가 차원 | **7개** |
+| 📐 평가 차원 | **7개 (전체 Gemini LLM v8.0)** |
 | 🗣️ 화자 분리 | **pyannote 3.3 (v5.0+)** |
 | 🔬 신뢰도 분석 | **Test-Retest r=0.68, ±5pt 일치 82.6%** |
 | 🗄️ 데이터 영속성 | **SQLite DB auto-save (v7.0)** |
-| 📈 성장 분석 | **차원별 추세 + 자동 피드백 (v7.0)** |
-| 🎯 성장 경로 | **3/6/12주 맞춤 개선 로드맵 (v7.1 NEW)** |
-| 🔴 실시간 코칭 | **WebSocket 라이브 피드백 (v7.1 NEW)** |
-| 📊 코호트 비교 | **t-test, Cohen's d 집단 비교 (v7.1 NEW)** |
-| 🧪 A/B 실험 | **루브릭 비교 실험 (v7.1 NEW)** |
-| 📱 PWA | **오프라인 접근, 설치 가능 (v7.1 NEW)** |
+| 🎬 클라이언트 분석 | **브라우저 직접 분석 가능 (v8.0 NEW)** |
+| 🔴 실시간 코칭 | **WebSocket 라이브 피드백 (v7.1)** |
+| 🧪 A/B 실험 | **루브릭 비교 실험 (v7.1)** |
+| 📱 PWA | **오프라인 접근, 설치 가능 (v7.1)** |
 
 ---
 
@@ -249,19 +249,21 @@ python batch_analysis.py --limit 5
 
 ## 📊 분석 결과
 
-### 🤖 MAS v7.0 — 18개 영상 분석 (최신)
+### 🤖 v8.0 — Gemini 7차원 전면 평가 (최신)
 
 | 통계 | 결과 |
 | ---- | ---- |
 | ✅ 성공률 | **18/18 (100%)** |
-| 📊 평균 점수 | **76.2점 (B+등급)** |
-| 🏆 최고 점수 | **83.5점 (20251209_154506, A-등급)** |
-| 📉 최저 점수 | **65.0점 (20251209_140629, B-등급)** |
-| 📏 점수 범위 | **18.5pt (v5.0 대비 1.4배 확대)** |
-| ⏱️ 총 처리 시간 | **99.1분 (영상당 ~5.5분)** |
-| 🗄️ DB 저장 | **18 records + 126 dimension scores** |
+| 📊 평균 점수 | **76.1점 (C+등급)** |
+| 🏆 최고 점수 | **84점 (20251209_110545, B등급)** |
+| 📉 최저 점수 | **67점 (20251209_153522, D+등급)** |
+| 📏 점수 범위 | **17pt (67~84)** |
+| ⏱️ 영상당 처리 | **~1.5분 (TURBO MODE v3)** |
+| 🔧 핵심 수정 | **3개 차원 rule-based → Gemini LLM** |
 
-**등급 분포**: A-등급 3개 (17%) / B+등급 8개 (44%) / B등급 6개 (33%) / B-등급 1개 (6%)
+**등급 분포**: B등급 5개 (28%) / C+등급 4개 (22%) / C등급 7개 (39%) / D+등급 1개 (6%)
+
+**v7.2 대비 개선**: 평균 59.9 → **76.1** (+16.2pt), F등급 8 → **0**, B등급 0 → **5**
 
 ### 🔬 v6.0 — 신뢰도·타당도 분석 (최신)
 
@@ -304,6 +306,27 @@ python batch_analysis.py --limit 5
 ---
 
 ## 📜 버전 히스토리 (Changelog)
+
+### v8.0 — Gemini 7차원 전면 평가 · 클라이언트 사이드 분석 · Hook 리팩토링 `2026-02-22`
+
+- **🤖 Gemini 7차원 전면 평가** (`evaluator.py`)
+  - 3개 차원(판서/언어, 수업 태도, 시간 배분)에 Gemini LLM 점수 우선 적용
+  - 기존: rule-based scoring (vision/vibe/text 메트릭 의존) → 점수 극저
+  - 수정 후: 평균 59.9 → **76.1점** (+16.2pt), F등급 8 → **0**, B등급 0 → **5**
+- **🎬 클라이언트 사이드 분석 엔진** (`videoAnalyzer.js` 신규)
+  - 브라우저에서 직접 영상 분석 (백엔드 불필요, GitHub Pages 동작)
+  - Canvas 프레임 추출, Web Audio API 음성 분석, 움직임/제스처 감지
+  - 영상 업로드 drag-and-drop, 미리보기 썸네일
+  - 에이전트별 실시간 진행 표시
+- **🔧 React Hooks 리팩토링**
+  - `useCamera` 훅: `LiveCoaching.jsx` 카메라 로직 분리 (`hooks/useCamera.js`)
+  - `useAsyncTask` 훅: `AgentMonitor.jsx` 비동기 작업 관리 (`hooks/useAsyncTask.js`)
+  - `ErrorBoundary` 컴포넌트 추가 (`ErrorBoundary.jsx`)
+- **📊 배치 분석 개선** (`run_batch_18.py`)
+  - 차원 키 버그 수정 (`"dimension"` → `"name"`)
+  - CSV/JSON 요약에 정확한 차원별 점수 기록
+- **🖥️ UI 안정화**: 분석 중 블랙 스크린 방지, 비디오 프레임 추출 타임아웃, UI 스레드 양보
+- **📂 신규 파일**: `backend/app/config/`, `backend/app/models/`, `backend/tests/`, `core/paths.py`
 
 ### v7.1 — 신규 기능 7종 · PWA · 실시간 코칭 · UI 리디자인 `2026-02-20`
 

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { AUTH_BASE } from '../apiConfig'
-const API_BASE = AUTH_BASE
+import api from '../lib/api'
 
 function LoginPage() {
     const [mode, setMode] = useState('login')
@@ -38,16 +37,8 @@ function LoginPage() {
             : { username, password, name, role: 'student' }
 
         try {
-            const res = await fetch(`${API_BASE}${endpoint}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            })
-            if (!res.ok) {
-                const data = await res.json()
-                throw new Error(data.detail || `HTTP ${res.status}`)
-            }
-            const data = await res.json()
+            const fn = mode === 'login' ? api.auth.login : api.auth.register
+            const data = await fn(body)
             localStorage.setItem('gaim_token', data.access_token)
             localStorage.setItem('gaim_user', JSON.stringify({ username: data.username, name: data.name || data.username, role: data.role }))
             setUser({ username: data.username, name: data.name || data.username, role: data.role })
@@ -80,14 +71,7 @@ function LoginPage() {
         setPwLoading(true)
         setPwMsg(null)
         try {
-            const token = localStorage.getItem('gaim_token')
-            const res = await fetch(`${API_BASE}/me/password`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ current_password: pwCurrent, new_password: pwNew }),
-            })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+            const data = await api.auth.changePassword({ current_password: pwCurrent, new_password: pwNew })
             setPwMsg(`✅ ${data.message}`)
             setPwCurrent(''); setPwNew(''); setPwConfirm('')
         } catch (e) { setPwMsg(`❌ ${e.message}`) }
@@ -101,7 +85,7 @@ function LoginPage() {
                     <div className="login-brand">
                         <div className="login-brand-content">
                             <div className="login-brand-icon">🤖</div>
-                            <h1>MAS <span>v7.1</span></h1>
+                            <h1>GAIM Lab <span>v8.0</span></h1>
                             <p>Multi-Agent System for Class Analysis</p>
                             <div className="login-features-mini">
                                 <div>🎯 성장 경로 로드맵</div>
@@ -160,7 +144,7 @@ function LoginPage() {
                 <div className="login-brand">
                     <div className="login-brand-content">
                         <div className="login-brand-icon">🤖</div>
-                        <h1>MAS <span>v7.1</span></h1>
+                        <h1>GAIM Lab <span>v8.0</span></h1>
                         <p className="login-brand-desc">
                             8개 AI 에이전트가 협업하여 수업 영상을
                             7차원 100점 만점으로 자동 평가합니다

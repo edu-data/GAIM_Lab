@@ -29,3 +29,10 @@ playwright>=1.41.0
 
 # 유틸리티
 python-dotenv>=1.0.0
+
+# 보안 (v8.0 P0)
+python-jose[cryptography]>=3.3.0
+argon2-cffi>=23.1.0
+
+# Rate Limiting (v8.1)
+slowapi>=0.1.9

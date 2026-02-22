@@ -8,6 +8,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
+# v8.0: 동적 버전 참조 (pyproject.toml 단일 소스)
+try:
+    from importlib.metadata import version as pkg_version
+    APP_VERSION = pkg_version("gaim-lab")
+except Exception:
+    APP_VERSION = "8.0.0"
+
 from app.api import auth
 
 # ML-dependent routers: gracefully skip if packages not installed (Cloud Run lightweight mode)
@@ -23,7 +30,7 @@ except (ImportError, ModuleNotFoundError) as e:
 app = FastAPI(
     title="GAIM Lab API",
     description="GINUE AI Microteaching Lab - 예비교원 수업역량 강화 시스템",
-    version="7.1.0",
+    version=APP_VERSION,
     docs_url="/api/docs",
     redoc_url="/api/redoc"
 )
@@ -74,7 +81,7 @@ async def root():
     """서버 상태 확인"""
     return {
         "name": "GAIM Lab API",
-        "version": "1.0.0",
+        "version": APP_VERSION,
         "status": "running",
         "endpoints": {
             "docs": "/api/docs",

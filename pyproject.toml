@@ -3,8 +3,8 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mas-lecture-analysis"
-version = "4.0.0"
+name = "gaim-lab"
+version = "8.0.0"
 description = "멀티 에이전트 수업 분석 시스템 - 8개 AI 에이전트가 협업하여 수업 영상을 7차원 평가하는 플랫폼"
 readme = "README.md"
 license = {text = "MIT"}
@@ -26,9 +26,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://edu-data.github.io/mas/docs/mas-index.html"
-Repository = "https://github.com/edu-data/mas"
-Dashboard = "https://edu-data.github.io/mas/docs/mas-dashboard.html"
+Homepage = "https://edu-data.github.io/GAIM_Lab/app/"
+Repository = "https://github.com/edu-data/GAIM_Lab"
+Dashboard = "https://edu-data.github.io/GAIM_Lab/app/#/dashboard"
 
 [tool.setuptools.packages.find]
 include = ["core*", "backend*"]

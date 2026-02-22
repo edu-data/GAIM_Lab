@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useCamera } from '../hooks/useCamera'
 
 // ── 필러 패턴 (한국어 + 영어) ──
 const FILLER_RE = /\b(음|어|그|저|이제|뭐|아|에|그러니까|있잖아|um|uh|like|you know|so|well|basically|actually)\b/gi
@@ -25,7 +26,9 @@ function wpmGrade(wpm) {
     return { label: '과속', color: '#ff5252' }
 }
 
-// ── 7차원 간이 평가 (음성 + 영상) ──
+// ── 발화·동작 모니터링 지표 (음성 + 영상, 실시간 근사치) ──
+// ⚠️ 학술적 한계: 7차원 교원임용 평가와 별도입니다.
+//    실제 평가는 Gemini API 기반 서버측 분석(analysis.py)을 사용하세요.
 function calcDimensions(stats) {
     const { avgWpm, fillerCount, silenceRatio, totalWords, durationSec } = stats
     const mins = durationSec / 60 || 1
@@ -41,7 +44,7 @@ function calcDimensions(stats) {
         { name: '발화량', score: Math.round(Math.min(100, (totalWords / (mins * 80)) * 100)), icon: '📝' },
         { name: '속도 안정성', score: Math.round(Math.max(0, 100 - (stats.wpmStdDev || 0) * 2)), icon: '📊' },
         { name: '어휘 다양성', score: Math.round(Math.min(100, (stats.uniqueWords || 0) / Math.max(totalWords * 0.4, 1) * 100)), icon: '📚' },
-        { name: '제스처·움직임', score: movScore != null && gestScore != null ? Math.round((movScore + gestScore) / 2) : 70, icon: '🤸' },
+        { name: '움직임·활용', score: movScore != null && gestScore != null ? Math.round((movScore + gestScore) / 2) : 70, icon: '🤸' },
         { name: '종합 전달력', score: 0, icon: '🎯' },
     ]
 }
@@ -55,10 +58,20 @@ function LiveCoaching() {
     const [wpmHistory, setWpmHistory] = useState([])
     const [sessionReport, setSessionReport] = useState(null)
     const [interimText, setInterimText] = useState('')
-    // ── Camera state ──
-    const [cameraOn, setCameraOn] = useState(false)
-    const [videoMetrics, setVideoMetrics] = useState({ movement: 0, gestureCount: 0, avgMovement: 0 })
+    // ── Camera (via useCamera hook) ──
     const [movementHistory, setMovementHistory] = useState([])
+    const startTimeRef_cam = useRef(0) // shared with startTimeRef for movement history elapsed calc
+
+    const { videoRef, canvasRef, cameraOn, metrics: videoMetrics, startCamera, stopCamera, resetMetrics: resetCameraMetrics } = useCamera({
+        onFrame: ({ avgMovement }) => {
+            const elapsed = (Date.now() - startTimeRef_cam.current) / 1000
+            setMovementHistory(prev => {
+                if (prev.length === 0 || elapsed - (prev[prev.length - 1]?.t || 0) >= 10)
+                    return [...prev, { t: Math.round(elapsed), mov: avgMovement }]
+                return prev
+            })
+        }
+    })
 
     const recognitionRef = useRef(null)
     const timerRef = useRef(null)
@@ -69,15 +82,6 @@ function LiveCoaching() {
     const allWordsRef = useRef([])
     const wpmWindowRef = useRef([]) // {time, words}
     const transcriptEndRef = useRef(null)
-    // ── Camera refs ──
-    const videoRef = useRef(null)
-    const canvasRef = useRef(null)
-    const prevFrameRef = useRef(null)
-    const streamRef = useRef(null)
-    const videoTimerRef = useRef(null)
-    const movementSamplesRef = useRef([])
-    const gestureCountRef = useRef(0)
-    const lastMovementRef = useRef(0)
 
     // ── 메트릭 업데이트 ──
     const updateMetrics = useCallback((newText) => {
@@ -183,74 +187,9 @@ function LiveCoaching() {
         recognitionRef.current = recog
     }, [updateMetrics])
 
-    // ── 카메라 시작 ──
-    const startCamera = useCallback(async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, facingMode: 'user' }, audio: false })
-            streamRef.current = stream
-            // videoRef가 렌더링될 때까지 대기 (최대 1초)
-            const attachStream = (retries = 10) => {
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream
-                    videoRef.current.play().catch(() => { })
-                } else if (retries > 0) {
-                    setTimeout(() => attachStream(retries - 1), 100)
-                }
-            }
-            attachStream()
-            setCameraOn(true)
-            prevFrameRef.current = null
-            movementSamplesRef.current = []
-            gestureCountRef.current = 0
-            lastMovementRef.current = 0
-            // 프레임 분석 (500ms 간격)
-            videoTimerRef.current = setInterval(() => analyzeFrame(), 500)
-        } catch (e) {
-            console.warn('Camera not available:', e.message)
-            setCameraOn(false)
-        }
-    }, [])
-
-    // ── 프레임 분석 (움직임 감지) ──
-    const analyzeFrame = useCallback(() => {
-        const video = videoRef.current
-        const canvas = canvasRef.current
-        if (!video || !canvas || video.readyState < 2) return
-        const ctx = canvas.getContext('2d', { willReadFrequently: true })
-        canvas.width = 160; canvas.height = 120
-        ctx.drawImage(video, 0, 0, 160, 120)
-        const frame = ctx.getImageData(0, 0, 160, 120)
-        const data = frame.data
-        if (prevFrameRef.current) {
-            let diff = 0
-            const prev = prevFrameRef.current
-            for (let i = 0; i < data.length; i += 16) { // sample every 4th pixel
-                diff += Math.abs(data[i] - prev[i]) + Math.abs(data[i + 1] - prev[i + 1]) + Math.abs(data[i + 2] - prev[i + 2])
-            }
-            const movement = Math.round(diff / (data.length / 16) / 3)
-            movementSamplesRef.current.push(movement)
-            // 급격한 움직임 = 제스처
-            if (movement > 25 && lastMovementRef.current < 10) gestureCountRef.current += 1
-            lastMovementRef.current = movement
-            const avg = movementSamplesRef.current.reduce((a, b) => a + b, 0) / movementSamplesRef.current.length
-            setVideoMetrics({ movement, gestureCount: gestureCountRef.current, avgMovement: Math.round(avg) })
-            // 히스토리 (10초 간격)
-            const elapsed = (Date.now() - startTimeRef.current) / 1000
-            setMovementHistory(prev => {
-                if (prev.length === 0 || elapsed - (prev[prev.length - 1]?.t || 0) >= 10)
-                    return [...prev, { t: Math.round(elapsed), mov: Math.round(avg) }]
-                return prev
-            })
-        }
-        prevFrameRef.current = new Uint8ClampedArray(data)
-    }, [])
-
-    // ── 카메라 종료 ──
-    const stopCamera = useCallback(() => {
-        if (videoTimerRef.current) { clearInterval(videoTimerRef.current); videoTimerRef.current = null }
-        if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null }
-        setCameraOn(false)
-    }, [])
+    // ── 카메라 시작/종료: useCamera 훅으로 대체됨 ──
+    // startCamera, stopCamera, videoRef, canvasRef, cameraOn, videoMetrics
+    // 모두 useCamera 훅에서 제공 (L60~74 참조)
 
     // ── 세션 시작 ──
     const startSession = () => {
@@ -263,7 +202,7 @@ function LiveCoaching() {
         setSessionReport(null)
         setInterimText('')
         setElapsed(0)
-        setVideoMetrics({ movement: 0, gestureCount: 0, avgMovement: 0 })
+        resetCameraMetrics()
         setMovementHistory([])
         allWordsRef.current = []
         wpmWindowRef.current = []
@@ -271,6 +210,7 @@ function LiveCoaching() {
         totalSegmentsRef.current = 0
 
         startTimeRef.current = Date.now()
+        startTimeRef_cam.current = Date.now() // sync for movement history elapsed
         lastSpeechRef.current = Date.now()
 
         // 타이머
@@ -308,7 +248,7 @@ function LiveCoaching() {
 
         const stats = {
             avgWpm, fillerCount: fillers.length, silenceRatio, totalWords, durationSec, wpmStdDev, uniqueWords,
-            videoMetrics: { avgMovement: videoMetrics.avgMovement, gestureCount: gestureCountRef.current }
+            videoMetrics: { avgMovement: videoMetrics.avgMovement, gestureCount: videoMetrics.gestureCount }
         }
         const dims = calcDimensions(stats)
         // 종합 전달력 = 다른 6차원 평균
@@ -439,7 +379,7 @@ function LiveCoaching() {
                                 <div className="lc-metric-card">
                                     <div className="lc-metric-val" style={{ color: '#e040fb' }}>{videoMetrics.gestureCount}</div>
                                     <div className="lc-metric-sub">회</div>
-                                    <div className="lc-metric-lbl">제스처</div>
+                                    <div className="lc-metric-lbl">움직임 감지</div>
                                 </div>
                             )}
                         </div>
@@ -530,9 +470,9 @@ function LiveCoaching() {
                         </div>
                     </div>
 
-                    {/* 7-Dimension Radar (bar-style) */}
+                    {/* 발화·동작 모니터링 지표 (bar-style) */}
                     <div className="lc-dims-section">
-                        <h4>📐 7차원 평가</h4>
+                        <h4>📐 발화·동작 모니터링</h4>
                         <div className="lc-dims-list">
                             {sessionReport.dimensions.map((d, i) => (
                                 <div key={i} className="lc-dim-row">
