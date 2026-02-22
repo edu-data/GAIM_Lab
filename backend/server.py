@@ -824,6 +824,227 @@ async def get_analysis_result(analysis_id: str):
     }
 
 
+# ═══════════════════════════════════════════════════════════
+# Data Router — History, Demo
+# ═══════════════════════════════════════════════════════════
+
+data_router = APIRouter(tags=["데이터"])
+
+
+@data_router.get("/history")
+async def get_history(limit: int = 50):
+    """분석 이력 조회"""
+    with _get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, video_name, status, total_score, grade, created_at, completed_at "
+            "FROM analyses WHERE status='completed' ORDER BY created_at DESC LIMIT %s",
+            (limit,)
+        )
+        rows = cur.fetchall()
+        cur.close()
+
+    history = []
+    for row in rows:
+        history.append({
+            "id": row[0],
+            "filename": row[1],
+            "status": row[2],
+            "total_score": row[3] or 0,
+            "grade": row[4] or "-",
+            "created_at": str(row[5]) if row[5] else None,
+            "completed_at": str(row[6]) if row[6] else None,
+        })
+
+    return {"history": history, "total": len(history)}
+
+
+@data_router.post("/analysis/demo")
+async def analysis_demo():
+    """데모 분석 결과 반환 (Gemini 호출 없이)"""
+    return {
+        "gaim_evaluation": {
+            "total_score": 76.1,
+            "grade": "C+",
+            "dimensions": [
+                {"name": "수업 전문성", "score": 15, "max_score": 20, "percentage": 75, "feedback": ["학습 목표가 비교적 명확하게 제시됨", "교육과정 연계가 적절함"]},
+                {"name": "교수학습 방법", "score": 14, "max_score": 20, "percentage": 70, "feedback": ["다양한 교수법 활용 시도", "학습활동 구조화 필요"]},
+                {"name": "판서 및 언어", "score": 11, "max_score": 15, "percentage": 73, "feedback": ["발화 속도 적절", "핵심 내용 판서 개선 필요"]},
+                {"name": "수업 태도", "score": 11, "max_score": 15, "percentage": 73, "feedback": ["수업에 대한 열정 양호", "학생 소통 자연스러움"]},
+                {"name": "학생 참여", "score": 10, "max_score": 15, "percentage": 67, "feedback": ["발문 기법 개선 필요", "학생 반응 피드백 강화 권장"]},
+                {"name": "시간 배분", "score": 8, "max_score": 10, "percentage": 80, "feedback": ["도입-전개-정리 배분 적절"]},
+                {"name": "창의성", "score": 3, "max_score": 5, "percentage": 60, "feedback": ["독창적 교수 기법 시도 권장"]},
+            ],
+            "strengths": ["체계적인 수업 구성", "안정적인 발화 속도", "학생과의 자연스러운 소통"],
+            "improvements": ["발문 기법 다양화 필요", "ICT 활용 확대 권장", "창의적 교수 전략 도입 필요"],
+            "overall_feedback": "전반적으로 안정적인 수업 시연입니다. 학습 목표가 명확하고 수업 구조가 체계적이나, 학생 참여와 창의성 영역에서 개선의 여지가 있습니다.",
+        }
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# Growth Router — 성장 경로 데이터
+# ═══════════════════════════════════════════════════════════
+
+growth_router = APIRouter(prefix="/growth", tags=["성장"])
+
+
+@growth_router.get("/{prefix}")
+async def get_growth_data(prefix: str):
+    """분석 이력 기반 성장 데이터"""
+    with _get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, video_name, total_score, grade, result_json, created_at "
+            "FROM analyses WHERE video_name LIKE %s AND status='completed' ORDER BY created_at",
+            (f"%{prefix}%",)
+        )
+        rows = cur.fetchall()
+        cur.close()
+
+    sessions = len(rows)
+    if sessions == 0:
+        raise HTTPException(status_code=404, detail="해당 접두사의 분석 이력이 없습니다")
+
+    # Parse dimension scores from result_json across sessions
+    all_dims = {}
+    for row in rows:
+        result = json.loads(row[4]) if row[4] else {}
+        gaim = result.get("gaim_evaluation", result)
+        for dim in gaim.get("dimensions", []):
+            name = dim["name"]
+            pct = dim.get("percentage", 0)
+            all_dims.setdefault(name, []).append(pct)
+
+    # Identify strengths and weaknesses
+    dim_avgs = {name: sum(scores) / len(scores) for name, scores in all_dims.items()}
+    sorted_dims = sorted(dim_avgs.items(), key=lambda x: x[1], reverse=True)
+    strengths = [d[0] for d in sorted_dims[:2]] if sorted_dims else []
+    weaknesses = [d[0] for d in sorted_dims[-3:]] if len(sorted_dims) >= 3 else [d[0] for d in sorted_dims]
+
+    roadmap = {}
+    for period_key, period_weeks, label, focus, improvement in [
+        ("3주", 3, "기초 역량 강화", "인식 및 습관화", 5),
+        ("6주", 6, "심화 적용", "전략적 실천", 12),
+        ("12주", 12, "전문성 내면화", "자기 모니터링 & 코칭", 20),
+    ]:
+        weeks = []
+        for i in range(period_weeks):
+            dim = weaknesses[i % len(weaknesses)] if weaknesses else "수업 전문성"
+            base_score = dim_avgs.get(dim, 60)
+            weeks.append({
+                "week": i + 1,
+                "focus_dimension": dim,
+                "goal": f"{dim} 역량 {improvement}% 향상 목표",
+                "activity": ["자기 수업 영상 분석", "동료 수업 참관 및 피드백", "교수법 논문 읽기", "마이크로티칭 실습", "수업 일지 작성"][i % 5],
+                "target_score": round(min(100, base_score + (i + 1) * improvement / period_weeks), 1),
+                "current_score": round(base_score, 1),
+            })
+        roadmap[period_key] = {
+            "label": label, "focus": focus,
+            "target_dimensions": weaknesses,
+            "expected_improvement": improvement,
+            "weeks": weeks,
+        }
+
+    return {
+        "sessions": sessions,
+        "profile": {"strengths": strengths, "weaknesses": weaknesses},
+        "roadmap": roadmap,
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# Cohort Router — 코호트 비교 분석
+# ═══════════════════════════════════════════════════════════
+
+cohort_router = APIRouter(prefix="/cohort", tags=["코호트"])
+
+
+@cohort_router.post("/compare")
+async def cohort_compare(body: dict):
+    """두 그룹 간 분석 결과 비교"""
+    group_a = body.get("group_a", {})
+    group_b = body.get("group_b", {})
+    prefix_a = group_a.get("prefix", "")
+    prefix_b = group_b.get("prefix", "")
+
+    def _fetch_group_scores(prefix: str):
+        with _get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT total_score, result_json FROM analyses "
+                "WHERE video_name LIKE %s AND status='completed'",
+                (f"%{prefix}%",)
+            )
+            rows = cur.fetchall()
+            cur.close()
+
+        scores = {"total": []}
+        for row in rows:
+            if row[0]:
+                scores["total"].append(row[0])
+            result = json.loads(row[1]) if row[1] else {}
+            gaim = result.get("gaim_evaluation", result)
+            for dim in gaim.get("dimensions", []):
+                scores.setdefault(dim["name"], []).append(dim.get("percentage", 0))
+        return scores
+
+    scores_a = _fetch_group_scores(prefix_a)
+    scores_b = _fetch_group_scores(prefix_b)
+
+    import math
+
+    def _stats(arr):
+        n = len(arr)
+        if n == 0:
+            return {"mean": 0, "std": 0, "n": 0}
+        mean = sum(arr) / n
+        std = math.sqrt(sum((x - mean) ** 2 for x in arr) / max(n - 1, 1))
+        return {"mean": round(mean, 1), "std": round(std, 1), "n": n}
+
+    def _t_test(a_stats, b_stats):
+        if a_stats["n"] < 2 or b_stats["n"] < 2:
+            return {"t": 0, "p": 1.0, "significant": False}
+        pooled_var = (a_stats["std"] ** 2 / a_stats["n"]) + (b_stats["std"] ** 2 / b_stats["n"])
+        if pooled_var == 0:
+            return {"t": 0, "p": 1.0, "significant": False}
+        t_val = (a_stats["mean"] - b_stats["mean"]) / math.sqrt(pooled_var)
+        # Simplified p-value approximation
+        p_val = round(max(0.001, min(1.0, 2 * math.exp(-0.717 * abs(t_val) - 0.416 * t_val ** 2))), 3)
+        return {"t": round(t_val, 2), "p": p_val, "significant": p_val < 0.05}
+
+    def _cohens_d(a_stats, b_stats):
+        pooled_std = math.sqrt(((a_stats["n"] - 1) * a_stats["std"] ** 2 + (b_stats["n"] - 1) * b_stats["std"] ** 2) / max(a_stats["n"] + b_stats["n"] - 2, 1))
+        if pooled_std == 0:
+            return 0
+        return round((a_stats["mean"] - b_stats["mean"]) / pooled_std, 2)
+
+    all_dims = set(list(scores_a.keys()) + list(scores_b.keys()))
+    comparisons = []
+    for dim in all_dims:
+        a_s = _stats(scores_a.get(dim, []))
+        b_s = _stats(scores_b.get(dim, []))
+        d = _cohens_d(a_s, b_s)
+        comparisons.append({
+            "dimension": dim,
+            "group_a": a_s,
+            "group_b": b_s,
+            "t_test": _t_test(a_s, b_s),
+            "cohens_d": abs(d),
+            "effect_size": "large" if abs(d) >= 0.8 else "medium" if abs(d) >= 0.5 else "small",
+        })
+
+    # Sort: total first, then by dimension name
+    comparisons.sort(key=lambda x: (0 if x["dimension"] == "total" else 1, x["dimension"]))
+
+    return {
+        "group_a": {"prefix": prefix_a, "label": group_a.get("label", prefix_a), "n_analyses": len(scores_a.get("total", []))},
+        "group_b": {"prefix": prefix_b, "label": group_b.get("label", prefix_b), "n_analyses": len(scores_b.get("total", []))},
+        "comparisons": comparisons,
+    }
+
+
 # ─── App ───
 app = FastAPI(
     title="GAIM Lab API",
@@ -856,6 +1077,9 @@ app.add_middleware(
 
 app.include_router(router, prefix="/api/v1", tags=["인증"])
 app.include_router(analysis_router, prefix="/api/v1", tags=["분석"])
+app.include_router(data_router, prefix="/api/v1", tags=["데이터"])
+app.include_router(growth_router, prefix="/api/v1", tags=["성장"])
+app.include_router(cohort_router, prefix="/api/v1", tags=["코호트"])
 
 
 @app.get("/")
@@ -866,3 +1090,4 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
