@@ -91,7 +91,13 @@ INSTANCE_CONNECTION_NAME = os.getenv("INSTANCE_CONNECTION_NAME", "")
 # Use Cloud SQL Python Connector for secure connection
 from google.cloud.sql.connector import Connector
 
-connector = Connector()
+_connector = None
+
+def _get_connector():
+    global _connector
+    if _connector is None:
+        _connector = Connector()
+    return _connector
 
 
 # v8.0 P0: contextmanager로 커넥션 누수 방지
@@ -105,7 +111,7 @@ def _get_db():
             ...
             cur.close()
     """
-    conn = connector.connect(
+    conn = _get_connector().connect(
         INSTANCE_CONNECTION_NAME,
         "pg8000",
         user=DB_USER,
@@ -229,8 +235,8 @@ def _init_analyses_table():
         cur.close()
 
 
-_init_db()
-_init_analyses_table()
+# DB init moved to FastAPI startup event (see below)
+_db_initialized = False
 
 # ─── Auth dependency ───
 security = HTTPBearer(auto_error=False)
@@ -1090,4 +1096,19 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Lazily initialize DB tables on first startup"""
+    global _db_initialized
+    if not _db_initialized and INSTANCE_CONNECTION_NAME:
+        try:
+            _init_db()
+            _init_analyses_table()
+            _db_initialized = True
+            logger.info("db_init success=true")
+        except Exception as e:
+            logger.warning(f"db_init failed={e} — will retry on first request")
+
 
