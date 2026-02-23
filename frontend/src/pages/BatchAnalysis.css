@@ -304,13 +304,15 @@
     font-size: 1.1rem;
 }
 
-.error-message {
+.feedback-message {
     font-size: 0.85rem;
     color: var(--text-secondary);
-    max-width: 300px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    max-width: 350px;
+    line-height: 1.4;
+}
+
+.result-failed .feedback-message {
+    color: #ef4444;
 }
 
 /* Responsive */

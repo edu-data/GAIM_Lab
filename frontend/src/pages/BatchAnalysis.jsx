@@ -122,6 +122,7 @@ function BatchAnalysis() {
                     total_score: data.total_score,
                     grade: data.grade,
                     dimensions: data.dimensions,
+                    overall_feedback: data.overall_feedback || '',
                     error: null,
                 })
             } catch (error) {
@@ -487,8 +488,10 @@ function BatchAnalysis() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="error-message">
-                                            {result.error || '-'}
+                                        <td className="feedback-message">
+                                            {result.status === 'success'
+                                                ? (result.overall_feedback || '-')
+                                                : (result.error || '-')}
                                         </td>
                                     </tr>
                                 ))}
