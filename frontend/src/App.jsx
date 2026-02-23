@@ -11,6 +11,7 @@ import AdminUsers from './pages/AdminUsers'
 // v8.0: 통합 페이지
 import ResearchTools from './pages/ResearchTools'
 import GrowthPortfolio from './pages/GrowthPortfolio'
+import MentorMatch from './pages/MentorMatch'
 import ErrorBoundary from './components/ErrorBoundary'
 import './App.css'
 
@@ -22,6 +23,7 @@ const menuItems = [
     { path: '/research', icon: '🔬', label: '연구 도구' },
     { path: '/growth', icon: '🌱', label: '성장 포트폴리오' },
     { path: '/live', icon: '🔴', label: '실시간 코칭' },
+    { path: '/mentor', icon: '🎓', label: '멘토 매칭' },
 ]
 
 function AppContent() {
@@ -124,6 +126,7 @@ function AppContent() {
                             <Route path="/research" element={<ResearchTools />} />
                             <Route path="/growth" element={<GrowthPortfolio />} />
                             <Route path="/live" element={<LiveCoaching />} />
+                            <Route path="/mentor" element={<MentorMatch />} />
                             <Route path="/login" element={<LoginPage />} />
                             <Route path="/admin/users" element={<AdminUsers />} />
                             <Route path="/analysis/:analysisId" element={<AnalysisResult />} />

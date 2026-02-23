@@ -7,7 +7,7 @@ export default defineConfig({
     plugins: [react()],
     base: isGHPages ? '/GAIM_Lab/app/' : '/',
     define: {
-        '__APP_VERSION__': JSON.stringify('8.0.0'),
+        '__APP_VERSION__': JSON.stringify('8.1.0'),
     },
     build: {
         outDir: isGHPages ? '../docs/app' : 'dist',

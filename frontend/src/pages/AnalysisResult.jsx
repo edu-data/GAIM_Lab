@@ -239,7 +239,12 @@ function AnalysisResult() {
             {/* Header */}
             <div className="result-header">
                 <h1>📊 수업 분석 결과</h1>
-                {result.video_name && <p className="video-name">🎬 {result.video_name}</p>}
+                <div className="result-header-row">
+                    {result.video_name && <p className="video-name">🎬 {result.video_name}</p>}
+                    <button className="btn-pdf" onClick={() => window.print()} title="PDF로 내보내기">
+                        📄 PDF 내보내기
+                    </button>
+                </div>
             </div>
 
             <div className="result-grid">
@@ -324,7 +329,10 @@ function AnalysisResult() {
             </div>
 
             {/* Actions */}
-            <div className="result-actions">
+            <div className="result-actions no-print">
+                <button className="btn-pdf" onClick={() => window.print()}>
+                    📄 PDF 내보내기
+                </button>
                 <button className="btn-secondary" onClick={() => navigate('/dashboard')}>
                     📊 대시보드로
                 </button>

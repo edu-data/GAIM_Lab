@@ -556,3 +556,86 @@
         font-size: 2.5rem;
     }
 }
+
+/* ===== PDF EXPORT BUTTON ===== */
+.result-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-pdf {
+    padding: 0.6rem 1.4rem;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 0.75rem;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--accent, #a78bfa);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(4px);
+}
+
+.btn-pdf:hover {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    body {
+        background: #fff !important;
+        color: #222 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .sidebar, .no-print, .btn-pdf, .result-actions {
+        display: none !important;
+    }
+
+    .main-area {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .result-container {
+        padding: 1rem;
+        max-width: none;
+    }
+
+    .result-header h1 {
+        background: none;
+        -webkit-text-fill-color: #222;
+        color: #222;
+    }
+
+    .score-card.main-score {
+        background: #f3f4f6 !important;
+        border: 2px solid #6366f1;
+    }
+
+    .grade-badge {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .dim-fill {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .result-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .dimensions-card,
+    .overall-feedback {
+        grid-column: 1 / -1;
+    }
+}
