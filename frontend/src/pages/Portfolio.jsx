@@ -5,6 +5,7 @@ import {
     BarChart, Bar, Legend
 } from 'recharts'
 import api from '../lib/api'
+import { isGitHubPages } from '../lib/clientAuth'
 import './Portfolio.css'
 
 function Portfolio() {
@@ -16,11 +17,18 @@ function Portfolio() {
     const [selectedSession, setSelectedSession] = useState(null)
     const [error, setError] = useState(null)
     const [dataSource, setDataSource] = useState(null) // 'db' or 'demo'
+    const isRemote = isGitHubPages()
 
     // v7.1: DB에서 분석 이력 로드
     const loadFromDB = async () => {
         setLoading(true)
         setError(null)
+        if (isRemote) {
+            // GitHub Pages: 데모 데이터 직접 로드
+            loadDemoData()
+            setLoading(false)
+            return
+        }
         try {
             const data = await api.get('/history?limit=50')
 
@@ -105,7 +113,7 @@ function Portfolio() {
             }
         ]
         setPortfolio({
-            student_id: 'demo_student', name: '김예비 (데모)',
+            student_id: 'demo_student', name: '김예비 (샘플)',
             total_sessions: 2, average_score: 78.5, best_score: 85.0, improvement_rate: 12.5,
         })
         setSessions(demoSessions)
@@ -168,25 +176,33 @@ function Portfolio() {
             {/* 학생 검색 */}
             <div className="search-section card">
                 <h2>학생 포트폴리오 조회</h2>
-                <div className="search-form">
-                    <input
-                        type="text"
-                        placeholder="학번 입력..."
-                        value={studentId}
-                        onChange={(e) => setStudentId(e.target.value)}
-                        className="search-input"
-                    />
-                    <button className="btn btn-primary" onClick={loadFromDB}>DB 조회</button>
-                    <button className="btn btn-secondary" onClick={() => { loadDemoData(); setDataSource('demo') }}>
-                        데모 보기
-                    </button>
-                </div>
-                {dataSource && (
-                    <div className={`data-source-badge ${dataSource}`}>
-                        {dataSource === 'db' ? '📊 DB 실제 데이터' : '🎭 데모 데이터'}
+                {isRemote ? (
+                    <div className="data-source-badge demo" style={{ marginTop: '0.5rem' }}>
+                        📊 샘플 데이터 — 포트폴리오 데모를 표시합니다
                     </div>
+                ) : (
+                    <>
+                        <div className="search-form">
+                            <input
+                                type="text"
+                                placeholder="학번 입력..."
+                                value={studentId}
+                                onChange={(e) => setStudentId(e.target.value)}
+                                className="search-input"
+                            />
+                            <button className="btn btn-primary" onClick={loadFromDB}>DB 조회</button>
+                            <button className="btn btn-secondary" onClick={() => { loadDemoData(); setDataSource('demo') }}>
+                                데모 보기
+                            </button>
+                        </div>
+                        {dataSource && (
+                            <div className={`data-source-badge ${dataSource}`}>
+                                {dataSource === 'db' ? '📊 DB 실제 데이터' : '🎭 데모 데이터'}
+                            </div>
+                        )}
+                        {error && <div className="error-message">{error}</div>}
+                    </>
                 )}
-                {error && <div className="error-message">{error}</div>}
             </div>
 
             {loading && (

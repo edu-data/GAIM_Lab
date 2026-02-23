@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import api from '../lib/api'
+import { isGitHubPages } from '../lib/clientAuth'
 
 const PERIOD_TABS = [
-    { key: '3주', label: '3주 단기', icon: '⚡', color: '#00d2ff' },
-    { key: '6주', label: '6주 중기', icon: '📈', color: '#6c63ff' },
+    { key: '4주', label: '4주 단기', icon: '⚡', color: '#00d2ff' },
+    { key: '8주', label: '8주 중기', icon: '📈', color: '#6c63ff' },
     { key: '12주', label: '12주 장기', icon: '🎯', color: '#00e676' },
 ]
 
@@ -11,14 +12,21 @@ function GrowthPath() {
     const [growth, setGrowth] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
-    const [activePeriod, setActivePeriod] = useState('3주')
+    const [activePeriod, setActivePeriod] = useState('4주')
     const [prefix, setPrefix] = useState('20251209')
+    const isRemote = isGitHubPages()
 
     useEffect(() => { loadGrowthData() }, [prefix])
 
     const loadGrowthData = async () => {
         setLoading(true)
         setError(null)
+        if (isRemote) {
+            // GitHub Pages: 데모 데이터 직접 로드
+            setGrowth(generateDemoData())
+            setLoading(false)
+            return
+        }
         try {
             const data = await api.get(`/growth/${prefix}`)
             setGrowth(data)
@@ -34,24 +42,25 @@ function GrowthPath() {
         sessions: 5,
         profile: { strengths: ['수업 전문성', '교수학습 방법'], weaknesses: ['창의성', '학생 참여', '시간 배분'] },
         roadmap: {
-            '3주': {
+            '4주': {
                 label: '기초 역량 강화', focus: '인식 및 습관화',
                 target_dimensions: ['창의성', '학생 참여', '시간 배분'],
-                expected_improvement: 5,
+                expected_improvement: 7,
                 weeks: [
                     { week: 1, focus_dimension: '창의성', goal: '다양한 매체(영상, 실물, ICT)를 활용하세요', activity: '자기 수업 영상 분석 (10분)', target_score: 51.7, current_score: 50 },
-                    { week: 2, focus_dimension: '학생 참여', goal: '모든 학생이 참여할 수 있는 구조화된 활동을 설계하세요', activity: '동료 수업 참관 및 피드백 작성', target_score: 58.3, current_score: 55 },
-                    { week: 3, focus_dimension: '시간 배분', goal: '단계별 시간 배분을 사전에 계획하세요', activity: '교수법 논문/자료 1편 읽기', target_score: 60, current_score: 55 },
+                    { week: 2, focus_dimension: '학생 참여', goal: '모든 학생이 참여할 수 있는 구조화된 활동을 설계하세요', activity: '동료 수업 참관 및 피드백 작성', target_score: 55, current_score: 52 },
+                    { week: 3, focus_dimension: '시간 배분', goal: '단계별 시간 배분을 사전에 계획하세요', activity: '교수법 논문/자료 1편 읽기', target_score: 58, current_score: 54 },
+                    { week: 4, focus_dimension: '창의성', goal: '수업 설계에 창의적 요소를 통합하세요', activity: '마이크로티칭 실습 및 자기 피드백', target_score: 60, current_score: 55 },
                 ],
             },
-            '6주': {
+            '8주': {
                 label: '심화 적용', focus: '전략적 실천',
                 target_dimensions: ['창의성', '학생 참여', '시간 배분'],
-                expected_improvement: 12,
-                weeks: Array.from({ length: 6 }, (_, i) => ({
+                expected_improvement: 15,
+                weeks: Array.from({ length: 8 }, (_, i) => ({
                     week: i + 1, focus_dimension: ['창의성', '학생 참여', '시간 배분'][i % 3],
                     goal: '전략적 교수법 적용 연습', activity: '마이크로티칭 실습',
-                    target_score: 55 + (i + 1) * 2, current_score: 50 + (i % 3) * 5,
+                    target_score: 53 + (i + 1) * 2, current_score: 50 + (i % 3) * 5,
                 })),
             },
             '12주': {
@@ -77,7 +86,8 @@ function GrowthPath() {
                 <p>반복 분석 결과 기반 개인별 개선 로드맵</p>
             </div>
 
-            {error && <div className="gp-notice">⚠️ API 연결 실패 — 데모 데이터를 표시합니다.</div>}
+            {isRemote && <div className="gp-local-badge">📊 샘플 데이터 — 성장 경로 데모를 표시합니다</div>}
+            {!isRemote && error && <div className="gp-notice">⚠️ API 연결 실패 — 데모 데이터를 표시합니다.</div>}
 
             {/* Period Tabs */}
             <div className="gp-tabs">
@@ -177,6 +187,8 @@ function GrowthPath() {
         .page-header p { color: #888; font-size: 0.9rem; }
         .gp-notice { background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.3);
           border-radius: 8px; padding: 0.7rem 1rem; color: #ffc107; margin-bottom: 1rem; font-size: 0.85rem; }
+        .gp-local-badge { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2);
+          border-radius: 8px; padding: 0.7rem 1rem; color: #a5b4fc; margin-bottom: 1rem; font-size: 0.85rem; text-align: center; }
         .gp-tabs { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; justify-content: center; }
         .gp-tab { background: rgba(255,255,255,0.05); border: 2px solid transparent;
           border-radius: 12px; padding: 0.8rem 1.5rem; color: #aaa; cursor: pointer;
