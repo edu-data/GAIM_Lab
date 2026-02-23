@@ -1,42 +1,265 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import api from '../lib/api'
+import { analyzeVideoClient, getStoredApiKey, isGitHubPages } from '../lib/clientAnalyzer'
+import ApiKeySettings from '../components/ApiKeySettings'
+
+// ─── 통계 계산 유틸리티 ───
+
+function mean(arr) {
+    if (arr.length === 0) return 0
+    return arr.reduce((a, b) => a + b, 0) / arr.length
+}
+
+function std(arr) {
+    if (arr.length < 2) return 0
+    const m = mean(arr)
+    const variance = arr.reduce((sum, x) => sum + (x - m) ** 2, 0) / (arr.length - 1)
+    return Math.sqrt(variance)
+}
+
+function tTest(a, b) {
+    const nA = a.length, nB = b.length
+    if (nA < 2 || nB < 2) return { t: 0, p: 1, significant: false }
+    const mA = mean(a), mB = mean(b)
+    const sA = std(a), sB = std(b)
+    const pooledSE = Math.sqrt((sA ** 2) / nA + (sB ** 2) / nB)
+    if (pooledSE === 0) return { t: 0, p: 1, significant: false }
+    const t = (mA - mB) / pooledSE
+    // Welch's df approximation
+    const df = ((sA ** 2 / nA + sB ** 2 / nB) ** 2) /
+        ((sA ** 2 / nA) ** 2 / (nA - 1) + (sB ** 2 / nB) ** 2 / (nB - 1))
+    // Simple p-value approximation using t-distribution
+    const p = tDistPValue(Math.abs(t), Math.max(df, 1))
+    return { t: +t.toFixed(2), p: +p.toFixed(3), significant: p < 0.05 }
+}
+
+// Approximate two-tailed p-value from t-distribution
+function tDistPValue(t, df) {
+    const x = df / (df + t * t)
+    return incompleteBeta(df / 2, 0.5, x)
+}
+
+// Regularized incomplete beta function (simple approximation)
+function incompleteBeta(a, b, x) {
+    if (x <= 0) return 0
+    if (x >= 1) return 1
+    // Use continued fraction for better accuracy
+    const maxIter = 200
+    const eps = 1e-10
+    let sum = 0, term = 1
+    for (let n = 0; n < maxIter; n++) {
+        if (n === 0) {
+            term = Math.pow(x, a) * Math.pow(1 - x, b) / a
+            // Normalize by beta function B(a,b)
+            term /= betaFn(a, b)
+        } else {
+            term *= (x * (a + b + n - 1) * (a + n - 1)) / ((a + 2 * n - 1) * (a + 2 * n) * (1))
+        }
+        sum += term
+        if (Math.abs(term) < eps) break
+    }
+    return Math.min(Math.max(sum, 0), 1)
+}
+
+function betaFn(a, b) {
+    return Math.exp(lnGamma(a) + lnGamma(b) - lnGamma(a + b))
+}
+
+function lnGamma(z) {
+    // Lanczos approximation
+    const g = 7
+    const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+        771.32342877765313, -176.61502916214059, 12.507343278686905,
+        -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7]
+    if (z < 0.5) {
+        return Math.log(Math.PI / Math.sin(Math.PI * z)) - lnGamma(1 - z)
+    }
+    z -= 1
+    let x = c[0]
+    for (let i = 1; i < g + 2; i++) {
+        x += c[i] / (z + i)
+    }
+    const t = z + g + 0.5
+    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x)
+}
+
+function cohensD(a, b) {
+    const nA = a.length, nB = b.length
+    if (nA < 2 || nB < 2) return 0
+    const mA = mean(a), mB = mean(b)
+    const sA = std(a), sB = std(b)
+    const pooled = Math.sqrt(((nA - 1) * sA ** 2 + (nB - 1) * sB ** 2) / (nA + nB - 2))
+    if (pooled === 0) return 0
+    return +((mA - mB) / pooled).toFixed(2)
+}
+
+function effectSize(d) {
+    const abs = Math.abs(d)
+    if (abs >= 0.8) return 'large'
+    if (abs >= 0.5) return 'medium'
+    return 'small'
+}
+
+// ─── 차원 매핑 ───
+const DIMENSIONS = [
+    { key: '수업 전문성', field: '수업 전문성' },
+    { key: '교수학습 방법', field: '교수학습 방법' },
+    { key: '판서 및 언어', field: '판서 및 언어' },
+    { key: '수업 태도', field: '수업 태도' },
+    { key: '학생 참여', field: '학생 참여' },
+    { key: '시간 배분', field: '시간 배분' },
+    { key: '창의성', field: '창의성' },
+]
 
 function CohortCompare() {
-    const [groupA, setGroupA] = useState({ prefix: '', label: '' })
-    const [groupB, setGroupB] = useState({ prefix: '', label: '' })
+    const [groupA, setGroupA] = useState({ label: '', files: [], results: [] })
+    const [groupB, setGroupB] = useState({ label: '', files: [], results: [] })
     const [result, setResult] = useState(null)
     const [loading, setLoading] = useState(false)
+    const [progress, setProgress] = useState(null)
     const [error, setError] = useState(null)
+    const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+    const fileRefA = useRef(null)
+    const fileRefB = useRef(null)
 
-    const runComparison = async () => {
-        if (!groupA.prefix || !groupB.prefix) return
+    const isRemote = isGitHubPages()
+
+    const handleFiles = (e, group) => {
+        const files = Array.from(e.target.files).filter(f => f.type.startsWith('video/'))
+        const setter = group === 'A' ? setGroupA : setGroupB
+        setter(prev => ({ ...prev, files }))
+    }
+
+    // 클라이언트 사이드 코호트 비교
+    const runClientComparison = async () => {
+        const apiKey = getStoredApiKey()
+        if (!apiKey) {
+            setShowApiKeyModal(true)
+            return
+        }
+
+        if (groupA.files.length === 0 || groupB.files.length === 0) {
+            setError('두 그룹 모두 비디오 파일을 선택해주세요')
+            return
+        }
+
+        setLoading(true)
+        setError(null)
+        setResult(null)
+
+        const allFiles = [
+            ...groupA.files.map(f => ({ file: f, group: 'A' })),
+            ...groupB.files.map(f => ({ file: f, group: 'B' })),
+        ]
+        const total = allFiles.length
+        const resultsA = []
+        const resultsB = []
+
+        try {
+            for (let i = 0; i < total; i++) {
+                const { file, group } = allFiles[i]
+                setProgress({
+                    current: i + 1,
+                    total,
+                    group,
+                    videoName: file.name,
+                    message: `그룹 ${group}: ${file.name} 분석 중...`,
+                    pct: Math.round((i / total) * 100),
+                })
+
+                const data = await analyzeVideoClient(file, apiKey, (subProg, msg) => {
+                    const overallPct = Math.round(((i + subProg / 100) / total) * 100)
+                    setProgress(prev => ({ ...prev, pct: overallPct, message: `그룹 ${group}: ${msg}` }))
+                })
+
+                if (group === 'A') resultsA.push(data)
+                else resultsB.push(data)
+            }
+
+            // 통계 계산
+            const comparisons = buildComparisons(resultsA, resultsB)
+            const labelA = groupA.label || `그룹 A (${groupA.files.length}개)`
+            const labelB = groupB.label || `그룹 B (${groupB.files.length}개)`
+
+            setGroupA(prev => ({ ...prev, results: resultsA }))
+            setGroupB(prev => ({ ...prev, results: resultsB }))
+
+            setResult({
+                group_a: { label: labelA, n_analyses: resultsA.length },
+                group_b: { label: labelB, n_analyses: resultsB.length },
+                comparisons,
+            })
+        } catch (e) {
+            console.error('Cohort analysis error:', e)
+            setError(e.message)
+        }
+
+        setProgress(null)
+        setLoading(false)
+    }
+
+    // 서버 모드
+    const runServerComparison = async () => {
         setLoading(true)
         setError(null)
         try {
-            const data = await api.post('/cohort/compare', { group_a: groupA, group_b: groupB })
+            const data = await api.post('/cohort/compare', {
+                group_a: { prefix: groupA.label, label: groupA.label },
+                group_b: { prefix: groupB.label, label: groupB.label },
+            })
             setResult(data)
         } catch (e) {
             setError(e.message)
-            // Demo fallback
-            setResult(generateDemoResult())
         }
         setLoading(false)
     }
 
-    const generateDemoResult = () => ({
-        group_a: { prefix: groupA.prefix, label: groupA.label || groupA.prefix, n_analyses: 12 },
-        group_b: { prefix: groupB.prefix, label: groupB.label || groupB.prefix, n_analyses: 10 },
-        comparisons: [
-            { dimension: 'total', group_a: { mean: 72.5, std: 8.3, n: 12 }, group_b: { mean: 68.1, std: 9.1, n: 10 }, t_test: { t: 1.23, p: 0.11, significant: false }, cohens_d: 0.51, effect_size: 'medium' },
-            { dimension: '수업 전문성', group_a: { mean: 78.2, std: 7.1, n: 12 }, group_b: { mean: 71.3, std: 8.9, n: 10 }, t_test: { t: 2.1, p: 0.04, significant: true }, cohens_d: 0.86, effect_size: 'large' },
-            { dimension: '교수학습 방법', group_a: { mean: 74.1, std: 9.2, n: 12 }, group_b: { mean: 70.8, std: 7.6, n: 10 }, t_test: { t: 0.95, p: 0.17, significant: false }, cohens_d: 0.39, effect_size: 'small' },
-            { dimension: '판서 및 언어', group_a: { mean: 69.4, std: 10.1, n: 12 }, group_b: { mean: 67.2, std: 11.3, n: 10 }, t_test: { t: 0.51, p: 0.31, significant: false }, cohens_d: 0.21, effect_size: 'small' },
-            { dimension: '수업 태도', group_a: { mean: 75.8, std: 6.5, n: 12 }, group_b: { mean: 72.1, std: 8.0, n: 10 }, t_test: { t: 1.28, p: 0.11, significant: false }, cohens_d: 0.51, effect_size: 'medium' },
-            { dimension: '학생 참여', group_a: { mean: 65.3, std: 12.0, n: 12 }, group_b: { mean: 60.2, std: 11.5, n: 10 }, t_test: { t: 1.07, p: 0.14, significant: false }, cohens_d: 0.43, effect_size: 'small' },
-            { dimension: '시간 배분', group_a: { mean: 71.0, std: 8.8, n: 12 }, group_b: { mean: 69.5, std: 9.4, n: 10 }, t_test: { t: 0.41, p: 0.34, significant: false }, cohens_d: 0.17, effect_size: 'small' },
-            { dimension: '창의성', group_a: { mean: 68.2, std: 11.4, n: 12 }, group_b: { mean: 63.8, std: 10.7, n: 10 }, t_test: { t: 0.99, p: 0.16, significant: false }, cohens_d: 0.40, effect_size: 'small' },
-        ],
-    })
+    const runComparison = () => {
+        if (isRemote) runClientComparison()
+        else runServerComparison()
+    }
+
+    // 분석 결과에서 통계 비교 생성
+    function buildComparisons(groupAResults, groupBResults) {
+        const extract = (results, dimName) => results.map(r => {
+            const dim = r.dimensions?.find(d => d.name === dimName)
+            return dim ? dim.percentage : 0
+        })
+
+        const comparisons = []
+
+        // 총점 비교
+        const totalsA = groupAResults.map(r => r.total_score || 0)
+        const totalsB = groupBResults.map(r => r.total_score || 0)
+        const ttTotal = tTest(totalsA, totalsB)
+        const dTotal = cohensD(totalsA, totalsB)
+        comparisons.push({
+            dimension: 'total',
+            group_a: { mean: +mean(totalsA).toFixed(1), std: +std(totalsA).toFixed(1), n: totalsA.length },
+            group_b: { mean: +mean(totalsB).toFixed(1), std: +std(totalsB).toFixed(1), n: totalsB.length },
+            t_test: ttTotal,
+            cohens_d: dTotal,
+            effect_size: effectSize(dTotal),
+        })
+
+        // 차원별 비교
+        for (const dim of DIMENSIONS) {
+            const scoresA = extract(groupAResults, dim.field)
+            const scoresB = extract(groupBResults, dim.field)
+            const tt = tTest(scoresA, scoresB)
+            const d = cohensD(scoresA, scoresB)
+            comparisons.push({
+                dimension: dim.key,
+                group_a: { mean: +mean(scoresA).toFixed(1), std: +std(scoresA).toFixed(1), n: scoresA.length },
+                group_b: { mean: +mean(scoresB).toFixed(1), std: +std(scoresB).toFixed(1), n: scoresB.length },
+                t_test: tt,
+                cohens_d: d,
+                effect_size: effectSize(d),
+            })
+        }
+
+        return comparisons
+    }
 
     const effectColor = (size) => {
         if (size === 'large') return '#ff5252'
@@ -44,44 +267,148 @@ function CohortCompare() {
         return '#00e676'
     }
 
+    const canRun = isRemote
+        ? (groupA.files.length > 0 && groupB.files.length > 0)
+        : (groupA.label && groupB.label)
+
     return (
         <div className="cohort-page">
             <div className="page-header">
                 <h2>📊 코호트 비교 분석</h2>
-                <p>학급/대학/연도별 집단 간 비교 통계</p>
+                <p>두 집단의 수업 영상을 분석하여 통계적으로 비교합니다.</p>
             </div>
 
-            {/* Input Section */}
+            <ApiKeySettings
+                open={showApiKeyModal}
+                onClose={() => setShowApiKeyModal(false)}
+                onSave={() => {
+                    setShowApiKeyModal(false)
+                    if (canRun) setTimeout(() => runClientComparison(), 300)
+                }}
+            />
+
+            {/* 그룹 입력 섹션 */}
             <div className="cc-input-section">
                 <div className="cc-group-input">
                     <h4>그룹 A</h4>
-                    <input placeholder="영상 접두사 (예: 2025_classA)"
-                        value={groupA.prefix} onChange={e => setGroupA({ ...groupA, prefix: e.target.value })} />
-                    <input placeholder="라벨 (예: 1학년 A반)"
-                        value={groupA.label} onChange={e => setGroupA({ ...groupA, label: e.target.value })} />
+                    <input
+                        placeholder="그룹명 (예: 1학년 A반)"
+                        value={groupA.label}
+                        onChange={e => setGroupA({ ...groupA, label: e.target.value })}
+                    />
+                    {isRemote && (
+                        <>
+                            <input
+                                ref={fileRefA}
+                                type="file"
+                                accept="video/*"
+                                multiple
+                                onChange={e => handleFiles(e, 'A')}
+                                style={{ display: 'none' }}
+                            />
+                            <button
+                                className="cc-file-btn"
+                                onClick={() => fileRefA.current?.click()}
+                            >
+                                📂 영상 선택 ({groupA.files.length}개)
+                            </button>
+                            {groupA.files.length > 0 && (
+                                <div className="cc-file-list">
+                                    {groupA.files.map(f => (
+                                        <span key={f.name} className="cc-file-tag">{f.name}</span>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+                    {!isRemote && (
+                        <input
+                            placeholder="영상 접두사 (예: 2025_classA)"
+                            value={groupA.prefix || ''}
+                            onChange={e => setGroupA({ ...groupA, prefix: e.target.value })}
+                        />
+                    )}
                 </div>
+
                 <div className="cc-vs">VS</div>
+
                 <div className="cc-group-input">
                     <h4>그룹 B</h4>
-                    <input placeholder="영상 접두사 (예: 2025_classB)"
-                        value={groupB.prefix} onChange={e => setGroupB({ ...groupB, prefix: e.target.value })} />
-                    <input placeholder="라벨 (예: 1학년 B반)"
-                        value={groupB.label} onChange={e => setGroupB({ ...groupB, label: e.target.value })} />
+                    <input
+                        placeholder="그룹명 (예: 1학년 B반)"
+                        value={groupB.label}
+                        onChange={e => setGroupB({ ...groupB, label: e.target.value })}
+                    />
+                    {isRemote && (
+                        <>
+                            <input
+                                ref={fileRefB}
+                                type="file"
+                                accept="video/*"
+                                multiple
+                                onChange={e => handleFiles(e, 'B')}
+                                style={{ display: 'none' }}
+                            />
+                            <button
+                                className="cc-file-btn"
+                                onClick={() => fileRefB.current?.click()}
+                            >
+                                📂 영상 선택 ({groupB.files.length}개)
+                            </button>
+                            {groupB.files.length > 0 && (
+                                <div className="cc-file-list">
+                                    {groupB.files.map(f => (
+                                        <span key={f.name} className="cc-file-tag">{f.name}</span>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+                    {!isRemote && (
+                        <input
+                            placeholder="영상 접두사 (예: 2025_classB)"
+                            value={groupB.prefix || ''}
+                            onChange={e => setGroupB({ ...groupB, prefix: e.target.value })}
+                        />
+                    )}
                 </div>
             </div>
 
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                <button className="cc-compare-btn" onClick={runComparison} disabled={loading || !groupA.prefix || !groupB.prefix}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem', display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+                {isRemote && (
+                    <button className="cc-key-btn" onClick={() => setShowApiKeyModal(true)}>
+                        🔑 {getStoredApiKey() ? 'Key 변경' : 'Key 설정'}
+                    </button>
+                )}
+                <button
+                    className="cc-compare-btn"
+                    onClick={runComparison}
+                    disabled={loading || !canRun}
+                >
                     {loading ? '분석 중...' : '🔬 비교 분석 실행'}
                 </button>
             </div>
 
-            {error && <div className="cc-notice">⚠️ API 연결 실패 — 데모 데이터를 표시합니다.</div>}
+            {/* 진행 상황 */}
+            {progress && (
+                <div className="cc-progress">
+                    <div className="cc-progress-header">
+                        <span>⏳ {progress.message}</span>
+                        <span>{progress.current}/{progress.total}</span>
+                    </div>
+                    <div className="cc-progress-bar">
+                        <div className="cc-progress-fill" style={{ width: `${progress.pct}%` }} />
+                    </div>
+                    <div className="cc-progress-pct">{progress.pct}%</div>
+                </div>
+            )}
 
-            {/* Results */}
+            {error && <div className="cc-notice">⚠️ {error}</div>}
+
+            {/* 결과 */}
             {result && (
                 <>
-                    {/* Group Info */}
+                    {/* 그룹 정보 */}
                     <div className="cc-group-info">
                         <div className="cc-group-badge" style={{ borderColor: '#6c63ff' }}>
                             <strong>{result.group_a.label}</strong>
@@ -93,7 +420,7 @@ function CohortCompare() {
                         </div>
                     </div>
 
-                    {/* Comparison Table */}
+                    {/* 비교 테이블 */}
                     <div className="cc-table-wrap">
                         <table className="cc-table">
                             <thead>
@@ -139,16 +466,35 @@ function CohortCompare() {
         .page-header { text-align: center; margin-bottom: 1.5rem; }
         .page-header h2 { font-size: 1.6rem; background: linear-gradient(135deg, #6c63ff, #00d2ff);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .cc-input-section { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+        .cc-input-section { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
         .cc-group-input { flex: 1; background: rgba(26,26,46,0.8); border-radius: 12px; padding: 1rem;
           border: 1px solid rgba(108,99,255,0.15); }
         .cc-group-input h4 { color: #00d2ff; margin-bottom: 0.5rem; }
-        .cc-group-input input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(108,99,255,0.2);
+        .cc-group-input input[type="text"], .cc-group-input input[type="search"],
+        .cc-group-input input:not([type="file"]) {
+          width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(108,99,255,0.2);
           border-radius: 8px; padding: 0.6rem 0.8rem; color: #e0e0ec; margin-bottom: 0.4rem; font-size: 0.85rem; }
-        .cc-vs { color: #ff5252; font-weight: 700; font-size: 1.3rem; }
+        .cc-file-btn { width: 100%; padding: 0.6rem; background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15));
+          border: 1px dashed rgba(99,102,241,0.4); border-radius: 8px; color: #a5b4fc; cursor: pointer;
+          font-size: 0.85rem; margin-bottom: 0.5rem; transition: all 0.2s ease; }
+        .cc-file-btn:hover { border-color: #6366f1; background: rgba(99,102,241,0.2); }
+        .cc-file-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+        .cc-file-tag { font-size: 0.72rem; padding: 0.2rem 0.5rem; background: rgba(99,102,241,0.12);
+          border-radius: 6px; color: #c7d2fe; }
+        .cc-vs { color: #ff5252; font-weight: 700; font-size: 1.3rem; padding-top: 2rem; }
         .cc-compare-btn { padding: 0.8rem 2rem; background: linear-gradient(135deg, #6c63ff, #00d2ff);
           color: #fff; border: none; border-radius: 12px; font-size: 1rem; cursor: pointer; font-weight: 600; }
         .cc-compare-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .cc-key-btn { padding: 0.8rem 1.2rem; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
+          border-radius: 12px; color: #a5b4fc; cursor: pointer; font-size: 0.9rem; }
+        .cc-progress { background: rgba(26,26,46,0.8); border-radius: 12px; padding: 1rem;
+          border: 1px solid rgba(99,102,241,0.15); margin-bottom: 1rem; }
+        .cc-progress-header { display: flex; justify-content: space-between; color: #a5b4fc; font-size: 0.85rem;
+          margin-bottom: 0.5rem; }
+        .cc-progress-bar { height: 6px; background: rgba(99,102,241,0.15); border-radius: 3px; overflow: hidden; }
+        .cc-progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #a78bfa);
+          border-radius: 3px; transition: width 0.5s ease; }
+        .cc-progress-pct { text-align: right; font-size: 0.78rem; color: #6366f1; margin-top: 0.3rem; }
         .cc-notice { background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.3);
           border-radius: 8px; padding: 0.6rem; color: #ffc107; font-size: 0.82rem; margin-bottom: 1rem; }
         .cc-group-info { display: flex; gap: 1rem; margin-bottom: 1rem; justify-content: center; }
