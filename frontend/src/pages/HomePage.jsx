@@ -16,7 +16,7 @@ const features = [
     { icon: '🔐', title: '클라이언트 인증', desc: 'GitHub Pages 로그인/회원가입', badge: 'v8.2', link: '/login', color: '#ef4444' },
     { icon: '📈', title: '통계 모듈', desc: "Welch's t-test, Cohen's d 직접 구현", badge: 'v8.2', link: '/cohort', color: '#ef4444' },
     { icon: '📄', title: 'PDF 내보내기', desc: '분석 결과 PDF 저장', badge: 'v8.1', link: '/upload', color: '#f59e0b' },
-    { icon: '🤖', title: 'AI 멘토 매칭', desc: '7차원 기반 AI 에이전트 코칭', badge: 'v8.2', link: '/mentor', color: '#f59e0b' },
+    { icon: '🤖', title: 'AI 코치 매칭', desc: '7차원 기반 AI 에이전트 코칭', badge: 'v8.2', link: '/mentor', color: '#f59e0b' },
     { icon: '🤖', title: 'Gemini 7차원 전면 평가', desc: '모든 차원 LLM 평가 (avg +16pt)', badge: 'v8.0', link: '/upload', color: '#f59e0b' },
     { icon: '🎬', title: '클라이언트 사이드 분석', desc: '브라우저에서 직접 영상 분석', badge: 'v8.0', link: '/agents', color: '#3b82f6' },
     { icon: '🎯', title: '성장 경로', desc: '4/8/12주 맞춤 개선 로드맵', badge: 'v7.1', link: '/growth', color: '#3b82f6' },

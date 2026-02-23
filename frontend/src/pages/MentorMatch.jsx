@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import './MentorMatch.css'
 
 // ═══════════════════════════════════════════════════════════════
-// 7차원 AI 멘토 에이전트 — 교육학 석학 기반
+// 7차원 AI 코치 에이전트 — 교육학 석학 기반
 // ═══════════════════════════════════════════════════════════════
 const AI_MENTORS = [
     {
@@ -193,12 +193,12 @@ function MentorMatch() {
             {/* Hero */}
             <div className="mentor-hero">
                 <div className="mentor-hero-badge">🤖 AI Agent</div>
-                <h1>🎓 AI 멘토 매칭</h1>
+                <h1>🎓 AI 코치 매칭</h1>
                 <p className="mentor-subtitle">
                     7차원 수업 평가 기반 — 교육학 석학 AI 에이전트가 맞춤 코칭을 제공합니다
                 </p>
                 <div className="mentor-hero-stats">
-                    <div className="hero-stat"><span className="hero-stat-num">7</span><span className="hero-stat-lbl">AI 멘토</span></div>
+                    <div className="hero-stat"><span className="hero-stat-num">7</span><span className="hero-stat-lbl">AI 코치</span></div>
                     <div className="hero-stat"><span className="hero-stat-num">7</span><span className="hero-stat-lbl">평가 차원</span></div>
                     <div className="hero-stat"><span className="hero-stat-num">∞</span><span className="hero-stat-lbl">코칭 가능</span></div>
                 </div>
@@ -224,7 +224,7 @@ function MentorMatch() {
                 <div className="filter-search">
                     <input
                         type="text"
-                        placeholder="AI 멘토 이름 또는 키워드 검색..."
+                        placeholder="AI 코치 이름 또는 키워드 검색..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         className="search-input"
@@ -235,7 +235,7 @@ function MentorMatch() {
             {/* Results */}
             <div className="mentor-results">
                 <p className="result-count">
-                    {filteredMentors.length}명의 AI 멘토를 찾았습니다
+                    {filteredMentors.length}명의 AI 코치를 찾았습니다
                 </p>
                 <div className="mentor-grid">
                     {filteredMentors.map(mentor => {
@@ -296,7 +296,7 @@ function MentorMatch() {
                                 {/* Expanded: Advice */}
                                 {isExpanded && (
                                     <div className="mentor-advice-section">
-                                        <h4>💡 {mentor.name} 멘토의 코칭 조언</h4>
+                                        <h4>💡 {mentor.name} 코치의 코칭 조언</h4>
                                         <ul className="advice-list">
                                             {mentor.advice.map((a, i) => (
                                                 <li key={i}>
@@ -318,9 +318,9 @@ function MentorMatch() {
                                 <button
                                     className="btn-mentor-request"
                                     style={{ background: `linear-gradient(135deg, ${mentor.color}, ${mentor.color}cc)` }}
-                                    onClick={() => alert(`🤖 ${mentor.name} AI 멘토와의 코칭 세션이 시작됩니다!\n\n"${mentor.philosophy}"\n\n이 기능은 추후 업데이트에서 활성화됩니다.`)}
+                                    onClick={() => alert(`🤖 ${mentor.name} AI 코치와의 코칭 세션이 시작됩니다!\n\n"${mentor.philosophy}"\n\n이 기능은 추후 업데이트에서 활성화됩니다.`)}
                                 >
-                                    🤖 {mentor.name} 멘토와 코칭 시작
+                                    🤖 {mentor.name} 코치와 코칭 시작
                                 </button>
                             </div>
                         )
@@ -329,7 +329,7 @@ function MentorMatch() {
 
                 {filteredMentors.length === 0 && (
                     <div className="no-results">
-                        <p>😕 조건에 맞는 AI 멘토가 없습니다</p>
+                        <p>😕 조건에 맞는 AI 코치가 없습니다</p>
                         <button onClick={() => { setSelectedDims([]); setSearchQuery('') }}>
                             필터 초기화
                         </button>

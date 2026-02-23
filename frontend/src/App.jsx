@@ -23,7 +23,7 @@ const menuItems = [
     { path: '/research', icon: '🔬', label: '연구 도구' },
     { path: '/growth', icon: '🌱', label: '성장 포트폴리오' },
     { path: '/live', icon: '🔴', label: '실시간 코칭' },
-    { path: '/mentor', icon: '🤖', label: 'AI 멘토' },
+    { path: '/mentor', icon: '🤖', label: 'AI 코치' },
 ]
 
 function AppContent() {
