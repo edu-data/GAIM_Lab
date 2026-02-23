@@ -2,7 +2,7 @@
 
 **멀티 에이전트 수업 분석 시스템** · 8개 AI 에이전트가 협업하여 수업 영상을 7차원 평가하는 플랫폼
 
-[![Version](https://img.shields.io/badge/version-8.1.0-7c3aed)](https://github.com/edu-data/GAIM_Lab/releases)
+[![Version](https://img.shields.io/badge/version-8.2.0-7c3aed)](https://github.com/edu-data/GAIM_Lab/releases)
 [![Python](https://img.shields.io/badge/python-3.9+-3776AB)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React_18-61DAFB)](https://react.dev)
@@ -14,14 +14,17 @@
 <p align="center">
   <a href="https://edu-data.github.io/GAIM_Lab/app/"><strong>🌐 홈페이지</strong></a> ·
   <a href="https://edu-data.github.io/GAIM_Lab/app/#/dashboard"><strong>📊 대시보드</strong></a> ·
+  <a href="https://edu-data.github.io/GAIM_Lab/app/#/live"><strong>🔴 실시간 코칭</strong></a> ·
   <a href="https://github.com/edu-data/GAIM_Lab/releases"><strong>📦 릴리스</strong></a>
 </p>
 
-> **🆕 v8.1** — PDF 내보내기 + 멘토 매칭 + 테스트 강화!
+> **🆕 v8.2** — GitHub Pages 풀스택 · Gemini 실시간 코칭 · 클라이언트 인증
 >
-> - 📄 **PDF 내보내기**: 분석 결과를 PDF로 저장 (`@media print` 최적화)
-> - 🎓 **멘토 매칭 페이지**: 약점 차원 기반 최적 멘토 추천 시스템
-> - 🧪 **테스트 강화**: ErrorBoundary, AgentMonitor, API, HomePage 4개 신규 테스트 (총 8개 → 39개 테스트)
+> - 🔴 **실시간 코칭 7차원 Gemini 평가**: 세션 종료 시 Gemini AI가 교원임용 7차원 분석
+> - 🔐 **클라이언트 인증**: GitHub Pages에서 로그인·회원가입·관리자 기능 (SHA-256)
+> - 📊 **클라이언트 배치/코호트 분석**: 백엔드 없이 Gemini API로 연구 도구 완전 작동
+> - 📈 **통계 모듈**: Welch's t-test, Cohen's d, Satterthwaite df 직접 구현
+> - 📄 **포트폴리오 PDF**: A4 인쇄용 성장 보고서 생성
 
 ---
 
@@ -45,7 +48,7 @@ MAS(Multi-Agent System)는 **예비교원의 수업 영상**을 8개 전문화�
 | 🔬 신뢰도 분석 | **Test-Retest r=0.68, ±5pt 일치 82.6%** |
 | 🗄️ 데이터 영속성 | **SQLite DB auto-save (v7.0)** |
 | 🎬 클라이언트 분석 | **브라우저 직접 분석 가능 (v8.0 NEW)** |
-| 🔴 실시간 코칭 | **WebSocket 라이브 피드백 (v7.1)** |
+| 🔴 실시간 코칭 | **Gemini 7차원 평가 + 라이브 피드백 (v8.2)** |
 | 🧪 A/B 실험 | **루브릭 비교 실험 (v7.1)** |
 | 📱 PWA | **오프라인 접근, 설치 가능 (v7.1)** |
 
@@ -306,6 +309,38 @@ python batch_analysis.py --limit 5
 ---
 
 ## 📜 버전 히스토리 (Changelog)
+
+### v8.2 — GitHub Pages 풀스택 · Gemini 실시간 코칭 · 클라이언트 인증 `2026-02-23`
+
+- **🔴 실시간 코칭 Gemini 7차원 평가** (`LiveCoaching.jsx` + `clientAnalyzer.js`)
+  - 세션 종료 시 전사 텍스트 + 메트릭을 Gemini API로 전송하여 7차원 수업 평가
+  - 기존 heuristic 8차원 스코어링 → Gemini AI 기반 7차원 분석으로 전면 교체
+  - `analyzeTranscript()` 함수 추가: 텍스트 기반 Gemini 호출
+  - 'analyzing' 로딩 페이즈 (스피너) + 점수별 근거 피드백 + 강점/개선점/종합 피드백 표시
+  - API Key 미설정 시 fallback 안내 UI
+- **🔐 클라이언트 인증 시스템** (`clientAuth.js` 신규)
+  - GitHub Pages에서 백엔드 없이 로그인·회원가입 작동 (SHA-256 + Web Crypto API)
+  - localStorage 기반 사용자 CRUD + 관리자 자동 시드 (admin/admin1234)
+  - `LoginPage.jsx` dual-mode: localhost → 서버 API, GitHub Pages → 로컬 인증
+  - `AdminUsers.jsx`: GitHub Pages에서도 사용자 관리 가능
+- **📊 클라이언트 배치 분석** (`BatchAnalysis.jsx` 리팩토링)
+  - GitHub Pages에서 파일 선택 → Gemini API로 직접 분석 (서버 불필요)
+  - 영상별 실시간 진행률 추적, 점수 차트, 등급 배지
+- **📊 클라이언트 코호트 비교** (`CohortCompare.jsx` 리팩토링)
+  - A/B 그룹 파일 선택 → Gemini 분석 → 실시간 t-test, Cohen's d 계산
+- **📈 통계 모듈** (`statistics.js` 신규)
+  - Welch's t-test (Satterthwaite df) + Cohen's d (pooled SD)
+  - Regularized incomplete beta (Lentz 연분수) + Lanczos log-gamma
+  - 16/16 단위 테스트 통과
+- **📄 포트폴리오 PDF 다운로드** (포트폴리오 페이지)
+  - A4 인쇄용 HTML 리포트: 프로필, 7차원 성장 비교표, 세션 이력, 배지
+  - 브라우저 print-to-PDF 대화상자
+- **📹 카메라 안정화** (`useCamera.js` 개선)
+  - LGE 전면 카메라 자동 감지 (디바이스 라벨 매칭)
+  - 'Device in use' 에러 시 3회 자동 재시도 + 백오프
+  - 콜백 체인 안정화: ref 기반 onFrame으로 재시작 루프 방지
+- **🔧 성장 경로/포트폴리오**: GitHub Pages 호환 (API 우회, 샘플 데이터 표시)
+- **🔖 버전**: `__APP_VERSION__` → `8.2.0`
 
 ### v8.1 — PDF 내보내기 · 멘토 매칭 · 테스트 강화 `2026-02-23`
 

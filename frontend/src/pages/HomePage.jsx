@@ -12,14 +12,14 @@ const agentPipeline = [
 ]
 
 const features = [
-    { icon: '📄', title: 'PDF 내보내기', desc: '분석 결과 PDF 저장', badge: 'v8.1', link: '/upload', color: '#ef4444' },
-    { icon: '🎓', title: '멘토 매칭', desc: '약점 기반 멘토 추천', badge: 'v8.1', link: '/mentor', color: '#ef4444' },
+    { icon: '🔴', title: '실시간 코칭 7차원', desc: 'Gemini AI 기반 7차원 수업 평가', badge: 'v8.2', link: '/live', color: '#ef4444' },
+    { icon: '🔐', title: '클라이언트 인증', desc: 'GitHub Pages 로그인/회원가입', badge: 'v8.2', link: '/login', color: '#ef4444' },
+    { icon: '📈', title: '통계 모듈', desc: "Welch's t-test, Cohen's d 직접 구현", badge: 'v8.2', link: '/cohort', color: '#ef4444' },
+    { icon: '📄', title: 'PDF 내보내기', desc: '분석 결과 PDF 저장', badge: 'v8.1', link: '/upload', color: '#f59e0b' },
+    { icon: '🎓', title: '멘토 매칭', desc: '약점 기반 멘토 추천', badge: 'v8.1', link: '/mentor', color: '#f59e0b' },
     { icon: '🤖', title: 'Gemini 7차원 전면 평가', desc: '모든 차원 LLM 평가 (avg +16pt)', badge: 'v8.0', link: '/upload', color: '#f59e0b' },
-    { icon: '🎬', title: '클라이언트 사이드 분석', desc: '브라우저에서 직접 영상 분석', badge: 'v8.0', link: '/agents', color: '#f59e0b' },
-    { icon: '🎯', title: '성장 경로', desc: '3/6/12주 맞춤 개선 로드맵', badge: 'v7.1', link: '/growth', color: '#f59e0b' },
-    { icon: '🔴', title: '실시간 코칭', desc: 'WebSocket 라이브 피드백', badge: 'v7.1', link: '/live', color: '#f59e0b' },
-    { icon: '📊', title: '코호트 비교', desc: 't-test, Cohen\'s d 집단 비교', badge: 'v7.1', link: '/cohort', color: '#f59e0b' },
-    { icon: '🧪', title: 'A/B 루브릭 실험', desc: '2개 루브릭 동시 채점 비교', badge: 'v7.1', link: '/experiment', color: '#3b82f6' },
+    { icon: '🎬', title: '클라이언트 사이드 분석', desc: '브라우저에서 직접 영상 분석', badge: 'v8.0', link: '/agents', color: '#3b82f6' },
+    { icon: '🎯', title: '성장 경로', desc: '4/8/12주 맞춤 개선 로드맵', badge: 'v7.1', link: '/growth', color: '#3b82f6' },
 ]
 
 const quickActions = [
@@ -47,7 +47,7 @@ function HomePage() {
             <section className="hero">
                 <div className="hero-badge">
                     <span className="hero-dot"></span>
-                    v8.1 — PDF 내보내기 · 멘토 매칭 · 테스트 강화
+                    v8.2 — GitHub Pages 풀스택 · Gemini 실시간 코칭 · 클라이언트 인증
                 </div>
                 <h1 className="hero-title">
                     <span className="hero-title-gradient">멀티 에이전트</span>
@@ -143,8 +143,8 @@ function HomePage() {
             {/* v8.0 Features */}
             <section className="home-section">
                 <div className="section-header">
-                    <h2>🚀 v8.0 주요 기능</h2>
-                    <p>Gemini 7차원 전면 평가, 클라이언트 사이드 분석, Hook 리팩토링 ✅</p>
+                    <h2>🚀 주요 기능</h2>
+                    <p>Gemini 7차원 평가, 클라이언트 인증, 실시간 코칭, 통계 분석 ✅</p>
                 </div>
                 <div className="features-grid">
                     {features.map((feat, i) => (
