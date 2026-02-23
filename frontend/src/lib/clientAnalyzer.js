@@ -225,27 +225,31 @@ function convertToFrontendFormat(geminiResult) {
 /**
  * 클라이언트 사이드에서 비디오를 Gemini API로 분석합니다.
  * 
- * @param {File} videoFile - 분석할 비디오 파일
+ * @param {File} videoFile - 분석할 비디오 파일 (null if using precaptured frames)
  * @param {string} apiKey - Google API Key
  * @param {Function} onProgress - 진행 콜백 (0~100, message)
  * @param {Object} [transcriptData] - 실시간 코칭 전사 데이터 (선택)
- * @param {string} [transcriptData.text] - 전사 텍스트
- * @param {number} [transcriptData.durationSec] - 세션 시간 (초)
- * @param {number} [transcriptData.avgWpm] - 평균 WPM
- * @param {number} [transcriptData.fillerCount] - 필러 단어 수
- * @param {number} [transcriptData.silenceRatio] - 침묵 비율
+ * @param {string[]} [precapturedFrames] - 사전 캡처된 base64 프레임 배열 (실시간 코칭용)
  * @returns {Promise<Object>} 프론트엔드 형식의 분석 결과
  */
-export async function analyzeVideoClient(videoFile, apiKey, onProgress = () => { }, transcriptData = null) {
+export async function analyzeVideoClient(videoFile, apiKey, onProgress = () => { }, transcriptData = null, precapturedFrames = null) {
     if (!apiKey) throw new Error('Google API Key가 필요합니다.')
 
-    onProgress(5, '📤 비디오 프레임 추출 중...')
+    let frames
 
-    // 1. 프레임 캡처 (MediaRecorder 녹화의 경우 knownDuration 전달)
-    const knownDuration = transcriptData?.durationSec || 0
-    const frames = await captureFrames(videoFile, 8, (p) => {
-        onProgress(5 + p, '🎞️ 비디오 프레임 추출 중...')
-    }, knownDuration)
+    if (precapturedFrames && precapturedFrames.length > 0) {
+        // 실시간 코칭: 사전 캡처된 프레임 사용 (WebM seeking 문제 우회)
+        onProgress(5, '📦 캡처된 프레임 준비 중...')
+        frames = precapturedFrames
+        onProgress(25, '✅ 프레임 준비 완료 (' + frames.length + '장)')
+    } else {
+        // 일반 비디오 업로드: 파일에서 프레임 추출
+        onProgress(5, '📤 비디오 프레임 추출 중...')
+        const knownDuration = transcriptData?.durationSec || 0
+        frames = await captureFrames(videoFile, 8, (p) => {
+            onProgress(5 + p, '🎞️ 비디오 프레임 추출 중...')
+        }, knownDuration)
+    }
 
     onProgress(30, '🚀 Gemini API에 전송 중...')
 

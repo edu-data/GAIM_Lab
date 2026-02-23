@@ -72,9 +72,9 @@ function LiveCoaching() {
         onFrame: onCameraFrame
     })
 
-    // MediaRecorder for video capture
-    const mediaRecorderRef = useRef(null)
-    const recordedChunksRef = useRef([])
+    // Live frame capture for analysis (bypasses WebM seeking issues)
+    const capturedFramesRef = useRef([])
+    const frameIntervalRef = useRef(null)
 
     const recognitionRef = useRef(null)
     const timerRef = useRef(null)
@@ -194,22 +194,26 @@ function LiveCoaching() {
     // startCamera, stopCamera, videoRef, canvasRef, cameraOn, videoMetrics
     // 모두 useCamera 훅에서 제공 (L60~74 참조)
 
-    // ── MediaRecorder 시작 (카메라 스트림 확보 후) ──
-    const startMediaRecorder = useCallback(() => {
-        const stream = streamRef.current
-        if (!stream) return
-        recordedChunksRef.current = []
-        try {
-            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
-                : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : ''
-            const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {})
-            recorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data) }
-            recorder.start(1000) // 1초 단위 청크
-            mediaRecorderRef.current = recorder
-        } catch (err) {
-            console.warn('[LiveCoaching] MediaRecorder init failed:', err)
-        }
-    }, [streamRef])
+    // ── 라이브 프레임 캡처 시작 (카메라 캔버스에서 주기적 캡처) ──
+    const startFrameCapture = useCallback(() => {
+        capturedFramesRef.current = []
+        // 카메라 캔버스에서 5초마다 프레임 캡처 (최대 8장)
+        frameIntervalRef.current = setInterval(() => {
+            const canvas = canvasRef.current
+            const video = videoRef.current
+            if (!canvas || !video || !video.videoWidth) return
+            if (capturedFramesRef.current.length >= 8) return // 최대 8장
+
+            // 캔버스에 현재 비디오 프레임 그리기
+            canvas.width = Math.min(video.videoWidth, 640)
+            canvas.height = Math.round(canvas.width * (video.videoHeight / video.videoWidth))
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7)
+            const base64 = dataUrl.split(',')[1]
+            capturedFramesRef.current.push(base64)
+        }, 5000) // 5초 간격
+    }, [canvasRef, videoRef])
 
     // ── 세션 시작 ──
     const startSession = () => {
@@ -230,7 +234,7 @@ function LiveCoaching() {
         wpmWindowRef.current = []
         silenceCountRef.current = 0
         totalSegmentsRef.current = 0
-        recordedChunksRef.current = []
+        capturedFramesRef.current = []
 
         startTimeRef.current = Date.now()
         startTimeRef_cam.current = Date.now() // sync for movement history elapsed
@@ -255,21 +259,21 @@ function LiveCoaching() {
     const stopSession = async () => {
         if (recognitionRef.current) { const r = recognitionRef.current; recognitionRef.current = null; r.stop() }
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+        if (frameIntervalRef.current) { clearInterval(frameIntervalRef.current); frameIntervalRef.current = null }
 
-        // MediaRecorder 정지 → Blob 생성
-        const videoBlob = await new Promise((resolve) => {
-            const recorder = mediaRecorderRef.current
-            if (recorder && recorder.state !== 'inactive') {
-                recorder.onstop = () => {
-                    const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || 'video/webm' })
-                    resolve(blob)
-                }
-                recorder.stop()
-            } else {
-                resolve(null)
-            }
-        })
-        mediaRecorderRef.current = null
+        // 마지막 프레임 캡처 (세션 종료 직전)
+        const canvas = canvasRef.current
+        const video = videoRef.current
+        if (canvas && video && video.videoWidth && capturedFramesRef.current.length < 8) {
+            canvas.width = Math.min(video.videoWidth, 640)
+            canvas.height = Math.round(canvas.width * (video.videoHeight / video.videoWidth))
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7)
+            capturedFramesRef.current.push(dataUrl.split(',')[1])
+        }
+
+        const capturedFrames = [...capturedFramesRef.current]
         stopCamera()
 
         const durationSec = (Date.now() - startTimeRef.current) / 1000
@@ -288,16 +292,16 @@ function LiveCoaching() {
             uniqueWords,
         }
 
-        // 8에이전트 Gemini 영상 분석
+        // 8에이전트 Gemini 영상 분석 (사전 캡처된 프레임 사용)
         const apiKey = getStoredApiKey()
-        if (apiKey && videoBlob && videoBlob.size > 0) {
+        if (apiKey && capturedFrames.length > 0) {
             setPhase('analyzing')
             setAnalyzeProgress(0)
             setAgentStates(Object.fromEntries(AGENTS.map(a => [a.id, 'idle'])))
             setAnalyzeMsg('📦 영상 프레임 추출 중...')
 
             try {
-                const videoFile = new File([videoBlob], `live_session_${Date.now()}.webm`, { type: videoBlob.type })
+                const videoFile = null // 프레임이 이미 캡처됨
 
                 // 전사 텍스트 데이터
                 const transcriptData = totalWords > 5 ? {
@@ -319,7 +323,7 @@ function LiveCoaching() {
                     if (progress >= 70) { setAgentDone('pedagogy'); setAgentRunning('feedback') }
                     if (progress >= 85) { setAgentDone('feedback'); setAgentRunning('master') }
                     if (progress >= 95) { setAgentDone('master') }
-                }, transcriptData)
+                }, transcriptData, capturedFrames)
 
                 setSessionReport({
                     ...baseReport,
@@ -369,12 +373,15 @@ function LiveCoaching() {
         }
     }, [phase, startCamera])
 
-    // ── 카메라 켜지면 MediaRecorder 시작 ──
+    // ── 카메라 켜지면 프레임 캡처 시작 ──
     useEffect(() => {
         if (cameraOn && phase === 'recording') {
-            startMediaRecorder()
+            startFrameCapture()
         }
-    }, [cameraOn, phase, startMediaRecorder])
+        return () => {
+            if (frameIntervalRef.current) { clearInterval(frameIntervalRef.current); frameIntervalRef.current = null }
+        }
+    }, [cameraOn, phase, startFrameCapture])
 
     // auto-scroll transcript
     useEffect(() => {
