@@ -33,17 +33,48 @@ function calcDimensions(stats) {
     const { avgWpm, fillerCount, silenceRatio, totalWords, durationSec } = stats
     const mins = durationSec / 60 || 1
     const fillerRate = fillerCount / mins
-    const score = (val, ideal, range) => Math.max(0, Math.min(100, 100 - Math.abs(val - ideal) / range * 100))
+
+    // 가우시안 기반 점수: ideal에 가까울수록 100, 벗어날수록 감소 (최소 10)
+    const gaussScore = (val, ideal, sigma) => {
+        const diff = val - ideal
+        const raw = Math.exp(-(diff * diff) / (2 * sigma * sigma)) * 100
+        return Math.round(Math.max(10, raw))
+    }
+
     const vm = stats.videoMetrics || {}
-    const movScore = vm.avgMovement != null ? Math.round(score(vm.avgMovement, 35, 50)) : null
-    const gestScore = vm.gestureCount != null ? Math.round(Math.min(100, (vm.gestureCount / Math.max(mins, 1)) * 15)) : null
+    const movScore = vm.avgMovement != null ? gaussScore(vm.avgMovement, 35, 40) : null
+    const gestScore = vm.gestureCount != null ? Math.round(Math.min(100, Math.max(10, (vm.gestureCount / Math.max(mins, 1)) * 15))) : null
+
+    // 말 속도: ideal=130 WPM, sigma=60 (50~210 범위에서 높은 점수)
+    const speedScore = totalWords > 0 ? gaussScore(avgWpm, 130, 60) : 0
+
+    // 침묵 활용: ideal=15%, sigma=25 (0~40% 범위에서 높은 점수)
+    const silencePercent = silenceRatio * 100
+    const silenceScore = durationSec > 5 ? gaussScore(silencePercent, 15, 25) : 50
+
+    // 발화 유창성: 필러가 적을수록 좋음
+    const fluencyScore = Math.round(Math.max(10, 100 - fillerRate * 6))
+
+    // 발화량: 분당 80단어 기준
+    const volumeScore = Math.round(Math.min(100, Math.max(10, (totalWords / (mins * 80)) * 100)))
+
+    // 속도 안정성: 표준편차가 작을수록 좋음
+    const stabilityScore = Math.round(Math.max(10, 100 - (stats.wpmStdDev || 0) * 1.5))
+
+    // 어휘 다양성
+    const vocabScore = totalWords > 0
+        ? Math.round(Math.min(100, Math.max(10, (stats.uniqueWords || 0) / Math.max(totalWords * 0.35, 1) * 100)))
+        : 0
+
+    console.log('[calcDimensions]', { avgWpm, silenceRatio, silencePercent, totalWords, speedScore, silenceScore, fluencyScore })
+
     return [
-        { name: '발화 유창성', score: Math.round(Math.max(0, 100 - fillerRate * 8)), icon: '🗣️' },
-        { name: '말 속도', score: Math.round(score(avgWpm, 130, 80)), icon: '⏱️' },
-        { name: '침묵 활용', score: Math.round(score(silenceRatio * 100, 15, 30)), icon: '🔇' },
-        { name: '발화량', score: Math.round(Math.min(100, (totalWords / (mins * 80)) * 100)), icon: '📝' },
-        { name: '속도 안정성', score: Math.round(Math.max(0, 100 - (stats.wpmStdDev || 0) * 2)), icon: '📊' },
-        { name: '어휘 다양성', score: Math.round(Math.min(100, (stats.uniqueWords || 0) / Math.max(totalWords * 0.4, 1) * 100)), icon: '📚' },
+        { name: '발화 유창성', score: fluencyScore, icon: '🗣️' },
+        { name: '말 속도', score: speedScore, icon: '⏱️' },
+        { name: '침묵 활용', score: silenceScore, icon: '🔇' },
+        { name: '발화량', score: volumeScore, icon: '📝' },
+        { name: '속도 안정성', score: stabilityScore, icon: '📊' },
+        { name: '어휘 다양성', score: vocabScore, icon: '📚' },
         { name: '움직임·활용', score: movScore != null && gestScore != null ? Math.round((movScore + gestScore) / 2) : 70, icon: '🤸' },
         { name: '종합 전달력', score: 0, icon: '🎯' },
     ]
