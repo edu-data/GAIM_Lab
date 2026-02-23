@@ -1,0 +1,209 @@
+/* API Key 설정 모달 스타일 */
+
+.apikey-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.apikey-modal {
+    background: rgba(30, 32, 48, 0.95);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 16px;
+    width: min(480px, 90vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(99, 102, 241, 0.1);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.apikey-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 0;
+}
+
+.apikey-header h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+    color: #e2e8f0;
+}
+
+.apikey-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.apikey-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+}
+
+.apikey-body {
+    padding: 20px 24px;
+}
+
+.apikey-desc {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin: 0 0 16px;
+}
+
+.apikey-info-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: #c7d2fe;
+}
+
+.apikey-info-box a {
+    color: #818cf8;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.apikey-info-box a:hover {
+    color: #a5b4fc;
+}
+
+.apikey-info-icon {
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.apikey-input-group {
+    margin-bottom: 16px;
+}
+
+.apikey-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-bottom: 6px;
+}
+
+.apikey-input-wrap {
+    display: flex;
+    gap: 0;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.apikey-input-wrap:focus-within {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.apikey-input {
+    flex: 1;
+    background: rgba(15, 17, 28, 0.6);
+    border: none;
+    padding: 10px 14px;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    outline: none;
+}
+
+.apikey-input::placeholder {
+    color: #475569;
+}
+
+.apikey-toggle {
+    background: rgba(15, 17, 28, 0.6);
+    border: none;
+    border-left: 1px solid rgba(99, 102, 241, 0.2);
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+
+.apikey-toggle:hover {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+.apikey-error {
+    color: #f87171;
+    font-size: 0.82rem;
+    padding: 8px 12px;
+    background: rgba(248, 113, 113, 0.1);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.apikey-success {
+    color: #4ade80;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    background: rgba(74, 222, 128, 0.1);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    animation: fadeIn 0.3s ease;
+}
+
+.apikey-security {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.apikey-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
