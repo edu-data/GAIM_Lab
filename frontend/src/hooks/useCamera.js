@@ -39,6 +39,10 @@ export function useCamera(options = {}) {
     const samplesRef = useRef([])
     const gestureCountRef = useRef(0)
     const lastMovementRef = useRef(0)
+    const onFrameRef = useRef(onFrame)
+
+    // Keep onFrame ref up-to-date without causing re-renders
+    useEffect(() => { onFrameRef.current = onFrame }, [onFrame])
 
     // ── 프레임 분석 (움직임 감지) ──
     const analyzeFrame = useCallback(() => {
@@ -79,10 +83,10 @@ export function useCamera(options = {}) {
                 avgMovement: Math.round(avg),
             }
             setMetrics(result)
-            if (onFrame) onFrame(result)
+            if (onFrameRef.current) onFrameRef.current(result)
         }
         prevFrameRef.current = new Uint8ClampedArray(data)
-    }, [onFrame])
+    }, []) // stable — no dependencies, uses refs only
 
     // ── 카메라 시작 ──
     const startCamera = useCallback(async () => {

@@ -62,15 +62,17 @@ function LiveCoaching() {
     const [movementHistory, setMovementHistory] = useState([])
     const startTimeRef_cam = useRef(0) // shared with startTimeRef for movement history elapsed calc
 
+    const onCameraFrame = useCallback(({ avgMovement }) => {
+        const elapsed = (Date.now() - startTimeRef_cam.current) / 1000
+        setMovementHistory(prev => {
+            if (prev.length === 0 || elapsed - (prev[prev.length - 1]?.t || 0) >= 10)
+                return [...prev, { t: Math.round(elapsed), mov: avgMovement }]
+            return prev
+        })
+    }, [])
+
     const { videoRef, canvasRef, cameraOn, error: cameraError, metrics: videoMetrics, startCamera, stopCamera, resetMetrics: resetCameraMetrics } = useCamera({
-        onFrame: ({ avgMovement }) => {
-            const elapsed = (Date.now() - startTimeRef_cam.current) / 1000
-            setMovementHistory(prev => {
-                if (prev.length === 0 || elapsed - (prev[prev.length - 1]?.t || 0) >= 10)
-                    return [...prev, { t: Math.round(elapsed), mov: avgMovement }]
-                return prev
-            })
-        }
+        onFrame: onCameraFrame
     })
 
     const recognitionRef = useRef(null)
