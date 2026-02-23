@@ -365,7 +365,10 @@ function MentorMatch() {
         }
         try {
             const genAI = new GoogleGenerativeAI(apiKey)
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+            const model = genAI.getGenerativeModel({
+                model: 'gemini-2.0-flash',
+                systemInstruction: { parts: [{ text: coach.systemPrompt }] },
+            })
 
             const greeting = `안녕하세요! 저는 ${coach.fullName}입니다. ${coach.dimension} 영역의 AI 코치로서 여러분의 수업 개선을 함께 하겠습니다.\n\n${coach.philosophy}\n\n어떤 부분에서 도움이 필요하신지 편하게 말씀해주세요. 😊`
 
@@ -375,7 +378,6 @@ function MentorMatch() {
                     { role: 'model', parts: [{ text: greeting }] },
                 ],
                 generationConfig: { maxOutputTokens: 1024 },
-                systemInstruction: coach.systemPrompt,
             })
 
             chatRef.current = chat
