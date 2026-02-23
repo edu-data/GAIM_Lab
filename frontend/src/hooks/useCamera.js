@@ -101,10 +101,33 @@ export function useCamera(options = {}) {
             videoRef.current.srcObject = null
         }
 
+        // LGE 전면 카메라 장치 ID 검색
+        let preferredDeviceId = null
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices()
+            const cameras = devices.filter(d => d.kind === 'videoinput')
+            console.log('[useCamera] Available cameras:', cameras.map(c => `${c.label} (${c.deviceId.slice(0, 8)})`))
+
+            // 우선순위: 1) LGE 전면 2) 전면/front 포함 3) 첫 번째 카메라
+            const lge = cameras.find(c => c.label.includes('LGE') && c.label.includes('전면'))
+                || cameras.find(c => c.label.includes('전면') || c.label.toLowerCase().includes('front'))
+                || cameras.find(c => c.label.includes('LGE'))
+            if (lge) {
+                preferredDeviceId = lge.deviceId
+                console.log('[useCamera] Using camera:', lge.label)
+            }
+        } catch (e) {
+            console.warn('[useCamera] Device enumeration failed:', e)
+        }
+
+        const videoConstraints = preferredDeviceId
+            ? { deviceId: { exact: preferredDeviceId }, width: { ideal: width }, height: { ideal: height } }
+            : { width: { ideal: width }, height: { ideal: height }, facingMode: 'user' }
+
         const tryGetCamera = async (attempt = 1) => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: { ideal: width }, height: { ideal: height }, facingMode: 'user' },
+                    video: videoConstraints,
                     audio: false,
                 })
                 return stream
