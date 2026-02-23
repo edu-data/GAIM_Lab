@@ -103,9 +103,10 @@ const EVALUATION_PROMPT = `당신은 초등학교 교사 임용 2차 수업실�
  * @param {File} videoFile - 비디오 파일
  * @param {number} count - 캡처할 프레임 수
  * @param {Function} onProgress - 진행 콜백
+ * @param {number} [knownDuration] - 알려진 비디오 길이 (초), MediaRecorder 녹화시 전달
  * @returns {Promise<string[]>} base64 인코딩된 프레임 배열
  */
-async function captureFrames(videoFile, count = 8, onProgress = () => { }) {
+async function captureFrames(videoFile, count = 8, onProgress = () => { }, knownDuration = 0) {
     return new Promise((resolve, reject) => {
         const video = document.createElement('video')
         const canvas = document.createElement('canvas')
@@ -123,7 +124,13 @@ async function captureFrames(videoFile, count = 8, onProgress = () => { }) {
             canvas.width = Math.min(video.videoWidth, 1280)
             canvas.height = Math.round(canvas.width * (video.videoHeight / video.videoWidth))
 
-            const duration = video.duration
+            let duration = video.duration
+
+            // MediaRecorder WebM blobs often report Infinity duration
+            if (!isFinite(duration) || duration <= 0) {
+                duration = knownDuration > 0 ? knownDuration : 30 // fallback 30초
+            }
+
             const interval = duration / (count + 1)
             let currentFrame = 0
 
@@ -135,7 +142,13 @@ async function captureFrames(videoFile, count = 8, onProgress = () => { }) {
                     return
                 }
 
-                const time = interval * (currentFrame + 1)
+                const time = Math.min(interval * (currentFrame + 1), duration - 0.1)
+                if (!isFinite(time) || time < 0) {
+                    // safety: skip if still non-finite
+                    currentFrame++
+                    captureNext()
+                    return
+                }
                 video.currentTime = time
             }
 
@@ -228,10 +241,11 @@ export async function analyzeVideoClient(videoFile, apiKey, onProgress = () => {
 
     onProgress(5, '📤 비디오 프레임 추출 중...')
 
-    // 1. 프레임 캡처
+    // 1. 프레임 캡처 (MediaRecorder 녹화의 경우 knownDuration 전달)
+    const knownDuration = transcriptData?.durationSec || 0
     const frames = await captureFrames(videoFile, 8, (p) => {
         onProgress(5 + p, '🎞️ 비디오 프레임 추출 중...')
-    })
+    }, knownDuration)
 
     onProgress(30, '🚀 Gemini API에 전송 중...')
 
