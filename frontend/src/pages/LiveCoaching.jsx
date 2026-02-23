@@ -98,8 +98,8 @@ function LiveCoaching() {
 
         // 필러 카운트
         const allText = allWordsRef.current.join(' ')
-        const fillers = allText.match(FILLER_RE) || []
-        const fillerCount = fillers.length
+        const fillerCount = (allText.match(/(?:^|\s)(음|어|그|저|이제|뭐|아|에|그러니까|있잖아)(?=\s|$)/gi) || []).length
+            + (allText.match(/\b(um|uh|like|you know|so|well|basically|actually)\b/gi) || []).length
 
         const m = {
             wpm: Math.round(wpm),
