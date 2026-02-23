@@ -1,104 +1,8 @@
 import { useState, useRef } from 'react'
 import api from '../lib/api'
 import { analyzeVideoClient, getStoredApiKey, isGitHubPages } from '../lib/clientAnalyzer'
+import { mean, sd, welchTTest, cohensD, effectSizeLabel } from '../lib/statistics'
 import ApiKeySettings from '../components/ApiKeySettings'
-
-// ─── 통계 계산 유틸리티 ───
-
-function mean(arr) {
-    if (arr.length === 0) return 0
-    return arr.reduce((a, b) => a + b, 0) / arr.length
-}
-
-function std(arr) {
-    if (arr.length < 2) return 0
-    const m = mean(arr)
-    const variance = arr.reduce((sum, x) => sum + (x - m) ** 2, 0) / (arr.length - 1)
-    return Math.sqrt(variance)
-}
-
-function tTest(a, b) {
-    const nA = a.length, nB = b.length
-    if (nA < 2 || nB < 2) return { t: 0, p: 1, significant: false }
-    const mA = mean(a), mB = mean(b)
-    const sA = std(a), sB = std(b)
-    const pooledSE = Math.sqrt((sA ** 2) / nA + (sB ** 2) / nB)
-    if (pooledSE === 0) return { t: 0, p: 1, significant: false }
-    const t = (mA - mB) / pooledSE
-    // Welch's df approximation
-    const df = ((sA ** 2 / nA + sB ** 2 / nB) ** 2) /
-        ((sA ** 2 / nA) ** 2 / (nA - 1) + (sB ** 2 / nB) ** 2 / (nB - 1))
-    // Simple p-value approximation using t-distribution
-    const p = tDistPValue(Math.abs(t), Math.max(df, 1))
-    return { t: +t.toFixed(2), p: +p.toFixed(3), significant: p < 0.05 }
-}
-
-// Approximate two-tailed p-value from t-distribution
-function tDistPValue(t, df) {
-    const x = df / (df + t * t)
-    return incompleteBeta(df / 2, 0.5, x)
-}
-
-// Regularized incomplete beta function (simple approximation)
-function incompleteBeta(a, b, x) {
-    if (x <= 0) return 0
-    if (x >= 1) return 1
-    // Use continued fraction for better accuracy
-    const maxIter = 200
-    const eps = 1e-10
-    let sum = 0, term = 1
-    for (let n = 0; n < maxIter; n++) {
-        if (n === 0) {
-            term = Math.pow(x, a) * Math.pow(1 - x, b) / a
-            // Normalize by beta function B(a,b)
-            term /= betaFn(a, b)
-        } else {
-            term *= (x * (a + b + n - 1) * (a + n - 1)) / ((a + 2 * n - 1) * (a + 2 * n) * (1))
-        }
-        sum += term
-        if (Math.abs(term) < eps) break
-    }
-    return Math.min(Math.max(sum, 0), 1)
-}
-
-function betaFn(a, b) {
-    return Math.exp(lnGamma(a) + lnGamma(b) - lnGamma(a + b))
-}
-
-function lnGamma(z) {
-    // Lanczos approximation
-    const g = 7
-    const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
-        771.32342877765313, -176.61502916214059, 12.507343278686905,
-        -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7]
-    if (z < 0.5) {
-        return Math.log(Math.PI / Math.sin(Math.PI * z)) - lnGamma(1 - z)
-    }
-    z -= 1
-    let x = c[0]
-    for (let i = 1; i < g + 2; i++) {
-        x += c[i] / (z + i)
-    }
-    const t = z + g + 0.5
-    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x)
-}
-
-function cohensD(a, b) {
-    const nA = a.length, nB = b.length
-    if (nA < 2 || nB < 2) return 0
-    const mA = mean(a), mB = mean(b)
-    const sA = std(a), sB = std(b)
-    const pooled = Math.sqrt(((nA - 1) * sA ** 2 + (nB - 1) * sB ** 2) / (nA + nB - 2))
-    if (pooled === 0) return 0
-    return +((mA - mB) / pooled).toFixed(2)
-}
-
-function effectSize(d) {
-    const abs = Math.abs(d)
-    if (abs >= 0.8) return 'large'
-    if (abs >= 0.5) return 'medium'
-    return 'small'
-}
 
 // ─── 차원 매핑 ───
 const DIMENSIONS = [
@@ -231,30 +135,30 @@ function CohortCompare() {
         // 총점 비교
         const totalsA = groupAResults.map(r => r.total_score || 0)
         const totalsB = groupBResults.map(r => r.total_score || 0)
-        const ttTotal = tTest(totalsA, totalsB)
+        const ttTotal = welchTTest(totalsA, totalsB)
         const dTotal = cohensD(totalsA, totalsB)
         comparisons.push({
             dimension: 'total',
-            group_a: { mean: +mean(totalsA).toFixed(1), std: +std(totalsA).toFixed(1), n: totalsA.length },
-            group_b: { mean: +mean(totalsB).toFixed(1), std: +std(totalsB).toFixed(1), n: totalsB.length },
+            group_a: { mean: +mean(totalsA).toFixed(1), std: +sd(totalsA).toFixed(1), n: totalsA.length },
+            group_b: { mean: +mean(totalsB).toFixed(1), std: +sd(totalsB).toFixed(1), n: totalsB.length },
             t_test: ttTotal,
             cohens_d: dTotal,
-            effect_size: effectSize(dTotal),
+            effect_size: effectSizeLabel(dTotal),
         })
 
         // 차원별 비교
         for (const dim of DIMENSIONS) {
             const scoresA = extract(groupAResults, dim.field)
             const scoresB = extract(groupBResults, dim.field)
-            const tt = tTest(scoresA, scoresB)
+            const tt = welchTTest(scoresA, scoresB)
             const d = cohensD(scoresA, scoresB)
             comparisons.push({
                 dimension: dim.key,
-                group_a: { mean: +mean(scoresA).toFixed(1), std: +std(scoresA).toFixed(1), n: scoresA.length },
-                group_b: { mean: +mean(scoresB).toFixed(1), std: +std(scoresB).toFixed(1), n: scoresB.length },
+                group_a: { mean: +mean(scoresA).toFixed(1), std: +sd(scoresA).toFixed(1), n: scoresA.length },
+                group_b: { mean: +mean(scoresB).toFixed(1), std: +sd(scoresB).toFixed(1), n: scoresB.length },
                 t_test: tt,
                 cohens_d: d,
-                effect_size: effectSize(d),
+                effect_size: effectSizeLabel(d),
             })
         }
 
@@ -429,6 +333,7 @@ function CohortCompare() {
                                     <th>{result.group_a.label} (M±SD)</th>
                                     <th>{result.group_b.label} (M±SD)</th>
                                     <th>t</th>
+                                    <th>df</th>
                                     <th>p</th>
                                     <th>Cohen's d</th>
                                     <th>효과 크기</th>
@@ -441,8 +346,9 @@ function CohortCompare() {
                                         <td>{c.group_a.mean} ± {c.group_a.std}</td>
                                         <td>{c.group_b.mean} ± {c.group_b.std}</td>
                                         <td>{c.t_test.t}</td>
+                                        <td>{c.t_test.df}</td>
                                         <td style={{ color: c.t_test.significant ? '#ff5252' : '#888' }}>
-                                            {c.t_test.p}{c.t_test.significant ? ' *' : ''}
+                                            {c.t_test.p < 0.001 ? '< .001' : c.t_test.p.toFixed(3)}{c.t_test.significant ? ' *' : ''}
                                         </td>
                                         <td>{c.cohens_d}</td>
                                         <td><span className="cc-effect" style={{ color: effectColor(c.effect_size) }}>
