@@ -164,7 +164,126 @@ function Portfolio() {
     }
 
     const handleDownloadPDF = () => {
-        alert('PDF 포트폴리오 다운로드 기능은 추후 구현 예정입니다.')
+        if (!portfolio || sessions.length === 0) {
+            alert('포트폴리오 데이터가 없습니다.')
+            return
+        }
+
+        // 세션별 차원 점수 테이블 행 생성
+        const sessionRows = sessions.map((s, i) => {
+            const dimScores = s.dimensions
+                ? s.dimensions.map(d => `<td>${d.score}/${d.max}</td>`).join('')
+                : '<td colspan="7">-</td>'
+            return `<tr>
+                <td>#${i + 1}</td>
+                <td>${s.date}</td>
+                <td><strong>${s.total_score}</strong></td>
+                <td><span class="grade">${s.grade}</span></td>
+                ${dimScores}
+            </tr>`
+        }).join('')
+
+        // 배지 목록
+        const badgeList = badges.map(b =>
+            `<span class="badge">${b.icon} ${b.name} (+${b.points}pt)</span>`
+        ).join(' ')
+
+        // 차원 비교 데이터
+        const compData = getDimensionComparisonData()
+        const compRows = compData.map(d =>
+            `<tr>
+                <td>${d.fullName}</td>
+                <td>${d.first}%</td>
+                <td>${d.last}%</td>
+                <td class="${d.growth >= 0 ? 'positive' : 'negative'}">${d.growth >= 0 ? '+' : ''}${d.growth}%</td>
+            </tr>`
+        ).join('')
+
+        const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>GAIM Lab 포트폴리오 - ${portfolio.name}</title>
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; color: #1e293b; line-height: 1.6; padding: 20px; }
+  .header { text-align: center; border-bottom: 3px solid #4f46e5; padding-bottom: 15px; margin-bottom: 20px; }
+  .header h1 { font-size: 22px; color: #4f46e5; }
+  .header p { color: #64748b; font-size: 12px; }
+  .section { margin-bottom: 18px; page-break-inside: avoid; }
+  .section h2 { font-size: 15px; color: #4f46e5; border-left: 4px solid #4f46e5; padding-left: 10px; margin-bottom: 10px; }
+  .stats { display: flex; gap: 12px; margin-bottom: 15px; }
+  .stat-box { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-box .value { font-size: 22px; font-weight: 700; color: #4f46e5; }
+  .stat-box .label { font-size: 11px; color: #64748b; }
+  .positive { color: #16a34a; }
+  .negative { color: #dc2626; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center; }
+  th { background: #4f46e5; color: white; font-weight: 600; }
+  tr:nth-child(even) { background: #f8fafc; }
+  .grade { background: #4f46e5; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .badge { display: inline-block; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 20px; padding: 4px 12px; margin: 3px; font-size: 11px; }
+  .footer { text-align: center; color: #94a3b8; font-size: 10px; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>🌱 GAIM Lab 성장 포트폴리오</h1>
+    <p>GINUE AI Microteaching Laboratory | 생성일: ${new Date().toLocaleDateString('ko-KR')}</p>
+  </div>
+
+  <div class="section">
+    <h2>👩‍🎓 학생 프로필</h2>
+    <div class="stats">
+      <div class="stat-box"><div class="value">${portfolio.name}</div><div class="label">이름</div></div>
+      <div class="stat-box"><div class="value">${portfolio.total_sessions}</div><div class="label">총 세션</div></div>
+      <div class="stat-box"><div class="value">${portfolio.average_score}</div><div class="label">평균 점수</div></div>
+      <div class="stat-box"><div class="value">${portfolio.best_score}</div><div class="label">최고 점수</div></div>
+      <div class="stat-box"><div class="value ${portfolio.improvement_rate >= 0 ? 'positive' : 'negative'}">${portfolio.improvement_rate >= 0 ? '+' : ''}${portfolio.improvement_rate}%</div><div class="label">개선율</div></div>
+    </div>
+  </div>
+
+  ${compData.length > 0 ? `
+  <div class="section">
+    <h2>📊 7차원 역량 발전 비교</h2>
+    <table>
+      <thead><tr><th>차원</th><th>첫 세션</th><th>최근 세션</th><th>성장</th></tr></thead>
+      <tbody>${compRows}</tbody>
+    </table>
+  </div>` : ''}
+
+  <div class="section">
+    <h2>📋 수업 시연 기록</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>날짜</th><th>총점</th><th>등급</th>
+          <th>수업 전문성</th><th>교수학습</th><th>판서/언어</th><th>수업 태도</th><th>학생 참여</th><th>시간 배분</th><th>창의성</th>
+        </tr>
+      </thead>
+      <tbody>${sessionRows}</tbody>
+    </table>
+  </div>
+
+  ${badges.length > 0 ? `
+  <div class="section">
+    <h2>🎖️ 획득 배지 (${badges.reduce((s, b) => s + b.points, 0)}pt)</h2>
+    <div>${badgeList}</div>
+  </div>` : ''}
+
+  <div class="footer">
+    GAIM Lab v8.0 | © ${new Date().getFullYear()} GINUE AI Microteaching Lab
+  </div>
+</body>
+</html>`
+
+        const printWindow = window.open('', '_blank')
+        printWindow.document.write(html)
+        printWindow.document.close()
+        // 인쇄 대화상자를 열어 PDF로 저장 가능
+        setTimeout(() => printWindow.print(), 500)
     }
 
     return (
