@@ -406,19 +406,38 @@ function MentorMatch() {
         setChatMessages(prev => [...prev, { role: 'user', content: msg }])
         setChatLoading(true)
 
-        try {
-            const result = await chatRef.current.sendMessage(msg)
-            const reply = result.response.text()
-            setChatMessages(prev => [...prev, { role: 'assistant', content: reply }])
-        } catch (e) {
-            console.error('[CoachChat] send error:', e)
-            setChatMessages(prev => [...prev, {
-                role: 'assistant',
-                content: `⚠️ 응답 오류: ${e.message}\n\n다시 시도해주세요.`,
-            }])
-        } finally {
-            setChatLoading(false)
+        const MAX_RETRIES = 3
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const result = await chatRef.current.sendMessage(msg)
+                const reply = result.response.text()
+                setChatMessages(prev => [...prev, { role: 'assistant', content: reply }])
+                break
+            } catch (e) {
+                const is429 = e.message?.includes('429') || e.message?.includes('Resource exhausted')
+                if (is429 && attempt < MAX_RETRIES) {
+                    const wait = 3000 * Math.pow(2, attempt) // 3s, 6s, 12s
+                    console.warn(`[CoachChat] 429 rate limit, retry ${attempt + 1}/${MAX_RETRIES} in ${wait / 1000}s`)
+                    setChatMessages(prev => {
+                        const filtered = prev.filter(m => m.content !== '⏳ 요청 대기 중...')
+                        return [...filtered, { role: 'assistant', content: `⏳ API 호출 한도 초과... ${wait / 1000}초 후 재시도합니다 (${attempt + 1}/${MAX_RETRIES})` }]
+                    })
+                    await new Promise(r => setTimeout(r, wait))
+                    // 재시도 전 대기 메시지 제거
+                    setChatMessages(prev => prev.filter(m => !m.content?.startsWith('⏳')))
+                    continue
+                }
+                console.error('[CoachChat] send error:', e)
+                setChatMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: is429
+                        ? '⚠️ API 호출 한도를 초과했습니다. 1~2분 후 다시 시도해주세요.'
+                        : `⚠️ 응답 오류: ${e.message}\n\n다시 시도해주세요.`,
+                }])
+                break
+            }
         }
+        setChatLoading(false)
     }, [chatInput, chatLoading])
 
     const handleChatKeyDown = useCallback((e) => {
