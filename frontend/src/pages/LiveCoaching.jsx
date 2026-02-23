@@ -65,8 +65,17 @@ function calcDimensions(stats) {
     const silencePercent = silenceRatio * 100
     const silenceScore = durationSec > 5 ? gaussScore(silencePercent, 15, 25) : 50
 
-    // 필러 카운트
-    const fluencyScore = Math.round(Math.max(10, 100 - fillerRate * 6))
+    // ── 발화 유창성 (다각적 평가) ──
+    // 한국어 STT는 필러를 거의 출력하지 않으므로 다른 신호도 함께 사용
+    const fillerPenalty = Math.min(40, fillerRate * 8) // 필러 비율 (0~40점 감점)
+    // WPM 변동성이 크면 유창성 낮음 (말더듬, 머뭇거림)
+    const wpmVar = stats.wpmStdDev || 0
+    const variancePenalty = Math.min(30, wpmVar * 0.8) // 변동성 (0~30점 감점)
+    // 침묵이 너무 잦으면 유창성 낮음 (빈번한 멈춤)
+    const pausePenalty = silenceRatio > 0.5 ? Math.min(30, (silenceRatio - 0.3) * 60) : 0
+    const fluencyScore = totalWords > 0
+        ? Math.round(Math.max(10, Math.min(100, 100 - fillerPenalty - variancePenalty - pausePenalty)))
+        : 0
 
     // 발화량: 분당 80단어 기준
     const volumeScore = Math.round(Math.min(100, Math.max(10, (totalWords / (mins * 80)) * 100)))
@@ -74,14 +83,37 @@ function calcDimensions(stats) {
     // 속도 안정성: 표준편차가 작을수록 좋음
     const stabilityScore = Math.round(Math.max(10, 100 - (stats.wpmStdDev || 0) * 1.5))
 
-    // 어휘 다양성: 조사 제거 후 어근 기준 (0.6 비율 기준)
-    const stems = getUniqueStems(stats.allWords || [])
-    const vocabRatio = totalWords > 0 ? stems.size / totalWords : 0
-    const vocabScore = totalWords > 0
-        ? Math.round(Math.min(100, Math.max(10, (vocabRatio / 0.6) * 100)))
-        : 0
+    // ── 어휘 다양성 (한국어 특화) ──
+    // 한국어는 교착어로 TTR이 자연적으로 높음 (~90%)
+    // 슬라이딩 윈도우 TTR로 반복 어절 감지 + 높은 기준선 사용
+    const words = stats.allWords || []
+    let vocabScore = 0
+    if (totalWords > 0) {
+        const stems = getUniqueStems(words)
+        const rawTTR = stems.size / totalWords // 보통 0.85~0.95
 
-    console.log('[calcDimensions]', { avgWpm, silenceRatio, silencePercent, totalWords, speedScore, silenceScore, fluencyScore })
+        // 50단어 윈도우별 TTR 계산 (반복 구간 감지)
+        const windowSize = Math.min(50, totalWords)
+        let windowTTRs = []
+        for (let i = 0; i <= totalWords - windowSize; i += Math.max(1, Math.floor(windowSize / 2))) {
+            const windowWords = words.slice(i, i + windowSize)
+            const windowStems = getUniqueStems(windowWords)
+            windowTTRs.push(windowStems.size / windowSize)
+        }
+        const avgWindowTTR = windowTTRs.length > 0
+            ? windowTTRs.reduce((a, b) => a + b, 0) / windowTTRs.length
+            : rawTTR
+
+        // 한국어 기준: 0.95 이상이면 100점, 0.6 이하면 10점
+        vocabScore = Math.round(Math.min(100, Math.max(10, ((avgWindowTTR - 0.6) / 0.35) * 90 + 10)))
+    }
+
+    console.log('[calcDimensions]', {
+        avgWpm, fillerCount, fillerRate, silenceRatio, totalWords,
+        speedScore, silenceScore, fluencyScore,
+        wpmStdDev: stats.wpmStdDev, vocabScore,
+        fillerPenalty, variancePenalty, pausePenalty
+    })
 
     return [
         { name: '발화 유창성', score: fluencyScore, icon: '🗣️' },
