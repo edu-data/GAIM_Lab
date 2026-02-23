@@ -12,8 +12,10 @@ const agentPipeline = [
 ]
 
 const features = [
-    { icon: '🤖', title: 'Gemini 7차원 전면 평가', desc: '모든 차원 LLM 평가 (avg +16pt)', badge: 'v8.0', link: '/upload', color: '#ef4444' },
-    { icon: '🎬', title: '클라이언트 사이드 분석', desc: '브라우저에서 직접 영상 분석', badge: 'v8.0', link: '/agents', color: '#ef4444' },
+    { icon: '📄', title: 'PDF 내보내기', desc: '분석 결과 PDF 저장', badge: 'v8.1', link: '/upload', color: '#ef4444' },
+    { icon: '🎓', title: '멘토 매칭', desc: '약점 기반 멘토 추천', badge: 'v8.1', link: '/mentor', color: '#ef4444' },
+    { icon: '🤖', title: 'Gemini 7차원 전면 평가', desc: '모든 차원 LLM 평가 (avg +16pt)', badge: 'v8.0', link: '/upload', color: '#f59e0b' },
+    { icon: '🎬', title: '클라이언트 사이드 분석', desc: '브라우저에서 직접 영상 분석', badge: 'v8.0', link: '/agents', color: '#f59e0b' },
     { icon: '🎯', title: '성장 경로', desc: '3/6/12주 맞춤 개선 로드맵', badge: 'v7.1', link: '/growth', color: '#f59e0b' },
     { icon: '🔴', title: '실시간 코칭', desc: 'WebSocket 라이브 피드백', badge: 'v7.1', link: '/live', color: '#f59e0b' },
     { icon: '📊', title: '코호트 비교', desc: 't-test, Cohen\'s d 집단 비교', badge: 'v7.1', link: '/cohort', color: '#f59e0b' },
@@ -45,7 +47,7 @@ function HomePage() {
             <section className="hero">
                 <div className="hero-badge">
                     <span className="hero-dot"></span>
-                    v8.0 — Gemini 7차원 전면 평가 · 클라이언트 사이드 분석 · Hook 리팩토링
+                    v8.1 — PDF 내보내기 · 멘토 매칭 · 테스트 강화
                 </div>
                 <h1 className="hero-title">
                     <span className="hero-title-gradient">멀티 에이전트</span>
