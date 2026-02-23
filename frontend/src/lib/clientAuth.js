@@ -64,7 +64,10 @@ function createLocalToken(user) {
         role: user.role,
         exp: Date.now() + 24 * 60 * 60 * 1000, // 24시간
     }
-    return btoa(JSON.stringify(payload))
+    // UTF-8 safe base64: 한글 등 비-Latin1 문자 지원
+    const bytes = new TextEncoder().encode(JSON.stringify(payload))
+    const binary = Array.from(bytes, b => String.fromCharCode(b)).join('')
+    return btoa(binary)
 }
 
 // ─── 공개 API ───
