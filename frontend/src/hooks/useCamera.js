@@ -91,11 +91,36 @@ export function useCamera(options = {}) {
     // ── 카메라 시작 ──
     const startCamera = useCallback(async () => {
         setError(null)
+
+        // 기존 스트림 정리 (Device in use 방지)
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(t => t.stop())
+            streamRef.current = null
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null
+        }
+
+        const tryGetCamera = async (attempt = 1) => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: width }, height: { ideal: height }, facingMode: 'user' },
+                    audio: false,
+                })
+                return stream
+            } catch (e) {
+                // "Device in use" 또는 유사 에러 시 재시도
+                if (attempt < 3 && (e.message.includes('in use') || e.name === 'NotReadableError')) {
+                    console.warn(`[useCamera] Camera busy, retrying (${attempt}/3)...`)
+                    await new Promise(r => setTimeout(r, 800 * attempt))
+                    return tryGetCamera(attempt + 1)
+                }
+                throw e
+            }
+        }
+
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: width }, height: { ideal: height }, facingMode: 'user' },
-                audio: false,
-            })
+            const stream = await tryGetCamera()
             streamRef.current = stream
 
             prevFrameRef.current = null
@@ -149,7 +174,12 @@ export function useCamera(options = {}) {
             timerRef.current = setInterval(() => analyzeFrame(), analysisInterval)
         } catch (e) {
             console.warn('[useCamera] Camera not available:', e.message)
-            setError(e.message)
+            const msg = e.message.includes('in use') || e.name === 'NotReadableError'
+                ? '카메라가 다른 앱에서 사용 중입니다. 다른 탭이나 앱을 닫고 다시 시도하세요.'
+                : e.name === 'NotAllowedError'
+                    ? '카메라 권한이 거부되었습니다. 브라우저 설정에서 허용하세요.'
+                    : e.message
+            setError(msg)
             setCameraOn(false)
         }
     }, [width, height, analysisInterval, analyzeFrame])
