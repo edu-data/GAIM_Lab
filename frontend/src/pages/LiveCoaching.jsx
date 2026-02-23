@@ -341,7 +341,7 @@ function LiveCoaching() {
                     <div className="lc-cam-row">
                         {/* Camera Preview */}
                         <div className="lc-cam-box">
-                            <video ref={videoRef} muted playsInline className="lc-cam-video" />
+                            <video ref={videoRef} autoPlay muted playsInline className="lc-cam-video" />
                             {!cameraOn && (
                                 <div className="lc-cam-off">
                                     {cameraError

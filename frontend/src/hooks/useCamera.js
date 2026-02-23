@@ -89,27 +89,58 @@ export function useCamera(options = {}) {
         setError(null)
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width, height, facingMode: 'user' },
+                video: { width: { ideal: width }, height: { ideal: height }, facingMode: 'user' },
                 audio: false,
             })
             streamRef.current = stream
 
-            // videoRef가 렌더링될 때까지 대기 (최대 1초)
-            const attachStream = (retries = 10) => {
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream
-                    videoRef.current.play().catch(() => { })
-                } else if (retries > 0) {
-                    setTimeout(() => attachStream(retries - 1), 100)
-                }
-            }
-            attachStream()
-
-            setCameraOn(true)
             prevFrameRef.current = null
             samplesRef.current = []
             gestureCountRef.current = 0
             lastMovementRef.current = 0
+
+            // videoRef가 렌더링될 때까지 대기 (최대 2초)
+            const attachStream = (retries = 20) => {
+                const video = videoRef.current
+                if (video) {
+                    video.srcObject = stream
+                    video.muted = true
+                    video.playsInline = true
+                    video.setAttribute('autoplay', '')
+                    // loadedmetadata에서 play 보장
+                    video.onloadedmetadata = () => {
+                        video.play()
+                            .then(() => {
+                                console.log('[useCamera] Video playing successfully')
+                                setCameraOn(true)
+                            })
+                            .catch(err => {
+                                console.warn('[useCamera] play() failed on metadata:', err)
+                                // autoplay policy: muted play 재시도
+                                setTimeout(() => {
+                                    video.play()
+                                        .then(() => setCameraOn(true))
+                                        .catch(e2 => {
+                                            console.error('[useCamera] play() retry failed:', e2)
+                                            setError('영상 재생 실패: ' + e2.message)
+                                        })
+                                }, 300)
+                            })
+                    }
+                    // 이미 메타데이터 로드된 경우 (readyState >= 1) 바로 play
+                    if (video.readyState >= 1) {
+                        video.play()
+                            .then(() => setCameraOn(true))
+                            .catch(() => { })
+                    }
+                } else if (retries > 0) {
+                    setTimeout(() => attachStream(retries - 1), 100)
+                } else {
+                    console.error('[useCamera] videoRef not available after retries')
+                    setError('비디오 요소를 찾을 수 없습니다')
+                }
+            }
+            attachStream()
 
             timerRef.current = setInterval(() => analyzeFrame(), analysisInterval)
         } catch (e) {
@@ -124,6 +155,10 @@ export function useCamera(options = {}) {
         if (timerRef.current) {
             clearInterval(timerRef.current)
             timerRef.current = null
+        }
+        if (videoRef.current) {
+            videoRef.current.onloadedmetadata = null
+            videoRef.current.srcObject = null
         }
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(t => t.stop())
