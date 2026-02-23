@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
+import { isGitHubPages, localListUsers, localCreateUser, localUpdateUser, localDeleteUser, localResetPassword } from '../lib/clientAuth'
 import './AdminUsers.css'
 
 function AdminUsers() {
@@ -12,10 +13,11 @@ function AdminUsers() {
     const [resetPw, setResetPw] = useState({ username: null, password: '' })
     const [msg, setMsg] = useState(null)
     const navigate = useNavigate()
+    const isRemote = isGitHubPages()
 
     const fetchUsers = async () => {
         try {
-            setUsers(await api.auth.listUsers())
+            setUsers(isRemote ? await localListUsers() : await api.auth.listUsers())
         } catch (e) {
             if (e.message.includes('인증')) { navigate('/login'); return }
             setError(e.message)
@@ -31,7 +33,7 @@ function AdminUsers() {
     const handleCreate = async (e) => {
         e.preventDefault()
         try {
-            const data = await api.auth.createUser(newUser)
+            const data = isRemote ? await localCreateUser(newUser) : await api.auth.createUser(newUser)
             flash(`✅ ${data.message}`)
             setShowCreate(false)
             setNewUser({ username: '', password: '', name: '', role: 'student', email: '' })
@@ -41,7 +43,7 @@ function AdminUsers() {
 
     const handleUpdate = async (username, field, value) => {
         try {
-            const data = await api.auth.updateUser(username, { [field]: value })
+            const data = isRemote ? await localUpdateUser(username, { [field]: value }) : await api.auth.updateUser(username, { [field]: value })
             flash(`✅ ${data.message}`)
             fetchUsers()
         } catch (e) { flash(`❌ ${e.message}`) }
@@ -50,7 +52,7 @@ function AdminUsers() {
     const handleDelete = async (username) => {
         if (!confirm(`정말 '${username}' 사용자를 삭제하시겠습니까?`)) return
         try {
-            const data = await api.auth.deleteUser(username)
+            const data = isRemote ? await localDeleteUser(username) : await api.auth.deleteUser(username)
             flash(`✅ ${data.message}`)
             fetchUsers()
         } catch (e) { flash(`❌ ${e.message}`) }
@@ -59,7 +61,9 @@ function AdminUsers() {
     const handleResetPassword = async (e) => {
         e.preventDefault()
         try {
-            const data = await api.auth.resetPassword(resetPw.username, { new_password: resetPw.password })
+            const data = isRemote
+                ? await localResetPassword(resetPw.username, { new_password: resetPw.password })
+                : await api.auth.resetPassword(resetPw.username, { new_password: resetPw.password })
             flash(`✅ ${data.message}`)
             setResetPw({ username: null, password: '' })
         } catch (e) { flash(`❌ ${e.message}`) }

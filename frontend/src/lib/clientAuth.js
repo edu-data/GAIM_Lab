@@ -178,6 +178,97 @@ export async function localChangePassword(body, currentUsername) {
     return { message: '비밀번호가 변경되었습니다.' }
 }
 
+// ─── 관리자 사용자 관리 (localStorage CRUD) ───
+
+/**
+ * 사용자 목록
+ * @returns {Promise<Array>}
+ */
+export async function localListUsers() {
+    await _adminReady
+    const users = getUsers()
+    let id = 1
+    return Object.values(users).map(u => ({
+        id: id++,
+        username: u.username,
+        name: u.name || '',
+        email: u.email || '',
+        role: u.role || 'student',
+        is_active: u.is_active !== false,
+        created_at: u.created_at || '',
+        last_login: u.last_login || '',
+        provider: u.provider || 'local',
+    }))
+}
+
+/**
+ * 사용자 생성 (관리자)
+ */
+export async function localCreateUser(body) {
+    const { username, password, name, role = 'student', email = '' } = body
+    if (!username) throw new Error('아이디를 입력해주세요.')
+    if (!password) throw new Error('비밀번호를 입력해주세요.')
+
+    const users = getUsers()
+    if (users[username]) throw new Error('이미 존재하는 아이디입니다.')
+
+    users[username] = {
+        username,
+        name: name || username,
+        role,
+        email,
+        password_hash: await sha256(password),
+        is_active: true,
+        created_at: new Date().toISOString(),
+    }
+    saveUsers(users)
+    return { message: `${username} 사용자가 생성되었습니다.` }
+}
+
+/**
+ * 사용자 정보 수정 (관리자)
+ */
+export async function localUpdateUser(username, updates) {
+    const users = getUsers()
+    const user = users[username]
+    if (!user) throw new Error('사용자를 찾을 수 없습니다.')
+
+    if (updates.name !== undefined) user.name = updates.name
+    if (updates.role !== undefined) user.role = updates.role
+    if (updates.is_active !== undefined) user.is_active = updates.is_active
+    if (updates.email !== undefined) user.email = updates.email
+
+    saveUsers(users)
+    return { message: `${username} 사용자 정보가 수정되었습니다.` }
+}
+
+/**
+ * 사용자 삭제 (관리자)
+ */
+export async function localDeleteUser(username) {
+    const users = getUsers()
+    if (!users[username]) throw new Error('사용자를 찾을 수 없습니다.')
+    delete users[username]
+    saveUsers(users)
+    return { message: `${username} 사용자가 삭제되었습니다.` }
+}
+
+/**
+ * 비밀번호 초기화 (관리자)
+ */
+export async function localResetPassword(username, body) {
+    const { new_password } = body
+    if (!new_password || new_password.length < 4) throw new Error('비밀번호는 4자 이상이어야 합니다.')
+
+    const users = getUsers()
+    const user = users[username]
+    if (!user) throw new Error('사용자를 찾을 수 없습니다.')
+
+    user.password_hash = await sha256(new_password)
+    saveUsers(users)
+    return { message: `${username} 비밀번호가 초기화되었습니다.` }
+}
+
 /**
  * GitHub Pages 환경인지 확인
  */
