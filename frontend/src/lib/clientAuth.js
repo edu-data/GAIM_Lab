@@ -36,6 +36,8 @@ function saveUsers(users) {
 
 // ─── 초기 관리자 계정 시드 ───
 
+let _adminReady = null
+
 async function ensureAdmin() {
     const users = getUsers()
     if (!users['admin']) {
@@ -50,8 +52,8 @@ async function ensureAdmin() {
     }
 }
 
-// 모듈 로드 시 admin 시드
-ensureAdmin()
+// 모듈 로드 시 admin 시드 — 프로미스 캐싱
+_adminReady = ensureAdmin()
 
 // ─── 가짜 JWT 토큰 생성 ───
 
@@ -73,6 +75,9 @@ function createLocalToken(user) {
  * @returns {Promise<{ access_token, username, name, role }>}
  */
 export async function localLogin(body) {
+    // admin 시드 완료 대기
+    await _adminReady
+
     const { username, password } = body
     const users = getUsers()
     const user = users[username]
