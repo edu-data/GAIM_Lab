@@ -109,9 +109,6 @@ function AppContent() {
                         <a href="https://github.com/edu-data/GAIM_Lab" target="_blank" rel="noopener noreferrer" className="topbar-link">
                             GitHub
                         </a>
-                        <a href="https://edu-data.github.io/mas/mas-index.html" target="_blank" rel="noopener noreferrer" className="topbar-link">
-                            Docs
-                        </a>
                     </div>
                 </header>
 
