@@ -2,7 +2,20 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useCamera } from '../hooks/useCamera'
 
 // ── 필러 패턴 (한국어 + 영어) ──
-const FILLER_RE = /\b(음|어|그|저|이제|뭐|아|에|그러니까|있잖아|um|uh|like|you know|so|well|basically|actually)\b/gi
+// \b는 한국어에서 작동하지 않으므로 공백/시작/끝 기준으로 매칭
+const FILLER_KO = /(?:^|\s)(음|어|그|저|이제|뭐|아|에|그러니까|있잖아|그러니까요|그리고|아니|음…|어…)(?=\s|$)/gi
+const FILLER_EN = /\b(um|uh|like|you know|so|well|basically|actually)\b/gi
+function countFillers(text) {
+    const ko = text.match(FILLER_KO) || []
+    const en = text.match(FILLER_EN) || []
+    return ko.length + en.length
+}
+
+// ── 한국어 어휘 다양성: 조사/어미 제거 후 어근 다양성 계산 ──
+const PARTICLE_RE = /(은|는|이|가|을|를|에|로|으로|의|도|만|부터|까지|에서|한테|마다|들|하고|이라|하면|해서|하는|하지|합니다|된다|이다|입니다|했|하|이요|요)$/
+function getUniqueStems(words) {
+    return new Set(words.map(w => w.toLowerCase().replace(PARTICLE_RE, '')).filter(w => w.length > 0))
+}
 
 // ── 코칭 팁 생성 ──
 function generateTips(filler, wpm, silenceRatio, recentWpm) {
@@ -52,7 +65,7 @@ function calcDimensions(stats) {
     const silencePercent = silenceRatio * 100
     const silenceScore = durationSec > 5 ? gaussScore(silencePercent, 15, 25) : 50
 
-    // 발화 유창성: 필러가 적을수록 좋음
+    // 필러 카운트
     const fluencyScore = Math.round(Math.max(10, 100 - fillerRate * 6))
 
     // 발화량: 분당 80단어 기준
@@ -61,9 +74,11 @@ function calcDimensions(stats) {
     // 속도 안정성: 표준편차가 작을수록 좋음
     const stabilityScore = Math.round(Math.max(10, 100 - (stats.wpmStdDev || 0) * 1.5))
 
-    // 어휘 다양성
+    // 어휘 다양성: 조사 제거 후 어근 기준 (0.6 비율 기준)
+    const stems = getUniqueStems(stats.allWords || [])
+    const vocabRatio = totalWords > 0 ? stems.size / totalWords : 0
     const vocabScore = totalWords > 0
-        ? Math.round(Math.min(100, Math.max(10, (stats.uniqueWords || 0) / Math.max(totalWords * 0.35, 1) * 100)))
+        ? Math.round(Math.min(100, Math.max(10, (vocabRatio / 0.6) * 100)))
         : 0
 
     console.log('[calcDimensions]', { avgWpm, silenceRatio, silencePercent, totalWords, speedScore, silenceScore, fluencyScore })
@@ -269,7 +284,7 @@ function LiveCoaching() {
         const silenceRatio = totalSegmentsRef.current > 0
             ? silenceCountRef.current / totalSegmentsRef.current : 0
         const allText = allWordsRef.current.join(' ')
-        const fillers = allText.match(FILLER_RE) || []
+        const fillerCount = countFillers(allText)
         const uniqueWords = new Set(allWordsRef.current.map(w => w.toLowerCase())).size
 
         // WPM 표준편차
@@ -280,7 +295,8 @@ function LiveCoaching() {
         }
 
         const stats = {
-            avgWpm, fillerCount: fillers.length, silenceRatio, totalWords, durationSec, wpmStdDev, uniqueWords,
+            avgWpm, fillerCount, silenceRatio, totalWords, durationSec, wpmStdDev, uniqueWords,
+            allWords: allWordsRef.current,
             videoMetrics: { avgMovement: videoMetrics.avgMovement, gestureCount: videoMetrics.gestureCount }
         }
         const dims = calcDimensions(stats)
