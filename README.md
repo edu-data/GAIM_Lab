@@ -2,7 +2,7 @@
 
 **멀티 에이전트 수업 분석 시스템** · 8개 AI 에이전트가 협업하여 수업 영상을 7차원 평가하는 플랫폼
 
-[![Version](https://img.shields.io/badge/version-8.2.0-7c3aed)](https://github.com/edu-data/GAIM_Lab/releases)
+[![Version](https://img.shields.io/badge/version-8.3.0-7c3aed)](https://github.com/edu-data/GAIM_Lab/releases)
 [![Python](https://img.shields.io/badge/python-3.9+-3776AB)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React_18-61DAFB)](https://react.dev)
@@ -14,17 +14,18 @@
 <p align="center">
   <a href="https://edu-data.github.io/GAIM_Lab/app/"><strong>🌐 홈페이지</strong></a> ·
   <a href="https://edu-data.github.io/GAIM_Lab/app/#/dashboard"><strong>📊 대시보드</strong></a> ·
+  <a href="https://edu-data.github.io/GAIM_Lab/app/#/mentor"><strong>🤖 AI 코치</strong></a> ·
   <a href="https://edu-data.github.io/GAIM_Lab/app/#/live"><strong>🔴 실시간 코칭</strong></a> ·
   <a href="https://github.com/edu-data/GAIM_Lab/releases"><strong>📦 릴리스</strong></a>
 </p>
 
-> **🆕 v8.2** — GitHub Pages 풀스택 · Gemini 실시간 코칭 · 클라이언트 인증
+> **🆕 v8.3** — AI 코치 Gemini 챗봇 · 교육학 석학 7인 페르소나 코칭
 >
+> - 🤖 **AI 코치 Gemini 챗봇**: 7차원별 교육학 석학 AI와 1:1 실시간 대화 코칭
+> - 🎓 **7인 석학 페르소나**: Shulman·Vygotsky·Bruner·Dewey·Freire·Bloom·Gardner
+> - 💬 **추천 질문 & 자동 재시도**: 코치별 추천 질문 + 429 Rate Limit 지수 백오프
 > - 🔴 **실시간 코칭 7차원 Gemini 평가**: 세션 종료 시 Gemini AI가 교원임용 7차원 분석
-> - 🔐 **클라이언트 인증**: GitHub Pages에서 로그인·회원가입·관리자 기능 (SHA-256)
 > - 📊 **클라이언트 배치/코호트 분석**: 백엔드 없이 Gemini API로 연구 도구 완전 작동
-> - 📈 **통계 모듈**: Welch's t-test, Cohen's d, Satterthwaite df 직접 구현
-> - 📄 **포트폴리오 PDF**: A4 인쇄용 성장 보고서 생성
 
 ---
 
@@ -309,6 +310,21 @@ python batch_analysis.py --limit 5
 ---
 
 ## 📜 버전 히스토리 (Changelog)
+
+### v8.3 — AI 코치 Gemini 챗봇 · 교육학 석학 페르소나 코칭 `2026-02-24`
+
+- **🤖 AI 코치 Gemini 챗봇** (`MentorMatch.jsx` 확장)
+  - 코칭 시작 버튼 클릭 시 Gemini 2.0 Flash 기반 실시간 채팅 모달 오버레이
+  - 기존 페이지 디자인 100% 유지 + 챗봇 모달만 추가
+  - 7차원별 교육학 석학 AI 페르소나: Shulman(수업전문성), Vygotsky(교수학습방법), Bruner(판서/언어), Dewey(수업태도), Freire(학생참여), Bloom(시간배분), Gardner(창의성)
+  - 각 코치별 상세 `systemPrompt`로 페르소나 일관성 유지
+  - `startChat()` 멀티턴 대화 세션, 인사말 + 추천 질문 3개씩
+- **💬 429 Rate Limit 자동 재시도** (지수 백오프)
+  - 3초 → 6초 → 12초 대기 후 최대 3회 자동 재시도
+  - 대기 중 `⏳ API 호출 한도 초과... N초 후 재시도` 안내 표시
+  - 3회 실패 시 친절한 안내 메시지
+- **🔧 Gemini API 수정**: `systemInstruction`을 `getGenerativeModel()`에 Content 객체로 전달
+- **🔖 버전**: `__APP_VERSION__` → `8.3.0`
 
 ### v8.2 — GitHub Pages 풀스택 · Gemini 실시간 코칭 · 클라이언트 인증 `2026-02-23`
 
