@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 # MLC 핵심 모듈 경로 추가
 CORE_PATH = Path(__file__).parent.parent.parent.parent / "core"
@@ -88,7 +88,7 @@ class GAIMAnalysisPipeline:
         # 동기 분석을 비동기로 래핑
         loop = asyncio.get_event_loop()
         
-        with ProcessPoolExecutor(max_workers=1) as executor:
+        with ThreadPoolExecutor(max_workers=1) as executor:
             result = await loop.run_in_executor(
                 executor,
                 self._sync_analyze,

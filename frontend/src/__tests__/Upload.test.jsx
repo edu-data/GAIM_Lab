@@ -121,10 +121,17 @@ describe('Upload 컴포넌트', () => {
             })
         })
 
-        it('업로드 성공 시 실시간 피드백이 표시되어야 한다', async () => {
+        it('업로드 성공 시 진행 UI가 표시되어야 한다', async () => {
             global.fetch = vi.fn().mockResolvedValueOnce({
                 ok: true,
-                json: () => Promise.resolve({ id: 'analysis-123', status: 'processing' })
+                json: () => Promise.resolve({
+                    id: 'analysis-123',
+                    status: 'completed',
+                    total_score: 85,
+                    grade: 'B',
+                    dimensions: [{ name: '수업 전문성', score: 16, max_score: 20, percentage: 80, feedback: '' }],
+                    overall_feedback: '전반적으로 잘함'
+                })
             })
 
             renderUpload()
@@ -138,7 +145,7 @@ describe('Upload 컴포넌트', () => {
             fireEvent.click(button)
 
             await waitFor(() => {
-                expect(screen.getByTestId('realtime-feedback')).toBeInTheDocument()
+                expect(screen.getByText('85')).toBeInTheDocument()
             })
         })
     })
@@ -148,7 +155,16 @@ describe('Upload 컴포넌트', () => {
             global.fetch = vi.fn()
                 .mockResolvedValueOnce({
                     ok: true,
-                    json: () => Promise.resolve({ id: 'analysis-123', status: 'processing' })
+                    json: () => Promise.resolve({
+                        id: 'analysis-123',
+                        status: 'completed',
+                        total_score: 85,
+                        grade: 'B',
+                        dimensions: [
+                            { name: '수업 전문성', score: 16, max_score: 20, percentage: 80, feedback: '' },
+                        ],
+                        overall_feedback: '잘했습니다'
+                    })
                 })
 
             renderUpload()
@@ -160,14 +176,6 @@ describe('Upload 컴포넌트', () => {
 
             const button = screen.getByRole('button', { name: /분석 시작/i })
             fireEvent.click(button)
-
-            await waitFor(() => {
-                expect(screen.getByTestId('realtime-feedback')).toBeInTheDocument()
-            })
-
-            // 완료 버튼 클릭으로 분석 완료 시뮬레이션
-            const completeButton = screen.getByRole('button', { name: /완료/i })
-            fireEvent.click(completeButton)
 
             await waitFor(() => {
                 expect(screen.getByText('85')).toBeInTheDocument()

@@ -1,0 +1,70 @@
+{
+  "video": "20251209_110545.mp4",
+  "file_size_mb": 1653.42,
+  "test1_score": 82.0,
+  "test1_grade": "B",
+  "test2_score": 84.0,
+  "test2_grade": "B",
+  "score_difference": 2.0,
+  "grade_match": true,
+  "pearson_r": 0.9965,
+  "icc_2_1": 0.994,
+  "icc_3_1": 0.995,
+  "mae": 0.29,
+  "rmse": 0.53,
+  "criteria_exact_match_rate": 85.7,
+  "criteria_within_1pt_rate": 100.0,
+  "reliability_score": "5/5",
+  "verdict": "🟢 높은 신뢰도 (High Reliability)",
+  "dimensions_comparison": [
+    {
+      "name": "수업 전문성",
+      "test1_score": 17,
+      "test2_score": 17,
+      "difference": 0,
+      "max_score": 20
+    },
+    {
+      "name": "교수학습 방법",
+      "test1_score": 16,
+      "test2_score": 16,
+      "difference": 0,
+      "max_score": 20
+    },
+    {
+      "name": "판서 및 언어",
+      "test1_score": 13,
+      "test2_score": 13,
+      "difference": 0,
+      "max_score": 15
+    },
+    {
+      "name": "수업 태도",
+      "test1_score": 14,
+      "test2_score": 14,
+      "difference": 0,
+      "max_score": 15
+    },
+    {
+      "name": "학생 참여",
+      "test1_score": 12,
+      "test2_score": 13,
+      "difference": 1,
+      "max_score": 15
+    },
+    {
+      "name": "시간 배분",
+      "test1_score": 7,
+      "test2_score": 7,
+      "difference": 0,
+      "max_score": 10
+    },
+    {
+      "name": "창의성",
+      "test1_score": 3,
+      "test2_score": 4,
+      "difference": 1,
+      "max_score": 5
+    }
+  ]
+}

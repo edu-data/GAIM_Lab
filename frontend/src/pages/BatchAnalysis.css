@@ -333,3 +333,71 @@
         gap: 1rem;
     }
 }
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+/* Client Sub-Progress */
+.client-sub-progress {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(99, 102, 241, 0.06);
+    border-radius: 10px;
+}
+
+.sub-progress-msg {
+    font-size: 0.85rem;
+    color: #a5b4fc;
+    margin-bottom: 0.5rem;
+}
+
+.sub-progress-bar {
+    height: 6px;
+    background: rgba(99, 102, 241, 0.15);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.sub-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #a78bfa);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+/* Chart Section */
+.chart-section {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+}
+
+.chart-section h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+/* Grade Badge */
+.grade-badge {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.score-cell {
+    font-weight: 600;
+}
