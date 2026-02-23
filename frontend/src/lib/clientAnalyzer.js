@@ -318,3 +318,95 @@ export function isGitHubPages() {
         window.location.hostname !== 'localhost' &&
         window.location.hostname !== '127.0.0.1'
 }
+
+
+/**
+ * 실시간 코칭 전사 텍스트 + 메트릭을 Gemini API로 7차원 평가합니다.
+ * 
+ * @param {Object} params
+ * @param {string} params.transcript - 전체 전사 텍스트
+ * @param {number} params.durationSec - 세션 시간 (초)
+ * @param {number} params.avgWpm - 평균 WPM
+ * @param {number} params.totalWords - 총 단어 수
+ * @param {number} params.silenceRatio - 침묵 비율 (0~1)
+ * @param {number} params.fillerCount - 필러 횟수
+ * @param {number} params.uniqueWords - 고유 단어 수
+ * @param {Object} params.videoMetrics - 영상 메트릭 {avgMovement, gestureCount}
+ * @param {string} apiKey - Google API Key
+ * @returns {Promise<Object>} 7차원 평가 결과
+ */
+export async function analyzeTranscript({ transcript, durationSec, avgWpm, totalWords, silenceRatio, fillerCount, uniqueWords, videoMetrics }, apiKey) {
+    if (!apiKey) throw new Error('Google API Key가 필요합니다.')
+
+    const mins = (durationSec / 60).toFixed(1)
+    const silencePct = (silenceRatio * 100).toFixed(0)
+    const vm = videoMetrics || {}
+
+    const prompt = `당신은 초등학교 교사 임용 2차 수업실연 평가 전문가입니다.
+아래 실시간 코칭 세션의 전사 텍스트와 발화 데이터를 바탕으로 7차원 수업 평가를 진행해주세요.
+
+[세션 정보]
+- 수업 시간: ${mins}분 (${Math.round(durationSec)}초)
+- 평균 말 속도: ${Math.round(avgWpm)} WPM
+- 총 발화량: ${totalWords}어절
+- 침묵 비율: ${silencePct}%
+- 필러(음, 어, 그 등) 횟수: ${fillerCount}회
+- 고유 어휘 수: ${uniqueWords}개
+- 제스처/움직임 횟수: ${vm.gestureCount || 0}회
+- 평균 움직임 강도: ${vm.avgMovement || 0}
+
+[전사 텍스트]
+${transcript || '(전사 내용 없음)'}
+
+[평가 기준]
+1. 수업 전문성 (20점 만점) - 학습목표 명료성, 학습내용 충실성
+2. 교수학습 방법 (20점 만점) - 교수법 다양성, 학습활동 효과성
+3. 판서 및 언어 (15점 만점) - 언어 명료성, 발화속도 적절성, 어휘 사용
+4. 수업 태도 (15점 만점) - 교사 열정, 학생 소통, 자신감
+5. 학생 참여 (15점 만점) - 질문 기법, 피드백 제공
+6. 시간 배분 (10점 만점) - 수업 단계별 시간 균형
+7. 창의성 (5점 만점) - 독창적인 교수 기법
+
+※ 참고: 이 데이터는 실시간 코칭 세션에서 수집된 것으로, 실제 교실 수업의 일부만 반영될 수 있습니다.
+  전사 텍스트의 내용과 발화 데이터를 종합적으로 고려하여 평가해주세요.
+
+[응답 형식]
+반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
+
+{
+  "수업_전문성": { "점수": "0-20", "근거": "..." },
+  "교수학습_방법": { "점수": "0-20", "근거": "..." },
+  "판서_및_언어": { "점수": "0-15", "근거": "..." },
+  "수업_태도": { "점수": "0-15", "근거": "..." },
+  "학생_참여": { "점수": "0-15", "근거": "..." },
+  "시간_배분": { "점수": "0-10", "근거": "..." },
+  "창의성": { "점수": "0-5", "근거": "..." },
+  "총점": "0-100",
+  "종합_평가": "전반적인 평가",
+  "강점": ["강점 1", "강점 2"],
+  "개선점": ["개선점 1", "개선점 2"]
+}`
+
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+
+    const result = await model.generateContent([prompt])
+    let responseText = result.response.text().trim()
+
+    // JSON 블록 추출
+    if (responseText.includes('```json')) {
+        responseText = responseText.split('```json')[1].split('```')[0]
+    } else if (responseText.includes('```')) {
+        responseText = responseText.split('```')[1].split('```')[0]
+    }
+
+    let geminiResult
+    try {
+        geminiResult = JSON.parse(responseText)
+    } catch (e) {
+        console.error('[analyzeTranscript] Parse error:', responseText)
+        throw new Error('AI 응답을 해석할 수 없습니다.')
+    }
+
+    return convertToFrontendFormat(geminiResult)
+}

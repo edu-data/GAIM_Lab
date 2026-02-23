@@ -1,26 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useCamera } from '../hooks/useCamera'
+import { analyzeTranscript, getStoredApiKey } from '../lib/clientAnalyzer'
 
-// ── 필러 패턴 (한국어 + 영어) ──
-// \b는 한국어에서 작동하지 않으므로 공백/시작/끝 기준으로 매칭
-const FILLER_KO = /(?:^|\s)(음|어|그|저|이제|뭐|아|에|그러니까|있잖아|그러니까요|그리고|아니|음…|어…)(?=\s|$)/gi
-const FILLER_EN = /\b(um|uh|like|you know|so|well|basically|actually)\b/gi
-function countFillers(text) {
-    const ko = text.match(FILLER_KO) || []
-    const en = text.match(FILLER_EN) || []
-    return ko.length + en.length
-}
-
-// ── 한국어 어휘 다양성: 조사/어미 제거 후 어근 다양성 계산 ──
-const PARTICLE_RE = /(은|는|이|가|을|를|에|로|으로|의|도|만|부터|까지|에서|한테|마다|들|하고|이라|하면|해서|하는|하지|합니다|된다|이다|입니다|했|하|이요|요)$/
-function getUniqueStems(words) {
-    return new Set(words.map(w => w.toLowerCase().replace(PARTICLE_RE, '')).filter(w => w.length > 0))
-}
 
 // ── 코칭 팁 생성 ──
 function generateTips(filler, wpm, silenceRatio, recentWpm) {
     const tips = []
-    if (filler > 5) tips.push({ icon: '💬', text: "필러 사용이 많습니다. '음', '어' 대신 잠시 멈추세요." })
+    if (filler > 5) tips.push({ icon: '⚠️', text: `필러 단어가 ${filler}회 감지되었습니다. 의식적으로 줄여보세요.` })
     if (wpm > 180) tips.push({ icon: '⚡', text: '말이 빠릅니다. 핵심 내용에서 속도를 줄여보세요.' })
     else if (wpm > 0 && wpm < 80) tips.push({ icon: '🐌', text: '말이 느립니다. 에너지를 높여 학생 집중도를 유지하세요.' })
     if (silenceRatio > 0.4) tips.push({ icon: '🔇', text: '침묵이 길어지고 있습니다. 발문이나 활동을 시작하세요.' })
@@ -39,97 +25,16 @@ function wpmGrade(wpm) {
     return { label: '과속', color: '#ff5252' }
 }
 
-// ── 발화·동작 모니터링 지표 (음성 + 영상, 실시간 근사치) ──
-// ⚠️ 학술적 한계: 7차원 교원임용 평가와 별도입니다.
-//    실제 평가는 Gemini API 기반 서버측 분석(analysis.py)을 사용하세요.
-function calcDimensions(stats) {
-    const { avgWpm, fillerCount, silenceRatio, totalWords, durationSec } = stats
-    const mins = durationSec / 60 || 1
-    const fillerRate = fillerCount / mins
-
-    // 가우시안 기반 점수: ideal에 가까울수록 100, 벗어날수록 감소 (최소 10)
-    const gaussScore = (val, ideal, sigma) => {
-        const diff = val - ideal
-        const raw = Math.exp(-(diff * diff) / (2 * sigma * sigma)) * 100
-        return Math.round(Math.max(10, raw))
-    }
-
-    const vm = stats.videoMetrics || {}
-    const movScore = vm.avgMovement != null ? gaussScore(vm.avgMovement, 35, 40) : null
-    const gestScore = vm.gestureCount != null ? Math.round(Math.min(100, Math.max(10, (vm.gestureCount / Math.max(mins, 1)) * 15))) : null
-
-    // 말 속도: ideal=130 WPM, sigma=60 (50~210 범위에서 높은 점수)
-    const speedScore = totalWords > 0 ? gaussScore(avgWpm, 130, 60) : 0
-
-    // 침묵 활용: ideal=15%, sigma=25 (0~40% 범위에서 높은 점수)
-    const silencePercent = silenceRatio * 100
-    const silenceScore = durationSec > 5 ? gaussScore(silencePercent, 15, 25) : 50
-
-    // ── 발화 유창성 (다각적 평가) ──
-    // 한국어 STT는 필러를 거의 출력하지 않으므로 다른 신호도 함께 사용
-    const fillerPenalty = Math.min(40, fillerRate * 8) // 필러 비율 (0~40점 감점)
-    // WPM 변동성이 크면 유창성 낮음 (말더듬, 머뭇거림)
-    const wpmVar = stats.wpmStdDev || 0
-    const variancePenalty = Math.min(30, wpmVar * 0.8) // 변동성 (0~30점 감점)
-    // 침묵이 너무 잦으면 유창성 낮음 (빈번한 멈춤)
-    const pausePenalty = silenceRatio > 0.5 ? Math.min(30, (silenceRatio - 0.3) * 60) : 0
-    const fluencyScore = totalWords > 0
-        ? Math.round(Math.max(10, Math.min(100, 100 - fillerPenalty - variancePenalty - pausePenalty)))
-        : 0
-
-    // 발화량: 분당 80단어 기준
-    const volumeScore = Math.round(Math.min(100, Math.max(10, (totalWords / (mins * 80)) * 100)))
-
-    // 속도 안정성: 표준편차가 작을수록 좋음
-    const stabilityScore = Math.round(Math.max(10, 100 - (stats.wpmStdDev || 0) * 1.5))
-
-    // ── 어휘 다양성 (한국어 특화) ──
-    // 한국어는 교착어로 TTR이 자연적으로 높음 (~90%)
-    // 슬라이딩 윈도우 TTR로 반복 어절 감지 + 높은 기준선 사용
-    const words = stats.allWords || []
-    let vocabScore = 0
-    if (totalWords > 0) {
-        const stems = getUniqueStems(words)
-        const rawTTR = stems.size / totalWords // 보통 0.85~0.95
-
-        // 50단어 윈도우별 TTR 계산 (반복 구간 감지)
-        const windowSize = Math.min(50, totalWords)
-        let windowTTRs = []
-        for (let i = 0; i <= totalWords - windowSize; i += Math.max(1, Math.floor(windowSize / 2))) {
-            const windowWords = words.slice(i, i + windowSize)
-            const windowStems = getUniqueStems(windowWords)
-            windowTTRs.push(windowStems.size / windowSize)
-        }
-        const avgWindowTTR = windowTTRs.length > 0
-            ? windowTTRs.reduce((a, b) => a + b, 0) / windowTTRs.length
-            : rawTTR
-
-        // 한국어 기준: 0.95 이상이면 100점, 0.6 이하면 10점
-        vocabScore = Math.round(Math.min(100, Math.max(10, ((avgWindowTTR - 0.6) / 0.35) * 90 + 10)))
-    }
-
-    console.log('[calcDimensions]', {
-        avgWpm, fillerCount, fillerRate, silenceRatio, totalWords,
-        speedScore, silenceScore, fluencyScore,
-        wpmStdDev: stats.wpmStdDev, vocabScore,
-        fillerPenalty, variancePenalty, pausePenalty
-    })
-
-    return [
-        { name: '발화 유창성', score: fluencyScore, icon: '🗣️' },
-        { name: '말 속도', score: speedScore, icon: '⏱️' },
-        { name: '침묵 활용', score: silenceScore, icon: '🔇' },
-        { name: '발화량', score: volumeScore, icon: '📝' },
-        { name: '속도 안정성', score: stabilityScore, icon: '📊' },
-        { name: '어휘 다양성', score: vocabScore, icon: '📚' },
-        { name: '움직임·활용', score: movScore != null && gestScore != null ? Math.round((movScore + gestScore) / 2) : 70, icon: '🤸' },
-        { name: '종합 전달력', score: 0, icon: '🎯' },
-    ]
+// 7차원 아이콘 매핑
+const DIM_ICONS = {
+    '수업 전문성': '📚', '교수학습 방법': '🎯', '판서 및 언어': '✏️',
+    '수업 태도': '👨‍🏫', '학생 참여': '🙋', '시간 배분': '⏱️', '창의성': '💡'
 }
 
 function LiveCoaching() {
-    const [phase, setPhase] = useState('idle') // idle | recording | done
+    const [phase, setPhase] = useState('idle') // idle | recording | analyzing | done
     const [elapsed, setElapsed] = useState(0)
+    const [analyzeMsg, setAnalyzeMsg] = useState('')
     const [transcript, setTranscript] = useState([]) // {text, time}
     const [metrics, setMetrics] = useState({ wpm: 0, fillerCount: 0, silenceRatio: 0, totalWords: 0 })
     const [tips, setTips] = useState([])
@@ -305,7 +210,7 @@ function LiveCoaching() {
     }
 
     // ── 세션 종료 ──
-    const stopSession = () => {
+    const stopSession = async () => {
         if (recognitionRef.current) { const r = recognitionRef.current; recognitionRef.current = null; r.stop() }
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
         stopCamera()
@@ -316,39 +221,56 @@ function LiveCoaching() {
         const silenceRatio = totalSegmentsRef.current > 0
             ? silenceCountRef.current / totalSegmentsRef.current : 0
         const allText = allWordsRef.current.join(' ')
-        const fillerCount = countFillers(allText)
         const uniqueWords = new Set(allWordsRef.current.map(w => w.toLowerCase())).size
 
-        // WPM 표준편차
-        let wpmStdDev = 0
-        if (wpmHistory.length > 1) {
-            const mean = wpmHistory.reduce((s, h) => s + h.wpm, 0) / wpmHistory.length
-            wpmStdDev = Math.sqrt(wpmHistory.reduce((s, h) => s + (h.wpm - mean) ** 2, 0) / wpmHistory.length)
-        }
-
-        const stats = {
-            avgWpm, fillerCount, silenceRatio, totalWords, durationSec, wpmStdDev, uniqueWords,
-            allWords: allWordsRef.current,
-            videoMetrics: { avgMovement: videoMetrics.avgMovement, gestureCount: videoMetrics.gestureCount }
-        }
-        const dims = calcDimensions(stats)
-        // 종합 전달력 = 다른 6차원 평균
-        const otherScores = dims.filter(d => d.name !== '종합 전달력').map(d => d.score)
-        const overall = Math.round(otherScores.reduce((a, b) => a + b, 0) / otherScores.length)
-        dims[dims.length - 1].score = overall
-
-        const grade = overall >= 90 ? 'A+' : overall >= 80 ? 'A' : overall >= 70 ? 'B+' : overall >= 60 ? 'B' : overall >= 50 ? 'C' : 'D'
-
-        setSessionReport({
+        const baseReport = {
             durationSec: Math.round(durationSec),
             totalWords,
             avgWpm: Math.round(avgWpm),
-            fillerCount: fillers.length,
             silenceRatio: Math.round(silenceRatio * 1000) / 1000,
             uniqueWords,
-            dimensions: dims,
-            overall,
-            grade,
+        }
+
+        // Gemini 7차원 분석 시도
+        const apiKey = getStoredApiKey()
+        if (apiKey && totalWords > 5) {
+            setPhase('analyzing')
+            setAnalyzeMsg('🤖 Gemini AI로 7차원 평가 중...')
+            try {
+                const result = await analyzeTranscript({
+                    transcript: allText,
+                    durationSec, avgWpm, totalWords, silenceRatio,
+                    fillerCount: metrics.fillerCount,
+                    uniqueWords,
+                    videoMetrics: { avgMovement: videoMetrics.avgMovement, gestureCount: videoMetrics.gestureCount }
+                }, apiKey)
+
+                setSessionReport({
+                    ...baseReport,
+                    dimensions: result.dimensions,
+                    overall: result.total_score,
+                    grade: result.grade,
+                    strengths: result.strengths,
+                    improvements: result.improvements,
+                    overall_feedback: result.overall_feedback,
+                    isGemini: true,
+                })
+                setPhase('done')
+                return
+            } catch (e) {
+                console.error('[LiveCoaching] Gemini analysis failed:', e)
+                setAnalyzeMsg('⚠️ Gemini 분석 실패, 기본 평가로 전환...')
+                await new Promise(r => setTimeout(r, 1500))
+            }
+        }
+
+        // Fallback: 기본 메트릭 기반 간이 리포트
+        setSessionReport({
+            ...baseReport,
+            dimensions: null,
+            overall: null,
+            grade: null,
+            isGemini: false,
         })
         setPhase('done')
     }
@@ -408,8 +330,8 @@ function LiveCoaching() {
                         </button>
                     </>
                 )}
-                {phase === 'done' && (
-                    <button className="lc-btn lc-btn-start" onClick={startSession}>
+                {(phase === 'done' || phase === 'analyzing') && (
+                    <button className="lc-btn lc-btn-start" onClick={startSession} disabled={phase === 'analyzing'}>
                         <span className="lc-btn-icon">🔄</span> 새 세션
                     </button>
                 )}
@@ -519,14 +441,25 @@ function LiveCoaching() {
                 </div>
             )}
 
+            {/* ── Analyzing Phase ── */}
+            {phase === 'analyzing' && (
+                <div className="lc-analyzing">
+                    <div className="lc-analyzing-spinner"></div>
+                    <h3>{analyzeMsg}</h3>
+                    <p>전사 텍스트와 발화 데이터를 Gemini AI에 전송하여 7차원 수업 평가를 진행합니다.</p>
+                </div>
+            )}
+
             {/* ── Session Report ── */}
             {phase === 'done' && sessionReport && (
                 <div className="lc-report">
                     <div className="lc-report-header">
-                        <h3>📊 세션 리포트</h3>
-                        <div className="lc-grade-badge" data-grade={sessionReport.grade}>
-                            {sessionReport.grade}
-                        </div>
+                        <h3>📊 세션 리포트 {sessionReport.isGemini && <span className="lc-gemini-tag">✨ Gemini 7차원</span>}</h3>
+                        {sessionReport.grade && (
+                            <div className="lc-grade-badge" data-grade={sessionReport.grade}>
+                                {sessionReport.grade}
+                            </div>
+                        )}
                     </div>
 
                     {/* Summary stats */}
@@ -544,39 +477,76 @@ function LiveCoaching() {
                             <div className="lc-sum-lbl">평균 WPM</div>
                         </div>
                         <div className="lc-sum-item">
-                            <div className="lc-sum-val">{sessionReport.fillerCount}</div>
-                            <div className="lc-sum-lbl">필러 횟수</div>
-                        </div>
-                        <div className="lc-sum-item">
                             <div className="lc-sum-val">{(sessionReport.silenceRatio * 100).toFixed(0)}%</div>
                             <div className="lc-sum-lbl">침묵 비율</div>
                         </div>
                         <div className="lc-sum-item">
                             <div className="lc-sum-val">{sessionReport.uniqueWords}</div>
-                            <div className="lc-sum-lbl">어휘 다양성</div>
+                            <div className="lc-sum-lbl">고유 어휘</div>
                         </div>
                     </div>
 
-                    {/* 발화·동작 모니터링 지표 (bar-style) */}
-                    <div className="lc-dims-section">
-                        <h4>📐 발화·동작 모니터링</h4>
-                        <div className="lc-dims-list">
-                            {sessionReport.dimensions.map((d, i) => (
-                                <div key={i} className="lc-dim-row">
-                                    <div className="lc-dim-name">{d.icon} {d.name}</div>
-                                    <div className="lc-dim-bar-track">
-                                        <div className="lc-dim-bar-fill" style={{
-                                            width: `${d.score}%`,
-                                            background: d.score >= 80 ? 'linear-gradient(90deg, #00e676, #00d2ff)'
-                                                : d.score >= 60 ? 'linear-gradient(90deg, #ffc107, #ff9800)'
-                                                    : 'linear-gradient(90deg, #ff5252, #ff8a80)'
-                                        }}></div>
+                    {/* 7차원 교원임용 평가 (Gemini) */}
+                    {sessionReport.dimensions && (
+                        <div className="lc-dims-section">
+                            <h4>📐 7차원 수업 평가</h4>
+                            <div className="lc-dims-list">
+                                {sessionReport.dimensions.map((d, i) => (
+                                    <div key={i} className="lc-dim-row">
+                                        <div className="lc-dim-name">{DIM_ICONS[d.name] || '📊'} {d.name}</div>
+                                        <div className="lc-dim-bar-track">
+                                            <div className="lc-dim-bar-fill" style={{
+                                                width: `${d.percentage}%`,
+                                                background: d.percentage >= 80 ? 'linear-gradient(90deg, #00e676, #00d2ff)'
+                                                    : d.percentage >= 60 ? 'linear-gradient(90deg, #ffc107, #ff9800)'
+                                                        : 'linear-gradient(90deg, #ff5252, #ff8a80)'
+                                            }}></div>
+                                        </div>
+                                        <div className="lc-dim-score">{d.score}/{d.max_score}</div>
                                     </div>
-                                    <div className="lc-dim-score">{d.score}</div>
-                                </div>
-                            ))}
+                                ))}
+                                {sessionReport.dimensions.map((d, i) => (
+                                    d.feedback && (
+                                        <div key={`fb-${i}`} className="lc-dim-feedback">
+                                            <strong>{DIM_ICONS[d.name] || '📊'} {d.name}:</strong> {d.feedback}
+                                        </div>
+                                    )
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* API Key 없을 때 안내 */}
+                    {!sessionReport.isGemini && (
+                        <div className="lc-no-gemini">
+                            <p>💡 <strong>Google API Key</strong>를 설정하면 세션 종료 시 Gemini AI가 7차원 수업 평가를 수행합니다.</p>
+                            <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>설정 → 🔑 API Key 설정 (수업 분석 페이지에서 가능)</p>
+                        </div>
+                    )}
+
+                    {/* 강점 / 개선점 */}
+                    {sessionReport.strengths && sessionReport.strengths.length > 0 && (
+                        <div className="lc-feedback-section">
+                            <div className="lc-feedback-box lc-strengths">
+                                <h4>✅ 강점</h4>
+                                <ul>{sessionReport.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                            </div>
+                            {sessionReport.improvements && sessionReport.improvements.length > 0 && (
+                                <div className="lc-feedback-box lc-improvements">
+                                    <h4>🔧 개선점</h4>
+                                    <ul>{sessionReport.improvements.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 종합 피드백 */}
+                    {sessionReport.overall_feedback && (
+                        <div className="lc-overall-feedback">
+                            <h4>💬 종합 피드백</h4>
+                            <p>{sessionReport.overall_feedback}</p>
+                        </div>
+                    )}
 
                     {/* WPM chart */}
                     {wpmHistory.length > 1 && (
@@ -612,10 +582,12 @@ function LiveCoaching() {
                     </div>
 
                     {/* Overall Score */}
-                    <div className="lc-overall">
-                        <div className="lc-overall-score">{sessionReport.overall}<span className="lc-overall-unit">점</span></div>
-                        <div className="lc-overall-label">종합 전달력</div>
-                    </div>
+                    {sessionReport.overall != null && (
+                        <div className="lc-overall">
+                            <div className="lc-overall-score">{sessionReport.overall}<span className="lc-overall-unit">점</span></div>
+                            <div className="lc-overall-label">7차원 종합 점수</div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -846,6 +818,73 @@ function LiveCoaching() {
 .lc-overall-unit { font-size: 1rem; }
 .lc-overall-label { font-size: 0.85rem; color: #999; margin-top: 0.2rem; }
 
+/* ═══ ANALYZING PHASE ═══ */
+.lc-analyzing {
+    text-align: center; padding: 3rem 1rem;
+    background: rgba(26,26,46,0.8); border-radius: 16px;
+    border: 1px solid rgba(108,99,255,0.2);
+}
+.lc-analyzing h3 {
+    font-size: 1.2rem; margin: 1.2rem 0 0.5rem;
+    background: linear-gradient(90deg, #00d2ff, #6c63ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.lc-analyzing p { color: #999; font-size: 0.85rem; }
+.lc-analyzing-spinner {
+    width: 48px; height: 48px; margin: 0 auto;
+    border: 4px solid rgba(108,99,255,0.2); border-top-color: #6c63ff;
+    border-radius: 50%; animation: lcSpin 0.8s linear infinite;
+}
+@keyframes lcSpin { to { transform: rotate(360deg); } }
+
+/* ═══ GEMINI TAG ═══ */
+.lc-gemini-tag {
+    display: inline-block; font-size: 0.7rem; font-weight: 700;
+    background: linear-gradient(135deg, #6c63ff, #00d2ff); color: #fff;
+    padding: 0.15rem 0.5rem; border-radius: 8px; margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+/* ═══ DIMENSION FEEDBACK ═══ */
+.lc-dim-feedback {
+    background: rgba(108,99,255,0.06); border-radius: 8px;
+    padding: 0.6rem 0.8rem; margin-top: 0.5rem;
+    font-size: 0.82rem; color: #bbb; line-height: 1.5;
+    border-left: 3px solid rgba(108,99,255,0.3);
+}
+.lc-dim-feedback strong { color: #ddd; }
+
+/* ═══ STRENGTHS / IMPROVEMENTS ═══ */
+.lc-feedback-section {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;
+}
+.lc-feedback-box {
+    background: rgba(26,26,46,0.8); border-radius: 12px;
+    padding: 1rem; border: 1px solid rgba(108,99,255,0.1);
+}
+.lc-feedback-box h4 { font-size: 0.95rem; margin-bottom: 0.6rem; }
+.lc-feedback-box ul { padding-left: 1rem; margin: 0; }
+.lc-feedback-box li { color: #bbb; font-size: 0.85rem; margin-bottom: 0.3rem; line-height: 1.5; }
+.lc-strengths { border-left: 3px solid #00e676; }
+.lc-improvements { border-left: 3px solid #ffc107; }
+
+/* ═══ OVERALL FEEDBACK ═══ */
+.lc-overall-feedback {
+    background: rgba(26,26,46,0.8); border-radius: 12px;
+    padding: 1rem 1.2rem; margin-top: 1rem;
+    border: 1px solid rgba(108,99,255,0.15);
+}
+.lc-overall-feedback h4 { font-size: 0.95rem; margin-bottom: 0.5rem; color: #ddd; }
+.lc-overall-feedback p { color: #bbb; font-size: 0.85rem; line-height: 1.6; }
+
+/* ═══ NO-GEMINI INFO ═══ */
+.lc-no-gemini {
+    background: rgba(255,193,7,0.08); border-radius: 12px;
+    padding: 1rem 1.2rem; margin-top: 1rem;
+    border: 1px solid rgba(255,193,7,0.2); text-align: center;
+}
+.lc-no-gemini p { color: #ccc; font-size: 0.88rem; margin: 0.3rem 0; }
+
 /* ═══ IDLE INFO ═══ */
 .lc-info { display: flex; flex-direction: column; gap: 1rem; }
 .lc-info-card {
@@ -885,6 +924,7 @@ function LiveCoaching() {
     .lc-summary-grid { grid-template-columns: 1fr 1fr; }
     .lc-controls { flex-wrap: wrap; }
     .lc-cam-box { min-height: 140px; }
+    .lc-feedback-section { grid-template-columns: 1fr; }
 }
             `}</style>
         </div>
