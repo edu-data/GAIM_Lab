@@ -12,21 +12,21 @@ const agentPipeline = [
 ]
 
 const features = [
+    { icon: '💬', title: 'AI 코치 챗봇', desc: '교육학 석학 7인과 1:1 Gemini 대화 코칭', badge: 'v8.3', link: '/mentor', color: '#a855f7' },
+    { icon: '🔄', title: '429 자동 재시도', desc: 'Rate Limit 지수 백오프 (3s→6s→12s)', badge: 'v8.3', link: '/mentor', color: '#a855f7' },
     { icon: '🔴', title: '실시간 코칭 7차원', desc: 'Gemini AI 기반 7차원 수업 평가', badge: 'v8.2', link: '/live', color: '#ef4444' },
     { icon: '🔐', title: '클라이언트 인증', desc: 'GitHub Pages 로그인/회원가입', badge: 'v8.2', link: '/login', color: '#ef4444' },
     { icon: '📈', title: '통계 모듈', desc: "Welch's t-test, Cohen's d 직접 구현", badge: 'v8.2', link: '/cohort', color: '#ef4444' },
-    { icon: '📄', title: 'PDF 내보내기', desc: '분석 결과 PDF 저장', badge: 'v8.1', link: '/upload', color: '#f59e0b' },
-    { icon: '🤖', title: 'AI 코치 매칭', desc: '7차원 기반 AI 에이전트 코칭', badge: 'v8.2', link: '/mentor', color: '#f59e0b' },
     { icon: '🤖', title: 'Gemini 7차원 전면 평가', desc: '모든 차원 LLM 평가 (avg +16pt)', badge: 'v8.0', link: '/upload', color: '#f59e0b' },
     { icon: '🎬', title: '클라이언트 사이드 분석', desc: '브라우저에서 직접 영상 분석', badge: 'v8.0', link: '/agents', color: '#3b82f6' },
     { icon: '🎯', title: '성장 경로', desc: '4/8/12주 맞춤 개선 로드맵', badge: 'v7.1', link: '/growth', color: '#3b82f6' },
 ]
 
 const quickActions = [
+    { icon: '💬', title: 'AI 코치', desc: '교육학 석학 7인 1:1 챗봇 코칭', link: '/mentor', color: '#a855f7' },
     { icon: '🎬', title: '수업 분석', desc: '영상 업로드 후 AI 7차원 평가', link: '/upload', color: '#6366f1' },
-    { icon: '🤖', title: 'MAS 분석', desc: '8개 에이전트 파이프라인 실행', link: '/agents', color: '#8b5cf6' },
+    { icon: '🔴', title: '실시간 코칭', desc: '카메라 녹화 → Gemini 7차원 평가', link: '/live', color: '#ef4444' },
     { icon: '📈', title: '성장보고서', desc: '차원별 추세·맞춤 로드맵', link: '/growth', color: '#06b6d4' },
-    { icon: '🔬', title: '코호트 비교', desc: '집단 간 통계 비교 분석', link: '/cohort', color: '#34d399' },
 ]
 
 const agents = [
@@ -47,16 +47,16 @@ function HomePage() {
             <section className="hero">
                 <div className="hero-badge">
                     <span className="hero-dot"></span>
-                    v8.2 — GitHub Pages 풀스택 · Gemini 실시간 코칭 · 클라이언트 인증
+                    v8.3 — AI 코치 Gemini 챗봇 · 교육학 석학 7인 페르소나 · 실시간 코칭
                 </div>
                 <h1 className="hero-title">
                     <span className="hero-title-gradient">멀티 에이전트</span>
                     <br />수업 분석 플랫폼
                 </h1>
                 <p className="hero-desc">
-                    8개 AI 에이전트가 협업하여 수업 영상을 <strong>7차원 100점 만점</strong>으로
-                    자동 평가합니다. 실시간 코칭, 코호트 비교, 성장 로드맵까지 —
-                    교원 양성의 새로운 패러다임.
+                    8개 AI 에이전트가 수업 영상을 <strong>7차원 100점 만점</strong>으로 자동 평가하고,
+                    <strong>교육학 석학 7인의 AI 코치</strong>가 1:1 Gemini 챗봇으로 맞춤 코칭합니다.
+                    분석 · 코칭 · 성장 — 교원 양성의 새로운 패러다임.
                 </p>
                 <div className="hero-actions">
                     <Link to="/upload" className="btn btn-primary btn-lg">🎬 수업 분석 시작</Link>
@@ -144,7 +144,7 @@ function HomePage() {
             <section className="home-section">
                 <div className="section-header">
                     <h2>🚀 주요 기능</h2>
-                    <p>Gemini 7차원 평가, 클라이언트 인증, 실시간 코칭, 통계 분석 ✅</p>
+                    <p>AI 코치 챗봇, Gemini 7차원 평가, 실시간 코칭, 통계 분석 ✅</p>
                 </div>
                 <div className="features-grid">
                     {features.map((feat, i) => (
@@ -194,7 +194,7 @@ function HomePage() {
             <section className="home-section">
                 <div className="section-header">
                     <h2>📊 분석 결과 요약</h2>
-                    <p>GAIM Lab v8.0 — 18개 영상 분석 결과</p>
+                    <p>GAIM Lab v8.3 — 18개 영상 분석 결과</p>
                 </div>
                 <div className="results-grid">
                     <div className="result-card">
