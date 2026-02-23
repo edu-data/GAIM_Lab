@@ -1,6 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useCamera } from '../hooks/useCamera'
-import { analyzeTranscript, getStoredApiKey } from '../lib/clientAnalyzer'
+import { analyzeVideoClient, getStoredApiKey } from '../lib/clientAnalyzer'
+
+// 8에이전트 파이프라인 정의
+const AGENTS = [
+    { id: 'extractor', icon: '📦', name: 'Extractor', desc: '프레임 추출' },
+    { id: 'vision', icon: '👁️', name: 'Vision', desc: '비전 분석' },
+    { id: 'content', icon: '🎨', name: 'Content', desc: '콘텐츠 분석' },
+    { id: 'stt', icon: '🗣️', name: 'STT', desc: '음성 인식' },
+    { id: 'vibe', icon: '🔊', name: 'Vibe', desc: '프로소디' },
+    { id: 'pedagogy', icon: '📚', name: 'Pedagogy', desc: '교육학 평가' },
+    { id: 'feedback', icon: '💡', name: 'Feedback', desc: '피드백 생성' },
+    { id: 'master', icon: '🧠', name: 'Master', desc: '종합 보고서' },
+]
 
 
 // ── 코칭 팁 생성 ──
@@ -35,6 +47,8 @@ function LiveCoaching() {
     const [phase, setPhase] = useState('idle') // idle | recording | analyzing | done
     const [elapsed, setElapsed] = useState(0)
     const [analyzeMsg, setAnalyzeMsg] = useState('')
+    const [analyzeProgress, setAnalyzeProgress] = useState(0)
+    const [agentStates, setAgentStates] = useState({}) // {agentId: 'idle'|'running'|'done'}
     const [transcript, setTranscript] = useState([]) // {text, time}
     const [metrics, setMetrics] = useState({ wpm: 0, fillerCount: 0, silenceRatio: 0, totalWords: 0 })
     const [tips, setTips] = useState([])
@@ -54,9 +68,13 @@ function LiveCoaching() {
         })
     }, [])
 
-    const { videoRef, canvasRef, cameraOn, error: cameraError, metrics: videoMetrics, startCamera, stopCamera, resetMetrics: resetCameraMetrics } = useCamera({
+    const { videoRef, canvasRef, streamRef, cameraOn, error: cameraError, metrics: videoMetrics, startCamera, stopCamera, resetMetrics: resetCameraMetrics } = useCamera({
         onFrame: onCameraFrame
     })
+
+    // MediaRecorder for video capture
+    const mediaRecorderRef = useRef(null)
+    const recordedChunksRef = useRef([])
 
     const recognitionRef = useRef(null)
     const timerRef = useRef(null)
@@ -176,6 +194,23 @@ function LiveCoaching() {
     // startCamera, stopCamera, videoRef, canvasRef, cameraOn, videoMetrics
     // 모두 useCamera 훅에서 제공 (L60~74 참조)
 
+    // ── MediaRecorder 시작 (카메라 스트림 확보 후) ──
+    const startMediaRecorder = useCallback(() => {
+        const stream = streamRef.current
+        if (!stream) return
+        recordedChunksRef.current = []
+        try {
+            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
+                : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : ''
+            const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {})
+            recorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data) }
+            recorder.start(1000) // 1초 단위 청크
+            mediaRecorderRef.current = recorder
+        } catch (err) {
+            console.warn('[LiveCoaching] MediaRecorder init failed:', err)
+        }
+    }, [streamRef])
+
     // ── 세션 시작 ──
     const startSession = () => {
         // 초기화
@@ -187,12 +222,15 @@ function LiveCoaching() {
         setSessionReport(null)
         setInterimText('')
         setElapsed(0)
+        setAnalyzeProgress(0)
+        setAgentStates({})
         resetCameraMetrics()
         setMovementHistory([])
         allWordsRef.current = []
         wpmWindowRef.current = []
         silenceCountRef.current = 0
         totalSegmentsRef.current = 0
+        recordedChunksRef.current = []
 
         startTimeRef.current = Date.now()
         startTimeRef_cam.current = Date.now() // sync for movement history elapsed
@@ -209,10 +247,29 @@ function LiveCoaching() {
         // 카메라는 useEffect에서 phase='recording' 후 DOM 렌더 완료 시 시작
     }
 
+    // ── 에이전트 상태 업데이트 헬퍼 ──
+    const setAgentRunning = (id) => setAgentStates(prev => ({ ...prev, [id]: 'running' }))
+    const setAgentDone = (id) => setAgentStates(prev => ({ ...prev, [id]: 'done' }))
+
     // ── 세션 종료 ──
     const stopSession = async () => {
         if (recognitionRef.current) { const r = recognitionRef.current; recognitionRef.current = null; r.stop() }
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+
+        // MediaRecorder 정지 → Blob 생성
+        const videoBlob = await new Promise((resolve) => {
+            const recorder = mediaRecorderRef.current
+            if (recorder && recorder.state !== 'inactive') {
+                recorder.onstop = () => {
+                    const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || 'video/webm' })
+                    resolve(blob)
+                }
+                recorder.stop()
+            } else {
+                resolve(null)
+            }
+        })
+        mediaRecorderRef.current = null
         stopCamera()
 
         const durationSec = (Date.now() - startTimeRef.current) / 1000
@@ -231,19 +288,38 @@ function LiveCoaching() {
             uniqueWords,
         }
 
-        // Gemini 7차원 분석 시도
+        // 8에이전트 Gemini 영상 분석
         const apiKey = getStoredApiKey()
-        if (apiKey && totalWords > 5) {
+        if (apiKey && videoBlob && videoBlob.size > 0) {
             setPhase('analyzing')
-            setAnalyzeMsg('🤖 Gemini AI로 7차원 평가 중...')
+            setAnalyzeProgress(0)
+            setAgentStates(Object.fromEntries(AGENTS.map(a => [a.id, 'idle'])))
+            setAnalyzeMsg('📦 영상 프레임 추출 중...')
+
             try {
-                const result = await analyzeTranscript({
-                    transcript: allText,
-                    durationSec, avgWpm, totalWords, silenceRatio,
+                const videoFile = new File([videoBlob], `live_session_${Date.now()}.webm`, { type: videoBlob.type })
+
+                // 전사 텍스트 데이터
+                const transcriptData = totalWords > 5 ? {
+                    text: allText,
+                    durationSec,
+                    avgWpm,
                     fillerCount: metrics.fillerCount,
-                    uniqueWords,
-                    videoMetrics: { avgMovement: videoMetrics.avgMovement, gestureCount: videoMetrics.gestureCount }
-                }, apiKey)
+                    silenceRatio,
+                } : null
+
+                const result = await analyzeVideoClient(videoFile, apiKey, (progress, msg) => {
+                    setAnalyzeProgress(progress)
+                    setAnalyzeMsg(msg)
+
+                    // 에이전트 상태 매핑 (진행률 기반)
+                    if (progress >= 5) { setAgentRunning('extractor') }
+                    if (progress >= 15) { setAgentDone('extractor'); setAgentRunning('vision'); setAgentRunning('content'); setAgentRunning('stt'); setAgentRunning('vibe') }
+                    if (progress >= 50) { setAgentDone('vision'); setAgentDone('content'); setAgentDone('stt'); setAgentDone('vibe'); setAgentRunning('pedagogy') }
+                    if (progress >= 70) { setAgentDone('pedagogy'); setAgentRunning('feedback') }
+                    if (progress >= 85) { setAgentDone('feedback'); setAgentRunning('master') }
+                    if (progress >= 95) { setAgentDone('master') }
+                }, transcriptData)
 
                 setSessionReport({
                     ...baseReport,
@@ -258,8 +334,8 @@ function LiveCoaching() {
                 setPhase('done')
                 return
             } catch (e) {
-                console.error('[LiveCoaching] Gemini analysis failed:', e)
-                setAnalyzeMsg('⚠️ Gemini 분석 실패, 기본 평가로 전환...')
+                console.error('[LiveCoaching] 8-agent analysis failed:', e)
+                setAnalyzeMsg('⚠️ 영상 분석 실패, 기본 평가로 전환...')
                 await new Promise(r => setTimeout(r, 1500))
             }
         }
@@ -292,6 +368,13 @@ function LiveCoaching() {
             return () => cancelAnimationFrame(raf)
         }
     }, [phase, startCamera])
+
+    // ── 카메라 켜지면 MediaRecorder 시작 ──
+    useEffect(() => {
+        if (cameraOn && phase === 'recording') {
+            startMediaRecorder()
+        }
+    }, [cameraOn, phase, startMediaRecorder])
 
     // auto-scroll transcript
     useEffect(() => {
@@ -441,12 +524,36 @@ function LiveCoaching() {
                 </div>
             )}
 
-            {/* ── Analyzing Phase ── */}
+            {/* ── Analyzing Phase — 8에이전트 파이프라인 ── */}
             {phase === 'analyzing' && (
                 <div className="lc-analyzing">
-                    <div className="lc-analyzing-spinner"></div>
-                    <h3>{analyzeMsg}</h3>
-                    <p>전사 텍스트와 발화 데이터를 Gemini AI에 전송하여 7차원 수업 평가를 진행합니다.</p>
+                    <h3>🤖 8에이전트 수업 분석 중</h3>
+                    <p>{analyzeMsg}</p>
+
+                    {/* 진행률 바 */}
+                    <div className="lc-analyze-progress">
+                        <div className="lc-analyze-bar" style={{ width: `${analyzeProgress}%` }}></div>
+                    </div>
+                    <div className="lc-analyze-pct">{Math.round(analyzeProgress)}%</div>
+
+                    {/* 에이전트 파이프라인 */}
+                    <div className="lc-agent-pipeline">
+                        {AGENTS.map((agent) => {
+                            const state = agentStates[agent.id] || 'idle'
+                            return (
+                                <div key={agent.id} className={`lc-agent-card lc-agent-${state}`}>
+                                    <div className="lc-agent-icon">{agent.icon}</div>
+                                    <div className="lc-agent-name">{agent.name}</div>
+                                    <div className="lc-agent-desc">{agent.desc}</div>
+                                    <div className="lc-agent-status">
+                                        {state === 'idle' && '⏳'}
+                                        {state === 'running' && <span className="lc-agent-spinner"></span>}
+                                        {state === 'done' && '✅'}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
                 </div>
             )}
 
@@ -454,7 +561,7 @@ function LiveCoaching() {
             {phase === 'done' && sessionReport && (
                 <div className="lc-report">
                     <div className="lc-report-header">
-                        <h3>📊 세션 리포트 {sessionReport.isGemini && <span className="lc-gemini-tag">✨ Gemini 7차원</span>}</h3>
+                        <h3>📊 세션 리포트 {sessionReport.isGemini && <span className="lc-gemini-tag">✨ 8에이전트 7차원</span>}</h3>
                         {sessionReport.grade && (
                             <div className="lc-grade-badge" data-grade={sessionReport.grade}>
                                 {sessionReport.grade}
@@ -519,7 +626,7 @@ function LiveCoaching() {
                     {/* API Key 없을 때 안내 */}
                     {!sessionReport.isGemini && (
                         <div className="lc-no-gemini">
-                            <p>💡 <strong>Google API Key</strong>를 설정하면 세션 종료 시 Gemini AI가 7차원 수업 평가를 수행합니다.</p>
+                            <p>💡 <strong>Google API Key</strong>를 설정하면 세션 종료 시 8에이전트가 녹화된 영상을 분석하여 7차원 수업 평가를 수행합니다.</p>
                             <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>설정 → 🔑 API Key 설정 (수업 분석 페이지에서 가능)</p>
                         </div>
                     )}
@@ -837,6 +944,54 @@ function LiveCoaching() {
 }
 @keyframes lcSpin { to { transform: rotate(360deg); } }
 
+/* ═══ 8-AGENT PROGRESS BAR ═══ */
+.lc-analyze-progress {
+    width: 100%; height: 6px; background: rgba(108,99,255,0.15);
+    border-radius: 3px; margin: 1rem 0 0.5rem; overflow: hidden;
+}
+.lc-analyze-bar {
+    height: 100%; border-radius: 3px; transition: width 0.4s ease;
+    background: linear-gradient(90deg, #6c63ff, #00d2ff, #00e676);
+    background-size: 200% 200%; animation: shimmer 2s linear infinite;
+}
+@keyframes shimmer { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+.lc-analyze-pct { color: #6c63ff; font-weight: 700; font-size: 0.9rem; }
+
+/* ═══ 8-AGENT PIPELINE CARDS ═══ */
+.lc-agent-pipeline {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem;
+    margin-top: 1.2rem;
+}
+.lc-agent-card {
+    background: rgba(26,26,46,0.6); border-radius: 10px;
+    padding: 0.7rem 0.5rem; text-align: center;
+    border: 1px solid rgba(108,99,255,0.1); transition: all 0.3s ease;
+    position: relative;
+}
+.lc-agent-idle { opacity: 0.5; }
+.lc-agent-running {
+    opacity: 1; border-color: rgba(108,99,255,0.5);
+    box-shadow: 0 0 12px rgba(108,99,255,0.2);
+    animation: agentPulse 1.5s ease-in-out infinite;
+}
+.lc-agent-done {
+    opacity: 1; border-color: rgba(0,230,118,0.4);
+    background: rgba(0,230,118,0.06);
+}
+@keyframes agentPulse {
+    0%,100% { box-shadow: 0 0 8px rgba(108,99,255,0.15); }
+    50% { box-shadow: 0 0 18px rgba(108,99,255,0.35); }
+}
+.lc-agent-icon { font-size: 1.5rem; margin-bottom: 0.3rem; }
+.lc-agent-name { font-size: 0.75rem; font-weight: 700; color: #e0e0e0; }
+.lc-agent-desc { font-size: 0.65rem; color: #888; margin-top: 0.15rem; }
+.lc-agent-status { margin-top: 0.4rem; font-size: 0.85rem; min-height: 1.2rem; }
+.lc-agent-spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(108,99,255,0.2); border-top-color: #6c63ff;
+    border-radius: 50%; animation: lcSpin 0.6s linear infinite;
+}
+
 /* ═══ GEMINI TAG ═══ */
 .lc-gemini-tag {
     display: inline-block; font-size: 0.7rem; font-weight: 700;
@@ -925,6 +1080,7 @@ function LiveCoaching() {
     .lc-controls { flex-wrap: wrap; }
     .lc-cam-box { min-height: 140px; }
     .lc-feedback-section { grid-template-columns: 1fr; }
+    .lc-agent-pipeline { grid-template-columns: repeat(2, 1fr); }
 }
             `}</style>
         </div>

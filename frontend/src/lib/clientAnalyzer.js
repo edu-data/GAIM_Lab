@@ -215,9 +215,15 @@ function convertToFrontendFormat(geminiResult) {
  * @param {File} videoFile - 분석할 비디오 파일
  * @param {string} apiKey - Google API Key
  * @param {Function} onProgress - 진행 콜백 (0~100, message)
+ * @param {Object} [transcriptData] - 실시간 코칭 전사 데이터 (선택)
+ * @param {string} [transcriptData.text] - 전사 텍스트
+ * @param {number} [transcriptData.durationSec] - 세션 시간 (초)
+ * @param {number} [transcriptData.avgWpm] - 평균 WPM
+ * @param {number} [transcriptData.fillerCount] - 필러 단어 수
+ * @param {number} [transcriptData.silenceRatio] - 침묵 비율
  * @returns {Promise<Object>} 프론트엔드 형식의 분석 결과
  */
-export async function analyzeVideoClient(videoFile, apiKey, onProgress = () => { }) {
+export async function analyzeVideoClient(videoFile, apiKey, onProgress = () => { }, transcriptData = null) {
     if (!apiKey) throw new Error('Google API Key가 필요합니다.')
 
     onProgress(5, '📤 비디오 프레임 추출 중...')
@@ -242,8 +248,14 @@ export async function analyzeVideoClient(videoFile, apiKey, onProgress = () => {
 
     onProgress(50, '🤖 AI가 수업을 분석하고 있어요...')
 
+    // 프롬프트 구성: 기본 평가 + 전사 텍스트 보강
+    const promptParts = [EVALUATION_PROMPT]
+    if (transcriptData?.text && transcriptData.text.length > 10) {
+        promptParts.push(`\n\n[추가 데이터 — 실시간 전사 텍스트]\n아래는 이 수업의 음성 전사 텍스트입니다. 영상 프레임과 함께 종합적으로 평가하세요.\n\n전사 텍스트: "${transcriptData.text}"\n세션 시간: ${Math.round(transcriptData.durationSec || 0)}초\n평균 말하기 속도: ${Math.round(transcriptData.avgWpm || 0)} WPM\n필러 단어 수: ${transcriptData.fillerCount || 0}\n침묵 비율: ${Math.round((transcriptData.silenceRatio || 0) * 100)}%`)
+    }
+
     const result = await model.generateContent([
-        EVALUATION_PROMPT,
+        ...promptParts,
         ...imageParts,
     ])
 

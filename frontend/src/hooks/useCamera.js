@@ -241,6 +241,8 @@ export function useCamera(options = {}) {
         // refs to attach to DOM elements
         videoRef,
         canvasRef,
+        // stream ref (for MediaRecorder in LiveCoaching)
+        streamRef,
         // state
         cameraOn,
         error,
